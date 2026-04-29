@@ -1,78 +1,125 @@
-## Project
+## 프로젝트
 
-- This is a Next.js App Router project.
-- Use TypeScript.
-- Use pnpm as the package manager.
-- Use Tailwind CSS for styling.
-- Prefer Server Components by default.
-- Use Client Components only when interactivity, browser APIs, or React hooks are required.
+- 이 프로젝트는 Next.js App Router 프로젝트입니다.
+- TypeScript를 사용합니다.
+- 패키지 매니저는 pnpm을 사용합니다.
+- 스타일링은 Tailwind CSS를 사용합니다.
+- 기본적으로 Server Components를 우선 사용합니다.
+- 상호작용, 브라우저 API, React hooks가 필요한 경우에만 Client Components를 사용합니다.
 
-## Product Direction
+## 제품 방향
 
-- This project is a TCG price tracking and community service.
-- Design for future expansion into secondhand trading and auctions.
-- Keep user-facing flows practical, searchable, and scalable.
-- Prioritize clear data models, server-side validation, and SEO-friendly pages.
+- 이 프로젝트는 TCG 가격 추적 및 커뮤니티 서비스입니다.
+- 향후 중고 거래와 경매 기능으로 확장할 수 있도록 설계합니다.
+- 사용자 흐름은 실용적이고 검색 가능하며 확장 가능하게 유지합니다.
+- 명확한 데이터 모델, 서버 사이드 검증, SEO 친화적인 페이지를 우선합니다.
 
-## Commands
+## 명령어
 
-- Install dependencies: `pnpm install`
-- Start dev server: `pnpm dev`
-- Build: `pnpm build`
-- Lint: `pnpm lint`
-- Format: `pnpm format`
-- Check formatting: `pnpm format:check`
+- 의존성 설치: `pnpm install`
+- 개발 서버 실행: `pnpm dev`
+- 빌드: `pnpm build`
+- 린트: `pnpm lint`
+- 포맷: `pnpm format`
+- 포맷 확인: `pnpm format:check`
 
-## Formatting
+## 포맷팅
 
-- Use Prettier with the project `.prettierrc`.
-- Use `prettier-plugin-tailwindcss` for Tailwind class sorting.
-- Use single quotes.
-- Use semicolons.
-- Use 2 spaces for indentation.
-- Keep line width around 100 characters.
-- Run `pnpm format` after broad code changes.
+- 프로젝트의 `.prettierrc` 설정을 따릅니다.
+- Tailwind 클래스 정렬에는 `prettier-plugin-tailwindcss`를 사용합니다.
+- 문자열은 작은따옴표를 우선 사용하되, 이스케이프가 많아져 가독성이 떨어지면 예외를 허용합니다.
+- 세미콜론을 사용합니다.
+- 들여쓰기는 공백 2칸을 사용합니다. 탭은 사용하지 않습니다.
+- 한 줄 길이는 약 100자 안팎으로 유지합니다.
+- 변수나 표현식이 포함된 문자열에는 템플릿 리터럴을 사용합니다.
+- 변경 범위가 넓은 경우 `pnpm format`을 실행합니다.
 
-## Coding Rules
+## 파일 및 네이밍 규칙
 
-- Make small, focused changes.
-- Follow the existing file structure and naming conventions.
-- Do not add a new UI library unless explicitly requested.
-- Do not add unnecessary abstractions.
-- Do not change lockfiles unless dependencies are added, removed, or updated.
-- Do not commit secrets or hard-code API keys.
-- Use environment variables for credentials and service configuration.
+- 디렉토리는 `kebab-case`를 사용합니다.
+- 컴포넌트 파일은 `PascalCase`를 사용합니다. 예: `UserProfileCard.tsx`.
+- 커스텀 hooks는 `use` 접두사와 `camelCase`를 사용합니다. 예: `useAuth.ts`.
+- 유틸리티와 헬퍼 파일은 `camelCase`를 사용합니다. 예: `formatDate.ts`.
+- 전용 타입 파일은 `camelCase.types.ts` 형식을 사용합니다.
+- 변수와 함수는 `camelCase`를 사용합니다.
+- 불리언 변수는 가독성이 좋아지는 경우 `is`, `has`, `can` 접두사를 사용합니다.
+- 상수는 `UPPER_SNAKE_CASE`를 사용합니다.
+- 타입과 인터페이스는 `PascalCase`를 사용합니다.
+- 인터페이스 이름에는 `I` 접두사를 붙이지 않습니다.
 
-## Next.js Rules
+## 코딩 규칙
 
-- Use App Router patterns.
-- Prefer route handlers for server APIs.
-- Validate all user input on the server.
-- Keep database writes on the server.
-- Use metadata for SEO-relevant pages.
-- Avoid putting sensitive logic in Client Components.
+- 작고 집중된 변경을 만듭니다.
+- 기존 파일 구조와 네이밍 컨벤션을 따릅니다.
+- 명시적인 요청이 없으면 새 UI 라이브러리를 추가하지 않습니다.
+- 불필요한 추상화를 추가하지 않습니다.
+- 의존성을 추가, 제거, 업데이트하지 않는 한 lockfile을 변경하지 않습니다.
+- secret이나 API key를 커밋하거나 하드코딩하지 않습니다.
+- 인증 정보와 서비스 설정은 환경 변수를 사용합니다.
+- `any` 사용을 피하고, 실용적인 범위에서 명시적인 타입을 사용합니다.
+- 객체 형태의 타입에는 `interface`를 우선 사용합니다.
+- 유니온, 인터섹션 등 복합 타입에는 `type` alias를 우선 사용합니다.
+- 클래스 컴포넌트 대신 함수형 컴포넌트와 hooks를 사용합니다.
+- 이벤트 핸들러는 `handle` 접두사를 사용합니다. 예: `handleClick`, `handleChange`.
+- 주석은 명확하지 않은 동작을 설명할 때만 작성합니다.
+- export되거나 재사용되거나 복잡한 함수에는 간결한 JSDoc을 권장합니다.
 
-## UI Rules
+## Next.js 규칙
 
-- Use Tailwind CSS.
-- Keep layouts responsive from mobile to desktop.
-- Use accessible buttons, labels, forms, and focus states.
-- Avoid oversized marketing-style sections for app screens.
-- Build the actual usable product screen first, not a landing page, unless requested.
+- App Router 패턴을 사용합니다.
+- 서버 API에는 route handler를 우선 사용합니다.
+- 모든 사용자 입력은 서버에서 검증합니다.
+- 데이터베이스 쓰기 작업은 서버에서 처리합니다.
+- SEO가 중요한 페이지에는 metadata를 사용합니다.
+- 민감한 로직을 Client Components에 두지 않습니다.
 
-## Data And Infrastructure
+## UI 규칙
 
-- Planned stack:
-  - Vercel for hosting
-  - Supabase Postgres for database
-  - Supabase Auth or Clerk for authentication
-  - Supabase Storage or Cloudflare R2 for images
-  - Upstash Redis for caching, rate limiting, and queues
-  - Resend for email
+- Tailwind CSS를 사용합니다.
+- 모바일부터 데스크톱까지 반응형 레이아웃을 유지합니다.
+- 버튼, 라벨, 폼, 포커스 상태는 접근성을 고려해 작성합니다.
+- 앱 화면에는 과하게 큰 마케팅형 섹션을 피합니다.
+- 별도 요청이 없는 한 랜딩 페이지보다 실제 사용 가능한 제품 화면을 먼저 만듭니다.
 
-## Verification
+## 데이터 및 인프라
 
-- Before finishing code changes, run `pnpm lint` when available.
-- For larger changes, run `pnpm build`.
-- If formatting changes are broad, run `pnpm format:check`.
-- If a command fails, explain what failed and why.
+- 예정된 스택:
+  - 호스팅: Vercel
+  - 데이터베이스: Supabase Postgres
+  - 인증: Supabase Auth 또는 Clerk
+  - 이미지 저장소: Supabase Storage 또는 Cloudflare R2
+  - 캐싱, rate limiting, queue: Upstash Redis
+  - 이메일: Resend
+
+## 커밋 컨벤션
+
+- Udacity Git Commit Message Style Guide를 따릅니다.
+- 기본 구조는 `type: subject`입니다.
+- 본문은 선택 사항이며, 제목 다음에 빈 줄을 두고 작성합니다.
+- 푸터는 선택 사항이며, 본문 다음에 빈 줄을 두고 작성합니다.
+- 커밋 타입은 다음 중 하나를 사용합니다:
+  - `feat`: 새로운 기능 추가
+  - `fix`: 버그 수정
+  - `docs`: 문서 수정
+  - `style`: 코드 동작 변경이 없는 포맷팅 또는 스타일 수정
+  - `refactor`: 코드 리팩토링
+  - `test`: 테스트 코드 추가 또는 테스트 리팩토링
+  - `chore`: 빌드, 패키지 매니저, 유지보수 작업
+  - `init`: 초기 프로젝트 생성
+- 제목은 가능하면 50자를 넘지 않습니다.
+- 제목 끝에는 마침표를 붙이지 않습니다.
+- 영어 제목을 작성하는 경우 동사 원형으로 시작하고 첫 글자를 대문자로 씁니다.
+- 제목은 간결한 개조식 문장으로 작성합니다.
+- 본문에는 무엇을 왜 변경했는지 설명합니다.
+- 본문은 한 줄에 하나의 변경 사항을 적고, 필요하면 bullet을 사용합니다.
+- 본문은 가능하면 한 줄 72자 안팎으로 작성합니다.
+- 제목과 본문 사이에는 빈 줄을 둡니다.
+- 푸터는 `Type: #issue-number` 형식을 사용합니다. 예: `Resolves: #12`.
+- 푸터 타입은 `Fixes`, `Resolves`, `Ref`, `Related to`를 사용할 수 있습니다.
+
+## 검증
+
+- 코드 변경을 마치기 전 가능한 경우 `pnpm lint`를 실행합니다.
+- 변경 범위가 큰 경우 `pnpm build`를 실행합니다.
+- 포맷 변경 범위가 넓은 경우 `pnpm format:check`를 실행합니다.
+- 명령어가 실패하면 무엇이 왜 실패했는지 설명합니다.
