@@ -7,9 +7,31 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Geist', 'Geist Fallback', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'Geist Mono', 'Geist Mono Fallback', ui-monospace, monospace;
-  --font-heading: 'Geist', 'Geist Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-sans:
+    var(--font-manrope-sans), 'Apple SD Gothic Neo', 'Noto Sans KR', ui-sans-serif, system-ui,
+    sans-serif;
+  --font-mono: var(--font-geist-mono), 'Geist Mono', ui-monospace, monospace;
+  --font-heading:
+    var(--font-manrope-sans), 'Apple SD Gothic Neo', 'Noto Sans KR', ui-sans-serif, system-ui,
+    sans-serif;
+  --color-surface: var(--surface);
+  --color-surface-dim: var(--surface-dim);
+  --color-surface-bright: var(--surface-bright);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-surface-variant: var(--surface-variant);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-tcg-red: var(--tcg-red);
+  --color-price-up: var(--price-up);
+  --color-price-up-surface: var(--price-up-surface);
+  --color-price-down: var(--price-down);
+  --color-price-down-surface: var(--price-down-surface);
+  --color-price-flat: var(--price-flat);
+  --color-price-flat-surface: var(--price-flat-surface);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -46,85 +68,275 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --spacing-tcg-gutter: var(--tcg-gutter);
+  --spacing-tcg-section: var(--tcg-section-gap);
+  --shadow-tcg-modal: var(--shadow-modal);
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  color-scheme: light;
+
+  --surface: #fff8f7;
+  --surface-dim: #f5d2cf;
+  --surface-bright: #fff8f7;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #fff0ef;
+  --surface-container: #ffe9e7;
+  --surface-container-high: #ffe2df;
+  --surface-container-highest: #fedad7;
+  --surface-variant: #fedad7;
+  --on-surface: #2a1615;
+  --on-surface-variant: #5e3f3c;
+  --inverse-surface: #412b29;
+  --inverse-on-surface: #ffedeb;
+  --outline: #936e6b;
+  --outline-variant: #e8bcb8;
+  --tcg-red: #e60023;
+  --tcg-red-dark: #b7001a;
+  --tcg-blue: #0079b6;
+  --tcg-blue-dark: #005f90;
+  --price-up: #166534;
+  --price-up-surface: #dcfce7;
+  --price-down: #b7001a;
+  --price-down-surface: #ffdad7;
+  --price-flat: #5d5f5d;
+  --price-flat-surface: #e2e3e0;
+
+  --background: var(--surface);
+  --foreground: var(--on-surface);
+  --card: var(--surface-container-lowest);
+  --card-foreground: var(--on-surface);
+  --popover: var(--surface-container-lowest);
+  --popover-foreground: var(--on-surface);
+  --primary: var(--tcg-red);
+  --primary-foreground: #ffffff;
+  --secondary: var(--price-flat-surface);
+  --secondary-foreground: #1a1c1b;
+  --muted: var(--surface-container-low);
+  --muted-foreground: var(--on-surface-variant);
+  --accent: var(--surface-container-high);
+  --accent-foreground: var(--on-surface);
+  --destructive: #ba1a1a;
+  --border: var(--outline-variant);
+  --input: var(--surface-container-lowest);
+  --ring: var(--tcg-red);
+  --chart-1: var(--tcg-red);
+  --chart-2: var(--tcg-blue);
+  --chart-3: var(--price-up);
+  --chart-4: #ffb3ad;
+  --chart-5: var(--outline);
+  --radius: 1rem;
+  --sidebar: var(--surface-container-lowest);
+  --sidebar-foreground: var(--on-surface);
+  --sidebar-primary: var(--tcg-red);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--surface-container-low);
+  --sidebar-accent-foreground: var(--on-surface);
+  --sidebar-border: var(--outline-variant);
+  --sidebar-ring: var(--tcg-red);
+
+  --tcg-container-max: 1440px;
+  --tcg-page-gutter: clamp(1rem, 4vw, 4rem);
+  --tcg-gutter: 0.5rem;
+  --tcg-section-gap: clamp(3rem, 6vw, 4rem);
+  --tcg-stack-sm: 0.25rem;
+  --tcg-stack-md: 0.75rem;
+  --shadow-modal: 0 24px 80px rgb(42 22 21 / 14%);
+  --motion-fast: 150ms ease;
+  --motion-base: 220ms ease;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  color-scheme: dark;
+
+  --surface: #201211;
+  --surface-dim: #170c0b;
+  --surface-bright: #412b29;
+  --surface-container-lowest: #160b0a;
+  --surface-container-low: #241514;
+  --surface-container: #2d1b19;
+  --surface-container-high: #3a2422;
+  --surface-container-highest: #4b302d;
+  --surface-variant: #5e3f3c;
+  --on-surface: #ffedeb;
+  --on-surface-variant: #e8bcb8;
+  --inverse-surface: #ffedeb;
+  --inverse-on-surface: #2a1615;
+  --outline: #c99792;
+  --outline-variant: #5e3f3c;
+  --tcg-red: #ffb3ad;
+  --tcg-red-dark: #ffdad7;
+  --tcg-blue: #92ccff;
+  --tcg-blue-dark: #cce5ff;
+  --price-up: #86efac;
+  --price-up-surface: #12351f;
+  --price-down: #ffb3ad;
+  --price-down-surface: #4b1115;
+  --price-flat: #c6c7c4;
+  --price-flat-surface: #353735;
+
+  --background: var(--surface);
+  --foreground: var(--on-surface);
+  --card: var(--surface-container-low);
+  --card-foreground: var(--on-surface);
+  --popover: var(--surface-container);
+  --popover-foreground: var(--on-surface);
+  --primary: var(--tcg-red);
+  --primary-foreground: #410004;
+  --secondary: var(--price-flat-surface);
+  --secondary-foreground: var(--on-surface);
+  --muted: var(--surface-container);
+  --muted-foreground: var(--on-surface-variant);
+  --accent: var(--surface-container-high);
+  --accent-foreground: var(--on-surface);
+  --destructive: #ffb4ab;
+  --border: rgb(255 237 235 / 14%);
+  --input: rgb(255 237 235 / 16%);
+  --ring: var(--tcg-red);
+  --chart-1: var(--tcg-red);
+  --chart-2: var(--tcg-blue);
+  --chart-3: var(--price-up);
+  --chart-4: #ffdad7;
+  --chart-5: var(--outline);
+  --sidebar: var(--surface-container-low);
+  --sidebar-foreground: var(--on-surface);
+  --sidebar-primary: var(--tcg-red);
+  --sidebar-primary-foreground: #410004;
+  --sidebar-accent: var(--surface-container);
+  --sidebar-accent-foreground: var(--on-surface);
+  --sidebar-border: rgb(255 237 235 / 12%);
+  --sidebar-ring: var(--tcg-red);
+  --shadow-modal: 0 24px 80px rgb(0 0 0 / 36%);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
-    @apply font-sans;
+    @apply h-full scroll-smooth font-sans;
+  }
+  body {
+    @apply min-h-full bg-background text-foreground antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    @apply bg-primary text-primary-foreground;
+  }
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+@layer components {
+  .tcg-page {
+    @apply min-h-screen bg-background text-foreground;
+  }
+
+  .tcg-shell {
+    width: min(100% - (var(--tcg-page-gutter) * 2), var(--tcg-container-max));
+    margin-inline: auto;
+  }
+
+  .tcg-section {
+    @apply py-tcg-section;
+  }
+
+  .tcg-section-stack {
+    @apply flex flex-col gap-6 md:gap-8;
+  }
+
+  .tcg-section-header {
+    @apply flex flex-col gap-3 md:flex-row md:items-end md:justify-between;
+  }
+
+  .tcg-display {
+    @apply font-heading text-4xl leading-[1.1] font-extrabold text-balance md:text-6xl lg:text-[4.375rem];
+  }
+
+  .tcg-headline {
+    @apply font-heading text-2xl leading-tight font-bold text-balance md:text-[2rem];
+  }
+
+  .tcg-body {
+    @apply text-base leading-6 text-muted-foreground;
+  }
+
+  .tcg-surface {
+    @apply bg-card text-card-foreground;
+  }
+
+  .tcg-card-surface {
+    @apply overflow-hidden rounded-2xl bg-card text-card-foreground transition-transform duration-200 ease-out;
+  }
+
+  .tcg-card-surface:is(:hover, :focus-within) {
+    transform: translateY(-1px) scale(1.01);
+  }
+
+  .tcg-masonry-grid {
+    column-gap: var(--tcg-gutter);
+    columns: 2 10rem;
+  }
+
+  .tcg-masonry-item {
+    @apply mb-tcg-gutter break-inside-avoid overflow-hidden rounded-2xl bg-card;
+  }
+
+  .tcg-search-shell {
+    @apply flex min-h-12 items-center gap-3 rounded-full bg-card px-4 text-foreground ring-1 ring-border transition-[background-color,box-shadow] duration-200;
+  }
+
+  .tcg-search-shell:focus-within {
+    @apply bg-surface-container-lowest ring-2 ring-ring/60;
+  }
+
+  .tcg-chip {
+    @apply inline-flex h-8 items-center rounded-full bg-muted px-3 text-sm leading-none font-semibold text-foreground;
+  }
+
+  .tcg-chip-positive {
+    @apply bg-price-up-surface text-price-up;
+  }
+
+  .tcg-chip-negative {
+    @apply bg-price-down-surface text-price-down;
+  }
+
+  .tcg-chip-neutral {
+    @apply bg-price-flat-surface text-price-flat;
+  }
+
+  .tcg-price {
+    @apply font-heading text-xl leading-none font-extrabold tabular-nums text-foreground;
+  }
+
+  .tcg-stat-grid {
+    @apply grid gap-2 sm:grid-cols-3;
+  }
+
+  .tcg-image-frame {
+    @apply overflow-hidden rounded-2xl bg-surface-container;
+  }
+
+  .tcg-modal-surface {
+    @apply rounded-[2rem] bg-popover text-popover-foreground shadow-tcg-modal;
+  }
+
+  .tcg-focus-ring {
+    @apply focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
   }
 }

@@ -41,6 +41,9 @@
 
 ### 4. UI 구현
 
+- 영향 파일: `app/**`, `components/tcg/**`, `lib/tcg-data.ts`, `app/globals.css`.
+- 최소 변경 범위: 실제 API/인증 연동 전, PRD P0 요구사항을 충족하는 정적 데이터 기반 화면과 라우트 골격을 먼저 구현한다.
+- [x] Stitch `TCGround Price Tracker` 디자인 시스템 기반 전역 CSS 토큰과 `tcg-*` component utility 구조 수립.
 - [ ] 홈페이지 검색/카테고리 영역 구현.
 - [ ] 검색 결과 목록과 상태 화면 구현.
 - [ ] 카테고리 탐색 화면 구현.
@@ -55,4 +58,4 @@
 
 ## 다음 작업
 
-페이지별 PRD를 기준으로 라우트 구조와 데이터 모델 초안을 먼저 결정한다.
+CSS 토큰과 `tcg-*` utility를 기준으로 홈페이지 검색/카테고리 영역의 정적 UI를 먼저 구현한다.

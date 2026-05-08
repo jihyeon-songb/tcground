@@ -64,6 +64,8 @@ docs/                # 본 문서들
 ## 5. UI 가이드
 
 - Tailwind는 CSS 변수와 `app/globals.css` 토큰을 우선 사용. shadcn 컴포넌트와 일관성 유지.
+- Stitch `TCGround Price Tracker` 디자인 시스템의 Manrope, warm-cream surface, Pinterest Red CTA, flat editorial 카드 규칙을 `app/globals.css`의 전역 CSS 변수와 `tcg-*` component utility로 관리한다.
+- 페이지 레이아웃은 `.tcg-page`, `.tcg-shell`, `.tcg-section`을 기본 골격으로 삼고, 카드/검색/칩/가격 표시 같은 반복 패턴은 `.tcg-card-surface`, `.tcg-search-shell`, `.tcg-chip-*`, `.tcg-price`를 우선 사용한다.
 - 모바일 → 데스크톱 반응형.
 - 버튼·라벨·폼·포커스는 접근성을 기본으로 고려.
 - 명시적 요청 없이 새 UI 라이브러리 추가 금지.
@@ -86,3 +88,4 @@ docs/                # 본 문서들
 ## 7. 변경 이력
 
 - 2026-05-06: 초기 ARCHITECTURE 정리.
+- 2026-05-08: Stitch 기반 전역 CSS 토큰과 `tcg-*` component utility 사용 기준 추가.
