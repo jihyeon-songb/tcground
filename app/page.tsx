@@ -183,7 +183,7 @@ export default function Home() {
               href='/cards'
             >
               모두 보기
-              <span className='material-symbols-outlined text-sm leading-none'>arrow_forward</span>
+              {/*<span className='material-symbols-outlined text-sm leading-none'>arrow_forward</span>*/}
             </Link>
           </div>
 
