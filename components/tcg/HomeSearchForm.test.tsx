@@ -43,4 +43,26 @@ describe('HomeSearchForm', () => {
 
     expect(screen.getByRole('button', { name: '검색' })).toBeTruthy();
   });
+
+  it('prefills the input with initialQuery and submits its value', () => {
+    render(<HomeSearchForm initialQuery='Charizard' />);
+
+    expect(
+      (screen.getByLabelText('카드 명칭, 세트 또는 캐릭터 검색') as HTMLInputElement).value,
+    ).toBe('Charizard');
+
+    fireEvent.submit(screen.getByRole('form', { name: 'Card search' }));
+
+    expect(pushMock).toHaveBeenCalledWith('/search?q=Charizard');
+  });
+
+  it('clears the input via the clear button when enabled', () => {
+    render(<HomeSearchForm initialQuery='Charizard' showClearButton />);
+
+    fireEvent.click(screen.getByRole('button', { name: '검색어 지우기' }));
+
+    expect(
+      (screen.getByLabelText('카드 명칭, 세트 또는 캐릭터 검색') as HTMLInputElement).value,
+    ).toBe('');
+  });
 });
