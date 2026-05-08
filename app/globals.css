@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
@@ -217,7 +218,7 @@
     @apply h-full scroll-smooth font-sans;
   }
   body {
-    @apply min-h-full bg-background text-foreground antialiased;
+    @apply bg-background text-foreground min-h-full antialiased;
     text-rendering: optimizeLegibility;
   }
   ::selection {
@@ -229,11 +230,29 @@
   select {
     font: inherit;
   }
+
+  .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-variation-settings:
+      'FILL' 0,
+      'wght' 400,
+      'GRAD' 0,
+      'opsz' 24;
+    letter-spacing: normal;
+    line-height: 1;
+    text-transform: none;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+  }
 }
 
 @layer components {
   .tcg-page {
-    @apply min-h-screen bg-background text-foreground;
+    @apply bg-background text-foreground min-h-screen;
   }
 
   .tcg-shell {
@@ -262,7 +281,7 @@
   }
 
   .tcg-body {
-    @apply text-base leading-6 text-muted-foreground;
+    @apply text-muted-foreground text-base leading-6;
   }
 
   .tcg-surface {
@@ -270,7 +289,7 @@
   }
 
   .tcg-card-surface {
-    @apply overflow-hidden rounded-2xl bg-card text-card-foreground transition-transform duration-200 ease-out;
+    @apply bg-card text-card-foreground overflow-hidden rounded-2xl transition-transform duration-200 ease-out;
   }
 
   .tcg-card-surface:is(:hover, :focus-within) {
@@ -283,19 +302,19 @@
   }
 
   .tcg-masonry-item {
-    @apply mb-tcg-gutter break-inside-avoid overflow-hidden rounded-2xl bg-card;
+    @apply mb-tcg-gutter bg-card break-inside-avoid overflow-hidden rounded-2xl;
   }
 
   .tcg-search-shell {
-    @apply flex min-h-12 items-center gap-3 rounded-full bg-card px-4 text-foreground ring-1 ring-border transition-[background-color,box-shadow] duration-200;
+    @apply bg-card text-foreground ring-border flex min-h-12 items-center gap-3 rounded-full px-4 ring-1 transition-[background-color,box-shadow] duration-200;
   }
 
   .tcg-search-shell:focus-within {
-    @apply bg-surface-container-lowest ring-2 ring-ring/60;
+    @apply bg-surface-container-lowest ring-ring/60 ring-2;
   }
 
   .tcg-chip {
-    @apply inline-flex h-8 items-center rounded-full bg-muted px-3 text-sm leading-none font-semibold text-foreground;
+    @apply bg-muted text-foreground inline-flex h-8 items-center rounded-full px-3 text-sm leading-none font-semibold;
   }
 
   .tcg-chip-positive {
@@ -311,7 +330,7 @@
   }
 
   .tcg-price {
-    @apply font-heading text-xl leading-none font-extrabold tabular-nums text-foreground;
+    @apply font-heading text-foreground text-xl leading-none font-extrabold tabular-nums;
   }
 
   .tcg-stat-grid {
@@ -319,15 +338,15 @@
   }
 
   .tcg-image-frame {
-    @apply overflow-hidden rounded-2xl bg-surface-container;
+    @apply bg-surface-container overflow-hidden rounded-2xl;
   }
 
   .tcg-modal-surface {
-    @apply rounded-[2rem] bg-popover text-popover-foreground shadow-tcg-modal;
+    @apply bg-popover text-popover-foreground shadow-tcg-modal rounded-[2rem];
   }
 
   .tcg-focus-ring {
-    @apply focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none;
+    @apply focus-visible:ring-ring/50 focus-visible:ring-3 focus-visible:outline-none;
   }
 }
 
