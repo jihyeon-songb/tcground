@@ -53,17 +53,29 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 
 - `tcg_games`: TCG 대분류.
 - `card_sets`: 세트/확장팩.
-- `cards`: 카드 기본 정보와 검색 기준.
+- `cards`: 대표 카드 기본 정보와 검색 기준.
+- `card_printings`: 언어판/지역판/세트/번호/호일 단위의 실제 가격 대상.
 - `card_categories`: 탐색용 카테고리.
 - `card_category_links`: 카드-카테고리 연결.
-- `card_price_snapshots`: 일자별 가격 히스토리와 현재 가격 요약의 원천.
+- `price_observations`: source별 실거래 원천 관측치.
+- `card_price_snapshots`: `card_printings` 기준 일자별 가격 히스토리와 현재 가격 요약의 원천.
+- `price_collection_runs`: source별 가격 수집 실행/실패 로그.
 - `favorite_cards`: Supabase Auth 사용자별 관심 카드.
 
 보안 기준:
 
-- 카드/카테고리/가격 데이터는 공개 읽기만 허용하고 클라이언트 직접 쓰기는 금지한다.
+- 카드/카테고리/printing/snapshot 데이터는 공개 읽기만 허용하고 클라이언트 직접 쓰기는 금지한다.
+- 원천 관측치와 수집 실행 로그는 service role 또는 서버 전용 관리 경로에서만 접근한다.
 - `favorite_cards`는 RLS로 `auth.uid() = user_id` 행만 사용자별 읽기/쓰기 가능하게 한다.
 - 카드/가격 수집·수정은 server/admin 경로 또는 Supabase service role을 사용하는 관리 작업으로만 처리한다.
+
+가격 수집 기준:
+
+- MVP 대상은 포켓몬 우선이다.
+- 카드 카탈로그는 TCGdex와 Pokémon TCG API 조합으로 시작한다.
+- 가격 기준은 실거래가 관측치이며, 판매중 최저가는 보조 지표로만 둔다.
+- daily job은 `price_observations` 저장, 이상치 제거/매칭 검증, `card_price_snapshots` 집계 순서로 처리한다.
+- 일본/한국 가격 source는 공개 API가 부족할 수 있으므로 수동 import와 ToS가 허용된 source adapter를 분리해 붙인다.
 
 ## 4. 수정 범위
 
@@ -128,3 +140,4 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 2026-05-20: 구현된 App Router 경로, `components/tcg`, `lib/tcg-data.ts` 기준을 현재 코드 상태에 맞춰 반영.
 - 2026-05-20: 인증 수단을 Supabase Auth로 확정하고 Supabase JS/SSR 사용 기준 추가.
 - 2026-05-20: MVP Supabase Postgres 데이터 모델 기준과 RLS 방향 추가.
+- 2026-05-20: 포켓몬 우선 가격 수집 모델(`card_printings`, `price_observations`, source별 실행 로그)과 실거래가 중심 집계 기준 추가.

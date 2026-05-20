@@ -5,10 +5,11 @@
 
 ## 현재 작업
 
-- 2026-05-20: 다음 작업은 로그인 화면을 Supabase Auth 클라이언트에 연결하고, 카드/검색/상세 화면을 정적 `lib/tcg-data.ts`에서 Supabase 조회로 전환하는 것이다.
+- 2026-05-20: 다음 작업은 로그인 화면을 Supabase Auth 클라이언트에 연결하고, 카드/검색/상세 화면을 정적 `lib/tcg-data.ts`에서 Supabase 조회로 전환하는 것이다. 데이터 연동 전에는 MVP seed 데이터 입력 전략, 대표 `card_printings` 선택 기준, 포켓몬 카탈로그 import 순서(TCGdex/Pokémon TCG API)를 확정한다.
 
 ## 완료 로그
 
+- 2026-05-20: 포켓몬 우선 가격 데이터 수집 전략을 DB 모델에 반영했다. Supabase MCP migration `extend_price_collection_models`로 `card_printings`, `price_observations`, `price_collection_runs`를 추가하고 `card_price_snapshots`를 `card_printing_id` 기준으로 확장했다. 이어 `lock_internal_price_collection_tables` migration으로 원천 관측치와 source별 실행 로그에 명시적 deny-all RLS 정책을 적용했다. Supabase MCP로 테이블, FK, 인덱스, 정책, migration 기록을 확인했고 Security Advisor는 lint 없음, Performance Advisor는 아직 데이터/쿼리가 없어 신규 unused index 정보만 남았다. Rollback smoke test로 같은 Charizard의 `en`/`ja`/`ko` printing 3개, raw/PSA 10 관측치와 snapshot 2개, source 실패 run 1개가 구분 저장되는 것을 확인했다. `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, 변경 문서 Prettier check를 통과했다.
 - 2026-05-20: Supabase MCP migration `create_tcg_mvp_schema`로 MVP DB 스키마 7개 테이블(`tcg_games`, `card_sets`, `cards`, `card_categories`, `card_category_links`, `card_price_snapshots`, `favorite_cards`)과 FK, unique/index, `updated_at` trigger, RLS 정책을 실제 Supabase 프로젝트에 적용했다. 이어 `optimize_favorite_cards_rls_policies` migration으로 `favorite_cards` RLS 정책을 Supabase Performance Advisor 권장 형태로 최적화했다. Supabase MCP로 테이블, RLS, 정책, 인덱스, 트리거, migration 기록을 확인했고 Security Advisor는 lint 없음, Performance Advisor는 신규 미사용 인덱스 정보만 남았다.
 - 2026-05-20: MVP 데이터 모델 상세 설계를 `memory-bank/db-schema.md`로 분리했다. `implementation-plan.md`는 3단계 체크리스트와 참조 링크만 남기고, `architecture.md`는 핵심 데이터 모델과 보안 기준 요약을 유지한다.
 - 2026-05-20: MVP 데이터 모델 설계를 완료했다. Supabase Postgres 기준 테이블, 컬럼, 인덱스, 조회 기준, RLS 정책 방향을 문서화했고 `architecture.md`에는 핵심 데이터 모델과 보안 기준을 요약했다.
@@ -27,7 +28,10 @@
 
 ## 의사결정 로그
 
-- 2026-05-20: DB 적용은 로컬 SQL 파일 추가 없이 Supabase MCP migration 기록(`create_tcg_mvp_schema`, `optimize_favorite_cards_rls_policies`)을 기준으로 관리한다. 현재 사용자의 요청 범위가 실제 Supabase 테이블 생성이고, Supabase 스키마/설정 변경은 MCP 또는 CLI로만 수행한다는 프로젝트 규칙을 따르기 때문이다.
+- 2026-05-20: MVP 가격 수집은 포켓몬 우선, 실거래가 중심, source별 관측치 저장 후 일별 snapshot 집계 방식으로 확정한다. 카드 카탈로그는 TCGdex와 Pokémon TCG API 조합으로 시작하고, 북미 가격은 API 접근성이 좋은 TCGplayer/eBay 계열을 먼저 검토한다. 일본/한국판은 안정적인 공개 가격 API가 부족할 수 있으므로 수동 import와 ToS가 허용된 crawler/partner adapter를 분리해 붙인다.
+- 2026-05-20: 기존 `cards`는 대표 카드로 유지하고 가격은 `card_printings` 기준으로 저장한다. 같은 카드명이라도 언어판, 지역판, 세트 코드, collector number, finish가 다르면 가격이 섞이지 않아야 하며, raw/graded와 상태/등급 구분은 `price_observations`와 `card_price_snapshots`의 `variant`, `condition_label`, `grade_company`, `grade_value` 축으로 분리한다.
+- 2026-05-20: `price_observations`와 `price_collection_runs`는 원천 payload와 adapter 오류를 담을 수 있으므로 공개 읽기 대상에서 제외하고 명시적 deny-all RLS 정책을 둔다. 공개 UI는 검증/집계된 `card_price_snapshots`와 `card_printings`만 읽는다.
+- 2026-05-20: DB 적용은 로컬 SQL 파일 추가 없이 Supabase MCP migration 기록(`create_tcg_mvp_schema`, `optimize_favorite_cards_rls_policies`, `extend_price_collection_models`, `lock_internal_price_collection_tables`)을 기준으로 관리한다. 현재 사용자의 요청 범위가 실제 Supabase 테이블 생성이고, Supabase 스키마/설정 변경은 MCP 또는 CLI로만 수행한다는 프로젝트 규칙을 따르기 때문이다.
 - 2026-05-20: `updated_at` 컬럼이 있는 4개 테이블(`tcg_games`, `card_sets`, `cards`, `card_categories`)에는 `public.set_updated_at()` trigger를 적용한다. 문서의 컬럼 계약을 실제 수정 시각 추적 동작과 일치시키기 위함이다.
 - 2026-05-20: `cards.set_id`와 `card_categories.parent_id`는 참조 대상 삭제 시 `set null`, 링크/가격/관심 카드처럼 종속성이 강한 테이블은 cascade 삭제로 적용한다. 운영 데이터의 상위 기준 삭제를 과도하게 전파하지 않으면서 연결성 테이블의 고아 행은 남기지 않기 위함이다.
 - 2026-05-20: MVP DB는 `tcg_games`, `card_sets`, `cards`, `card_categories`, `card_category_links`, `card_price_snapshots`, `favorite_cards` 7개 테이블로 시작한다. 가격 요약은 별도 테이블로 중복 저장하지 않고 최신 `card_price_snapshots` 조회를 기준으로 하며, 성능 문제가 생기면 `card_price_summaries` view 또는 materialized view로 확장한다.

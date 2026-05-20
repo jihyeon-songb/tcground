@@ -53,6 +53,17 @@
 - [x] Supabase Performance Advisor 경고에 따라 `favorite_cards` RLS의 `auth.uid()` 호출을 `(select auth.uid())` 형태로 최적화.
 - [x] Supabase MCP로 테이블, RLS, 정책, 인덱스, 트리거, migration 기록 확인.
 
+### 3.2 포켓몬 가격 데이터 수집 모델 확장
+
+- 영향 파일: `memory-bank/db-schema.md`, `memory-bank/prd/plan.md`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: 포켓몬 MVP 가격 기준을 실거래가 중심으로 확정하고, 기존 대표 `cards` 모델은 유지하되 언어판/지역판/세트/번호/상태/호일/그레이딩별 상품 단위인 `card_printings`를 추가한다. 가격은 source별 원천 관측치(`price_observations`)를 저장한 뒤, 검증/이상치 제거 후 `card_price_snapshots`에 일별 집계한다. Supabase 스키마 변경은 MCP migration으로만 적용한다.
+- [x] 카드 데이터 소스 결정을 PRD와 의사결정 로그에 반영.
+- [x] `card_printings` 테이블 설계와 Supabase migration 적용.
+- [x] `card_price_snapshots`를 `card_printing_id` 기준으로 확장하고 `market`, `variant` 축을 추가.
+- [x] `price_observations` 원천 실거래 테이블 추가.
+- [x] source별 수집 실패/성공을 기록할 실행 로그 테이블 추가.
+- [x] RLS, 인덱스, FK, migration 기록을 Supabase MCP로 검증.
+
 ### 4. UI 구현
 
 - 영향 파일: `app/page.tsx`, `app/search/page.tsx`, `app/categories/[categoryId]/page.tsx`, `app/cards/[cardId]/page.tsx`, `app/login/page.tsx`, `app/globals.css`, `app/layout.tsx`, `components/tcg/HomeSearchForm.tsx`, `components/tcg/HomeSearchForm.test.tsx`, `lib/tcg-data.ts`.
@@ -82,4 +93,4 @@
 
 ## 다음 작업
 
-로그인 화면을 Supabase Auth 클라이언트에 연결하고, 카드/검색/상세 화면은 정적 `lib/tcg-data.ts`에서 Supabase 조회로 전환한다. 데이터 연동 전에는 MVP seed 데이터 입력 전략과 카드/시세 데이터 소스를 확정한다.
+로그인 화면을 Supabase Auth 클라이언트에 연결하고, 카드/검색/상세 화면은 정적 `lib/tcg-data.ts`에서 Supabase 조회로 전환한다. 데이터 연동 전에는 MVP seed 데이터 입력 전략, 대표 `card_printings` 선택 기준, 포켓몬 카탈로그 import 순서(TCGdex/Pokémon TCG API)를 확정한다.
