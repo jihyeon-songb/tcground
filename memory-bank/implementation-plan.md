@@ -36,13 +36,22 @@
 ### 3. 데이터 모델 설계
 
 - 영향 파일: `memory-bank/db-schema.md`, `memory-bank/implementation-plan.md`, `memory-bank/architecture.md`, `memory-bank/progress.md`.
-- 최소 변경 범위: MVP P0/P1에 필요한 카드 탐색, 검색, 상품 상세 가격 차트, Supabase Auth 기반 관심 카드 저장을 지원하는 Supabase Postgres 스키마를 문서로 확정한다. 상세 설계는 `memory-bank/db-schema.md`를 단일 출처로 두고, 실제 Supabase 적용은 별도 migration/MCP 실행 단계에서 진행한다.
+- 최소 변경 범위: MVP P0/P1에 필요한 카드 탐색, 검색, 상품 상세 가격 차트, Supabase Auth 기반 관심 카드 저장을 지원하는 Supabase Postgres 스키마를 문서로 확정한다. 상세 설계는 `memory-bank/db-schema.md`를 단일 출처로 두고, 실제 Supabase 적용 상태는 3.1 단계에 기록한다.
 - [x] 카드 기본 정보 모델 정의.
 - [x] 가격 요약/가격 히스토리 모델 정의.
 - [x] 카테고리 모델 정의.
 - [x] 관심 카드 모델 정의.
 
 상세 스키마: `memory-bank/db-schema.md`
+
+### 3.1 Supabase DB 스키마 적용
+
+- 영향 파일: `memory-bank/db-schema.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: `memory-bank/db-schema.md` 기준 MVP 7개 테이블, FK, unique/index, `updated_at` trigger, RLS 정책을 Supabase MCP migration으로 적용한다.
+- [x] `create_tcg_mvp_schema` migration으로 `tcg_games`, `card_sets`, `cards`, `card_categories`, `card_category_links`, `card_price_snapshots`, `favorite_cards` 생성.
+- [x] 공개 읽기 테이블과 사용자별 `favorite_cards` RLS 정책 적용.
+- [x] Supabase Performance Advisor 경고에 따라 `favorite_cards` RLS의 `auth.uid()` 호출을 `(select auth.uid())` 형태로 최적화.
+- [x] Supabase MCP로 테이블, RLS, 정책, 인덱스, 트리거, migration 기록 확인.
 
 ### 4. UI 구현
 
@@ -73,4 +82,4 @@
 
 ## 다음 작업
 
-Supabase MCP 또는 migration으로 3단계 DB 스키마를 실제 Supabase 프로젝트에 적용한다. 적용 후 로그인 화면은 Supabase Auth 클라이언트에 연결하고, 카드/검색/상세 화면은 정적 `lib/tcg-data.ts`에서 Supabase 조회로 전환한다.
+로그인 화면을 Supabase Auth 클라이언트에 연결하고, 카드/검색/상세 화면은 정적 `lib/tcg-data.ts`에서 Supabase 조회로 전환한다. 데이터 연동 전에는 MVP seed 데이터 입력 전략과 카드/시세 데이터 소스를 확정한다.

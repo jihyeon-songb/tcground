@@ -5,10 +5,11 @@
 
 ## 현재 작업
 
-- 2026-05-20: 다음 작업은 Supabase MCP 또는 migration으로 MVP DB 스키마(`tcg_games`, `card_sets`, `cards`, `card_categories`, `card_category_links`, `card_price_snapshots`, `favorite_cards`)를 실제 Supabase 프로젝트에 적용하는 것이다.
+- 2026-05-20: 다음 작업은 로그인 화면을 Supabase Auth 클라이언트에 연결하고, 카드/검색/상세 화면을 정적 `lib/tcg-data.ts`에서 Supabase 조회로 전환하는 것이다.
 
 ## 완료 로그
 
+- 2026-05-20: Supabase MCP migration `create_tcg_mvp_schema`로 MVP DB 스키마 7개 테이블(`tcg_games`, `card_sets`, `cards`, `card_categories`, `card_category_links`, `card_price_snapshots`, `favorite_cards`)과 FK, unique/index, `updated_at` trigger, RLS 정책을 실제 Supabase 프로젝트에 적용했다. 이어 `optimize_favorite_cards_rls_policies` migration으로 `favorite_cards` RLS 정책을 Supabase Performance Advisor 권장 형태로 최적화했다. Supabase MCP로 테이블, RLS, 정책, 인덱스, 트리거, migration 기록을 확인했고 Security Advisor는 lint 없음, Performance Advisor는 신규 미사용 인덱스 정보만 남았다.
 - 2026-05-20: MVP 데이터 모델 상세 설계를 `memory-bank/db-schema.md`로 분리했다. `implementation-plan.md`는 3단계 체크리스트와 참조 링크만 남기고, `architecture.md`는 핵심 데이터 모델과 보안 기준 요약을 유지한다.
 - 2026-05-20: MVP 데이터 모델 설계를 완료했다. Supabase Postgres 기준 테이블, 컬럼, 인덱스, 조회 기준, RLS 정책 방향을 문서화했고 `architecture.md`에는 핵심 데이터 모델과 보안 기준을 요약했다.
 - 2026-05-20: 사용자가 제공한 Supabase 설정 지시에 따라 인증 수단을 Supabase Auth로 확정하고 `prd/plan.md`, `prd/login.md`, `implementation-plan.md`에 반영했다.
@@ -26,6 +27,9 @@
 
 ## 의사결정 로그
 
+- 2026-05-20: DB 적용은 로컬 SQL 파일 추가 없이 Supabase MCP migration 기록(`create_tcg_mvp_schema`, `optimize_favorite_cards_rls_policies`)을 기준으로 관리한다. 현재 사용자의 요청 범위가 실제 Supabase 테이블 생성이고, Supabase 스키마/설정 변경은 MCP 또는 CLI로만 수행한다는 프로젝트 규칙을 따르기 때문이다.
+- 2026-05-20: `updated_at` 컬럼이 있는 4개 테이블(`tcg_games`, `card_sets`, `cards`, `card_categories`)에는 `public.set_updated_at()` trigger를 적용한다. 문서의 컬럼 계약을 실제 수정 시각 추적 동작과 일치시키기 위함이다.
+- 2026-05-20: `cards.set_id`와 `card_categories.parent_id`는 참조 대상 삭제 시 `set null`, 링크/가격/관심 카드처럼 종속성이 강한 테이블은 cascade 삭제로 적용한다. 운영 데이터의 상위 기준 삭제를 과도하게 전파하지 않으면서 연결성 테이블의 고아 행은 남기지 않기 위함이다.
 - 2026-05-20: MVP DB는 `tcg_games`, `card_sets`, `cards`, `card_categories`, `card_category_links`, `card_price_snapshots`, `favorite_cards` 7개 테이블로 시작한다. 가격 요약은 별도 테이블로 중복 저장하지 않고 최신 `card_price_snapshots` 조회를 기준으로 하며, 성능 문제가 생기면 `card_price_summaries` view 또는 materialized view로 확장한다.
 - 2026-05-20: 인증 수단은 Supabase Auth로 확정한다. 이유는 사용자가 Supabase 프로젝트 URL과 publishable key, `@supabase/supabase-js`, `@supabase/ssr`, shadcn Supabase 클라이언트 설치 지시를 제공했고, 기존 PRD의 인증 수단 미결 항목을 해소하기 때문이다.
 - 2026-05-20: 로그인 페이지는 현재 정적 화면 구현 완료로만 간주하고 인증 동작은 별도 작업으로 진행한다. 인증 수단은 Supabase Auth로 확정됐으므로 다음 작업부터 Supabase 클라이언트 기준으로 로그인 요청/세션/리다이렉트 계약을 구현한다.
