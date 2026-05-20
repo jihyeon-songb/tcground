@@ -2,7 +2,7 @@
 
 > 명명 규칙·코딩 스타일·테스트·커밋 컨벤션.
 > 자동 포맷되는 항목(들여쓰기·세미콜론·따옴표·줄 길이)은 `.prettierrc`가 강제하므로 여기에 적지 않는다.
-> 마지막 갱신: 2026-05-06
+> 마지막 갱신: 2026-05-20
 
 ## 1. 명명 규칙
 
@@ -32,6 +32,7 @@
 
 - 도구: Vitest + Testing Library + jsdom (`vitest.config.mts`).
 - 위치: 파일과 같은 디렉터리에 co-locate. 컴포넌트는 `Foo.test.tsx`, 유틸은 `foo.test.ts`.
+- App Router route 전용 구현 파일은 `app/<route>/_actions`, `app/<route>/_lib` 같은 private folder에 둘 수 있다. 테스트는 대상 파일 옆에 co-locate한다.
 - 새 기능 추가 시 핵심 동작에 대한 단위 테스트를 동반한다.
 - 버그 수정 시 회귀 테스트를 추가한다.
 - 외부 의존(네트워크·DB)은 모킹한다. 실제 외부 호출 금지.
@@ -42,6 +43,7 @@
 Udacity Git Commit Message Style Guide. 형식: `type: subject`.
 
 타입:
+
 - `feat`: 새 기능 추가
 - `fix`: 버그 수정
 - `docs`: 문서 수정
@@ -52,6 +54,7 @@ Udacity Git Commit Message Style Guide. 형식: `type: subject`.
 - `init`: 초기 프로젝트 생성
 
 규칙:
+
 - 제목 50자 이하 권장. 마침표 금지. 영어는 동사 원형 + 첫 글자 대문자.
 - 한국어를 기본으로 사용한다. 영어는 필요할 때만.
 - 제목과 본문 사이 빈 줄. 본문 한 줄 72자 안팎. 한 줄에 한 가지 변경.
@@ -62,3 +65,4 @@ Udacity Git Commit Message Style Guide. 형식: `type: subject`.
 ## 5. 변경 이력
 
 - 2026-05-06: 초기 CONVENTIONS 정리.
+- 2026-05-20: App Router route 전용 구현 파일의 private folder 배치와 테스트 co-location 기준 추가.

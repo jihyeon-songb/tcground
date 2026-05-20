@@ -87,19 +87,52 @@
 
 ### 4.2 로그인 Supabase Auth 연결
 
-- 영향 파일: `app/login/page.tsx`, `app/login/actions.ts`, `components/tcg/LoginForm.tsx`, `lib/supabase/server.ts`, `lib/supabase/middleware.ts`, `proxy.ts`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 영향 파일: `app/login/page.tsx`, `app/login/_actions/login.ts`, `app/login/_lib/login-utils.ts`, `components/tcg/LoginForm.tsx`, `lib/supabase/server.ts`, `lib/supabase/middleware.ts`, `proxy.ts`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
 - 최소 변경 범위: `/login` 정적 폼을 Supabase Auth 이메일/비밀번호 로그인으로 연결한다. 입력 검증, 요청 중 상태, 실패 메시지, 성공 후 이동을 구현하고, 세션 쿠키 갱신은 Supabase SSR 권장 proxy 패턴으로 연결한다. 회원가입, 비밀번호 찾기, Google 로그인은 이번 P0 범위에서 구현하지 않는다.
-- [ ] 로그인 폼을 서버 컴포넌트 페이지와 클라이언트 `LoginForm`으로 분리.
-- [ ] 서버 액션에서 이메일/비밀번호 필수 검증과 이메일 형식 검증 수행.
-- [ ] `supabase.auth.signInWithPassword` 실패 시 한국어 에러 메시지 반환.
-- [ ] 로그인 요청 중 버튼 비활성화와 로딩 라벨 표시.
-- [ ] 로그인 성공 시 내부 `next` 경로 또는 `/`로 리다이렉트.
-- [ ] 이미 로그인된 사용자가 `/login`에 접근하면 내부 `next` 경로 또는 `/`로 이동.
-- [ ] 외부 URL 또는 비정상 `next` 값은 `/`로 fallback.
-- [ ] 루트 `proxy.ts`를 추가해 Supabase 세션 쿠키 갱신 연결.
-- [ ] 로그인 검증/실패/성공/리다이렉트 단위 테스트 추가.
+- [x] 로그인 폼을 서버 컴포넌트 페이지와 클라이언트 `LoginForm`으로 분리.
+- [x] 서버 액션에서 이메일/비밀번호 필수 검증과 이메일 형식 검증 수행.
+- [x] `supabase.auth.signInWithPassword` 실패 시 한국어 에러 메시지 반환.
+- [x] 로그인 요청 중 버튼 비활성화와 로딩 라벨 표시.
+- [x] 로그인 성공 시 내부 `next` 경로 또는 `/`로 리다이렉트.
+- [x] 이미 로그인된 사용자가 `/login`에 접근하면 내부 `next` 경로 또는 `/`로 이동.
+- [x] 외부 URL 또는 비정상 `next` 값은 `/`로 fallback.
+- [x] 루트 `proxy.ts`를 추가해 Supabase 세션 쿠키 갱신 연결.
+- [x] 로그인 검증/실패/성공/리다이렉트 단위 테스트 추가.
 
-### 4.3 Storybook 컴포넌트 라이브러리 문서화
+### 4.3 회원가입 Supabase Auth 연결
+
+- 영향 파일: `app/signup/page.tsx`, `app/signup/_actions/signup.ts`, `app/signup/_lib/signup-utils.ts`, `components/tcg/SignupForm.tsx`, `app/auth/confirm/route.ts`, `lib/auth/redirect.ts`, `app/login/page.tsx`, `app/login/_lib/login-utils.ts`, `memory-bank/prd/plan.md`, `memory-bank/prd/login.md`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: `/signup` 라우트를 추가하고 이메일/비밀번호 회원가입을 Supabase Auth `signUp`에 연결한다. 가입 성공 시 즉시 로그인하지 않고 인증 메일 확인 안내를 표시하며, Supabase 이메일 확인 링크는 `/auth/confirm` route handler에서 `verifyOtp`로 처리한다. 이름, 닉네임, 프로필 테이블, 약관 체크박스, 소셜 회원가입은 이번 MVP 범위에서 제외한다.
+- [x] `/signup` 페이지와 `SignupForm` 클라이언트 폼 추가.
+- [x] 서버 액션에서 이메일, 비밀번호, 비밀번호 확인 검증 후 `supabase.auth.signUp` 호출.
+- [x] 가입 성공 시 인증 메일 확인 안내와 `/login` 이동 링크 표시.
+- [x] 이미 로그인된 사용자의 `/signup` 접근은 안전한 내부 `next` 또는 `/`로 이동.
+- [x] 외부 URL, protocol-relative URL, `/signup`, `/login` 같은 비정상 `next` 값은 `/`로 fallback.
+- [x] `/auth/confirm` route handler에서 `token_hash`, `type`, optional `next`를 받아 `verifyOtp` 후 안전한 내부 경로로 이동.
+- [x] 회원가입 입력 검증, Supabase 실패, 성공, 인증 링크 처리 단위 테스트 추가.
+
+### 4.4 인증 상태 기반 공개 헤더와 로그아웃
+
+- 영향 파일: `components/tcg/PublicHeader.tsx`, `components/tcg/logout-action.ts`, `app/page.tsx`, `app/search/page.tsx`, `app/categories/[categoryId]/page.tsx`, `app/cards/[cardId]/page.tsx`, `memory-bank/prd/login.md`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: 기존 공개 페이지의 중복 헤더를 서버 컴포넌트 `PublicHeader`로 대체한다. 헤더는 Supabase Auth `getClaims()`로 로그인 여부를 판별하고, 비로그인 사용자는 `로그인`/`가입하기`, 로그인 사용자는 `로그아웃`만 표시한다. 로그아웃은 서버 액션에서 `supabase.auth.signOut()`을 호출한 뒤 `/`로 이동한다.
+- [x] 홈, 검색 결과, 카테고리, 상품 상세 페이지의 중복 헤더를 `PublicHeader`로 교체.
+- [x] 페이지별 기존 검색창 동작 유지: 홈 없음, 검색 결과 `initialQuery`/clear, 카테고리·상품 상세 데스크톱 검색창.
+- [x] 비로그인 헤더 링크에 안전한 내부 `next` 보존. 루트(`/`)는 쿼리 없이 `/login`, `/signup` 유지.
+- [x] 로그인 상태 헤더는 `로그아웃` 버튼만 렌더링.
+- [x] 로그아웃 서버 액션은 Supabase Auth sign-out 후 성공/실패와 관계없이 `/`로 리다이렉트.
+- [x] 헤더 인증 상태, 안전한 auth 링크, 로그아웃 액션 단위 테스트 추가.
+
+### 4.5 Next.js project-structure 기준 인증 route 내부 구조 정리
+
+- 영향 파일: `app/login/**`, `app/signup/**`, `components/tcg/LoginForm.tsx`, `components/tcg/SignupForm.tsx`, `memory-bank/architecture.md`, `memory-bank/conventions.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: `src/` 폴더 도입 없이 `app/login`과 `app/signup` route segment 안의 route 전용 서버 액션/유틸만 `_actions`, `_lib` private folder로 이동한다. 로그인/회원가입 동작, 검증 문구, Supabase Auth 흐름은 변경하지 않는다.
+- [x] `app/login/page.tsx`만 공개 route 파일로 남기고 로그인 action/util과 테스트를 `_actions`, `_lib`로 이동.
+- [x] `app/signup/page.tsx`만 공개 route 파일로 남기고 회원가입 action/util과 테스트를 `_actions`, `_lib`로 이동.
+- [x] `LoginForm`, `SignupForm`, page, action test, util test import 경로 갱신.
+- [x] `app/auth/confirm/route.ts`와 `route.test.ts`는 route handler와 테스트 co-location으로 유지.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
+
+### 4.6 Storybook 컴포넌트 라이브러리 문서화
 
 - 영향 파일: `package.json`, `pnpm-lock.yaml`, `.storybook/**`, `components/**/*.stories.tsx`, `memory-bank/architecture.md`, `memory-bank/progress.md`.
 - 최소 변경 범위: Storybook을 내부 개발/문서화 도구로 도입하고, `components/ui/*` 전체와 `components/tcg/*` 도메인 컴포넌트의 주요 상태를 카탈로그화한다. 제품 기능 변경이나 외부 배포/Chromatic 연동은 이번 범위에 포함하지 않는다.
@@ -115,7 +148,8 @@
 - [x] `pnpm lint`
 - [x] `pnpm exec tsc --noEmit`
 - [x] `pnpm test --run`
+- [x] `pnpm build`
 
 ## 다음 작업
 
-로그인 화면을 Supabase Auth 클라이언트에 연결하고, 카드/검색/상세 화면은 정적 `lib/tcg-data.ts`에서 Supabase 조회로 전환한다. 데이터 연동 전에는 MVP seed 데이터 입력 전략, 대표 `card_printings` 선택 기준, 포켓몬 카탈로그 import 순서(TCGdex/Pokémon TCG API)를 확정한다.
+카드/검색/상세 화면을 정적 `lib/tcg-data.ts`에서 Supabase 조회로 전환한다. 데이터 연동 전에는 MVP seed 데이터 입력 전략, 대표 `card_printings` 선택 기준, 포켓몬 카탈로그 import 순서(TCGdex/Pokémon TCG API)를 확정한다.

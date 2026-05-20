@@ -26,7 +26,14 @@ app/                 # Next.js App Router (페이지·layout·route handler)
   categories/[categoryId]/page.tsx # 카테고리 탐색
   cards/[cardId]/page.tsx          # 상품 상세
   login/page.tsx     # 로그인
+  login/_actions/login.ts       # 로그인 route 전용 서버 액션
+  login/_lib/login-utils.ts     # 로그인 route 전용 유틸
+  signup/page.tsx    # 회원가입
+  signup/_actions/signup.ts     # 회원가입 route 전용 서버 액션
+  signup/_lib/signup-utils.ts   # 회원가입 route 전용 유틸
+  auth/confirm/route.ts # Supabase 이메일 인증 콜백
   globals.css        # Tailwind 엔트리 + CSS 변수 / 디자인 토큰
+proxy.ts             # Supabase SSR 세션 쿠키 갱신
 components/
   ui/                # shadcn/ui 생성 컴포넌트 (직접 수정 지양)
   tcg/               # TCGround 도메인 컴포넌트
@@ -40,8 +47,15 @@ docs/                # 본 문서들
 - 절대 import 별칭: `@/*` → 프로젝트 루트 (예: `@/components/ui/button`).
 - 공통 UI 부품: `components/ui/*` (shadcn). 도메인 컴포넌트는 `components/<domain>/*`로 신설.
 - TCGround 도메인 컴포넌트: `components/tcg/*`.
+- 공개 페이지 공통 헤더: `components/tcg/PublicHeader.tsx`. 서버 컴포넌트에서 Supabase Auth `getClaims()`로 인증 상태를 확인하고, 페이지별 검색창 옵션과 현재 내부 경로(`next`)만 props로 받는다.
+- 로그인 인증 동작: `app/login/_actions/login.ts` 서버 액션, `app/login/_lib/login-utils.ts` route 전용 유틸, `components/tcg/LoginForm.tsx` 클라이언트 폼을 기준으로 한다.
+- 회원가입 인증 동작: `app/signup/_actions/signup.ts` 서버 액션, `app/signup/_lib/signup-utils.ts` route 전용 유틸, `components/tcg/SignupForm.tsx` 클라이언트 폼을 기준으로 한다.
+- App Router route segment 안에서 route 전용 지원 파일을 둘 때는 `_actions`, `_lib` 같은 private folder를 사용해 공개 route 파일(`page.tsx`, `route.ts`)과 내부 구현 파일을 구분한다.
+- 로그아웃 인증 동작: `components/tcg/logout-action.ts` 서버 액션에서 `supabase.auth.signOut()`을 호출하고 항상 `/`로 이동한다.
+- Supabase 이메일 확인 링크는 `app/auth/confirm/route.ts`에서 `token_hash`, `type`, optional `next`를 받아 `verifyOtp`로 처리한다. Confirm signup 이메일 템플릿은 `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email`처럼 `token_hash`와 `type`을 `/auth/confirm` 요청에 포함해야 한다.
+- 인증 진입점의 `next` 값은 `lib/auth/redirect.ts`에서 내부 경로만 허용하며, 외부 URL, protocol-relative URL, `/login`, `/signup`은 `/`로 fallback한다.
 - 현재 정적 카드/카테고리 데이터: `lib/tcg-data.ts`. 실데이터 연동 전까지 페이지 간 링크와 가격 표시의 기준 데이터로 사용한다.
-- Supabase 클라이언트 유틸은 shadcn Supabase Next.js 컴포넌트가 생성하는 파일을 기준으로 사용한다.
+- Supabase 클라이언트 유틸은 shadcn Supabase Next.js 컴포넌트가 생성하는 파일을 기준으로 사용하고, 세션 쿠키 갱신은 루트 `proxy.ts`에서 `lib/supabase/middleware.ts`를 호출해 처리한다.
 - 디자인 토큰·전역 CSS: `app/globals.css`.
 - 향후 추가 예정 디렉터리: `hooks/`, `types/`.
 
@@ -141,3 +155,7 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 2026-05-20: 인증 수단을 Supabase Auth로 확정하고 Supabase JS/SSR 사용 기준 추가.
 - 2026-05-20: MVP Supabase Postgres 데이터 모델 기준과 RLS 방향 추가.
 - 2026-05-20: 포켓몬 우선 가격 수집 모델(`card_printings`, `price_observations`, source별 실행 로그)과 실거래가 중심 집계 기준 추가.
+- 2026-05-20: 로그인 Supabase Auth 서버 액션, 클라이언트 폼, SSR 세션 갱신용 `proxy.ts` 기준 추가.
+- 2026-05-20: 회원가입 Supabase Auth 서버 액션, `/signup` 폼, `/auth/confirm` 이메일 인증 콜백, 공통 `next` 검증 기준 추가.
+- 2026-05-20: 공개 페이지 공통 `PublicHeader`와 Supabase Auth claims 기반 헤더 버튼 전환, 로그아웃 서버 액션 기준 추가.
+- 2026-05-20: Next.js App Router private folder 기준에 맞춰 `app/login`과 `app/signup`의 route 전용 action/lib 위치를 `_actions`, `_lib`로 정리.

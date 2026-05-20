@@ -1,13 +1,33 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { LoginForm } from '@/components/tcg/LoginForm';
+import { getAuthEntryHref } from '@/lib/auth/redirect';
+import { createClient } from '@/lib/supabase/server';
+import { getSafeNextPath } from './_lib/login-utils';
 
 export const metadata: Metadata = {
   title: 'TCGround | 로그인',
   description: 'TCGround 계정으로 로그인하여 컬렉션 가격을 추적하세요.',
 };
 
-export default function LoginPage() {
+interface LoginPageProps {
+  searchParams: Promise<{
+    next?: string | string[];
+  }>;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const resolvedSearchParams = await searchParams;
+  const nextPath = getSafeNextPath(getFirstParam(resolvedSearchParams.next));
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+
+  if (data?.claims) {
+    redirect(nextPath);
+  }
+
   return (
     <main className='flex min-h-screen items-center justify-center bg-[#f2f4f6] px-4 py-12'>
       <div className='w-full max-w-md'>
@@ -34,66 +54,7 @@ export default function LoginPage() {
             </p>
           </header>
 
-          <form className='space-y-4'>
-            <div className='space-y-1.5'>
-              <label htmlFor='email' className='block text-sm font-bold text-[#191c1e]'>
-                이메일 주소
-              </label>
-              <div className='relative'>
-                <span
-                  className='material-symbols-outlined pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] leading-none text-[#535f73]'
-                  aria-hidden='true'
-                >
-                </span>
-                <input
-                  id='email'
-                  name='email'
-                  type='email'
-                  autoComplete='email'
-                  required
-                  placeholder='name@example.com'
-                  className='block h-11 w-full rounded-lg border border-[#e0e3e5] bg-white pr-3 pl-10 text-base text-[#191c1e] placeholder:text-[#535f73] transition-colors focus:border-[#bb001a] focus:ring-2 focus:ring-[#bb001a]/20 focus:outline-none'
-                />
-              </div>
-            </div>
-
-            <div className='space-y-1.5'>
-              <div className='flex items-center justify-between'>
-                <label htmlFor='password' className='block text-sm font-bold text-[#191c1e]'>
-                  비밀번호
-                </label>
-                <Link
-                  href='/forgot-password'
-                  className='text-xs font-medium text-[#0079b6] transition-colors hover:underline'
-                >
-                  비밀번호를 잊으셨나요?
-                </Link>
-              </div>
-              <div className='relative'>
-                <span
-                  className='material-symbols-outlined pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] leading-none text-[#535f73]'
-                  aria-hidden='true'
-                >
-                </span>
-                <input
-                  id='password'
-                  name='password'
-                  type='password'
-                  autoComplete='current-password'
-                  required
-                  placeholder='••••••••'
-                  className='block h-11 w-full rounded-lg border border-[#e0e3e5] bg-white pr-3 pl-10 text-base text-[#191c1e] placeholder:text-[#535f73] transition-colors focus:border-[#bb001a] focus:ring-2 focus:ring-[#bb001a]/20 focus:outline-none'
-                />
-              </div>
-            </div>
-
-            <button
-              type='submit'
-              className='mt-6 inline-flex h-11 w-full items-center justify-center rounded-lg bg-[#bb001a] text-base font-semibold text-white shadow-sm transition-colors hover:bg-[#930012] focus-visible:ring-2 focus-visible:ring-[#bb001a] focus-visible:ring-offset-2 focus-visible:outline-none'
-            >
-              로그인
-            </button>
-          </form>
+          <LoginForm nextPath={nextPath} />
 
           <div className='my-6 flex items-center gap-3'>
             <span className='h-px flex-1 bg-[#e0e3e5]' aria-hidden='true' />
@@ -113,7 +74,7 @@ export default function LoginPage() {
         <p className='mt-6 text-center text-base leading-[1.5] text-[#535f73]'>
           TCGround이 처음이세요?{' '}
           <Link
-            href='/signup'
+            href={getAuthEntryHref('/signup', nextPath)}
             className='font-bold text-[#bb001a] transition-colors hover:underline'
           >
             TCGround 가입하기
@@ -122,6 +83,10 @@ export default function LoginPage() {
       </div>
     </main>
   );
+}
+
+function getFirstParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
 }
 
 function GoogleIcon({ className }: { className?: string }) {

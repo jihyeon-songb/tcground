@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
-import { HomeSearchForm } from '@/components/tcg/HomeSearchForm';
+import { PublicHeader } from '@/components/tcg/PublicHeader';
 
 export const metadata: Metadata = {
   title: 'TCGround | 검색 결과',
@@ -103,65 +103,14 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const query = (queryValue ?? '').trim();
   const hasQuery = query.length > 0;
   const resultCount = hasQuery ? searchResults.length : 0;
+  const currentPath = hasQuery ? `/search?q=${encodeURIComponent(query)}` : '/search';
 
   return (
     <div className='flex min-h-screen flex-col bg-[#f8f9fb] text-[#191c1e]'>
-      <header className='sticky top-0 z-50 mx-auto flex w-full max-w-[1440px] items-center justify-between gap-4 bg-[#f8f9fb] px-5 py-4'>
-        <div className='flex items-center gap-6'>
-          <Link href='/' aria-label='TCGround home'>
-            <Image
-              src='/logo-transparent.png'
-              alt='TCGround Logo'
-              width={172}
-              height={40}
-              className='h-8 w-auto object-contain'
-              priority
-            />
-          </Link>
-          <nav className='hidden gap-6 md:flex' aria-label='Primary navigation'>
-            <Link className='border-b-2 border-[#bb001a] pb-1 font-bold text-[#191c1e]' href='/'>
-              탐색
-            </Link>
-            <Link
-              className='font-normal text-[#535f73] transition-transform duration-200 hover:scale-[1.02] hover:text-[#bb001a]'
-              href='/categories'
-            >
-              세트
-            </Link>
-            <Link
-              className='font-normal text-[#535f73] transition-transform duration-200 hover:scale-[1.02] hover:text-[#bb001a]'
-              href='/cards'
-            >
-              인기
-            </Link>
-            <Link
-              className='font-normal text-[#535f73] transition-transform duration-200 hover:scale-[1.02] hover:text-[#bb001a]'
-              href='/search'
-            >
-              가격 가이드
-            </Link>
-          </nav>
-        </div>
-
-        <div className='relative mx-4 max-w-xl flex-1'>
-          <HomeSearchForm initialQuery={query} size='header' showClearButton />
-        </div>
-
-        <div className='flex items-center gap-4'>
-          <Link
-            className='hidden font-normal text-[#535f73] hover:text-[#bb001a] md:block'
-            href='/login'
-          >
-            로그인
-          </Link>
-          <Link
-            className='rounded-lg bg-[#bb001a] px-6 py-2 text-sm leading-none font-semibold text-white shadow-sm transition-colors hover:bg-[#930012]'
-            href='/login'
-          >
-            가입하기
-          </Link>
-        </div>
-      </header>
+      <PublicHeader
+        currentPath={currentPath}
+        search={{ initialQuery: query, showClearButton: true }}
+      />
 
       <main className='mx-auto w-full max-w-[1440px] flex-grow px-5 pb-16'>
         <div className='sticky top-[72px] z-40 mb-6 flex flex-col justify-between gap-4 bg-[#f8f9fb]/95 py-4 backdrop-blur-sm md:flex-row md:items-center'>
