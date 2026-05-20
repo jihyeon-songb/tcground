@@ -45,7 +45,27 @@ docs/                # 본 문서들
 - 디자인 토큰·전역 CSS: `app/globals.css`.
 - 향후 추가 예정 디렉터리: `hooks/`, `types/`.
 
-## 3. 수정 범위
+## 3. 데이터 모델 기준
+
+MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-bank/db-schema.md`를 단일 출처로 둔다.
+
+핵심 테이블:
+
+- `tcg_games`: TCG 대분류.
+- `card_sets`: 세트/확장팩.
+- `cards`: 카드 기본 정보와 검색 기준.
+- `card_categories`: 탐색용 카테고리.
+- `card_category_links`: 카드-카테고리 연결.
+- `card_price_snapshots`: 일자별 가격 히스토리와 현재 가격 요약의 원천.
+- `favorite_cards`: Supabase Auth 사용자별 관심 카드.
+
+보안 기준:
+
+- 카드/카테고리/가격 데이터는 공개 읽기만 허용하고 클라이언트 직접 쓰기는 금지한다.
+- `favorite_cards`는 RLS로 `auth.uid() = user_id` 행만 사용자별 읽기/쓰기 가능하게 한다.
+- 카드/가격 수집·수정은 server/admin 경로 또는 Supabase service role을 사용하는 관리 작업으로만 처리한다.
+
+## 4. 수정 범위
 
 **수정 허용**
 
@@ -66,7 +86,7 @@ docs/                # 본 문서들
 - `pnpm-lock.yaml` — 의존성 변경 의도가 없을 때
 - `.env*` — 절대 커밋 금지 (`.env.example`만 허용)
 
-## 4. Next.js 가이드
+## 5. Next.js 가이드
 
 - 기본은 Server Component. 상호작용·브라우저 API·hooks가 필요할 때만 Client Component(`'use client'`).
 - 서버 API에는 route handler를 우선 사용한다.
@@ -75,7 +95,7 @@ docs/                # 본 문서들
 - SEO가 중요한 페이지에 `metadata`를 정의한다.
 - 민감 로직을 Client Component에 두지 않는다.
 
-## 5. UI 가이드
+## 6. UI 가이드
 
 - Tailwind는 CSS 변수와 `app/globals.css` 토큰을 우선 사용. shadcn 컴포넌트와 일관성 유지.
 - Stitch `TCGround Price Tracker` 디자인 시스템의 Manrope, warm-cream surface, Pinterest Red CTA, flat editorial 카드 규칙을 `app/globals.css`의 전역 CSS 변수와 `tcg-*` component utility로 관리한다.
@@ -86,7 +106,7 @@ docs/                # 본 문서들
 - 명시적 요청 없이 새 UI 라이브러리 추가 금지.
 - 앱 화면에는 과한 마케팅형 섹션을 피한다. 별도 요청이 없는 한 랜딩보다 실제 제품 화면을 먼저 만든다.
 
-## 6. 예정 인프라
+## 7. 예정 인프라
 
 | 영역                  | 후보                                |
 | --------------------- | ----------------------------------- |
@@ -100,10 +120,11 @@ docs/                # 본 문서들
 > 도입 시 시크릿·세션 처리 코드는 코드오너 리뷰 필수.
 > 결정 사항은 `PRD.md`의 "결정 대기"와 동기화 유지.
 
-## 7. 변경 이력
+## 8. 변경 이력
 
 - 2026-05-06: 초기 ARCHITECTURE 정리.
 - 2026-05-08: Stitch 기반 전역 CSS 토큰과 `tcg-*` component utility 사용 기준 추가.
 - 2026-05-08: 특정 Stitch 화면 1:1 구현 요청 시 실제 Stitch 화면 HTML을 우선 기준으로 삼는 예외 기준 추가.
 - 2026-05-20: 구현된 App Router 경로, `components/tcg`, `lib/tcg-data.ts` 기준을 현재 코드 상태에 맞춰 반영.
 - 2026-05-20: 인증 수단을 Supabase Auth로 확정하고 Supabase JS/SSR 사용 기준 추가.
+- 2026-05-20: MVP Supabase Postgres 데이터 모델 기준과 RLS 방향 추가.

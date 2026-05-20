@@ -35,10 +35,14 @@
 
 ### 3. 데이터 모델 설계
 
-- [ ] 카드 기본 정보 모델 정의.
-- [ ] 가격 요약/가격 히스토리 모델 정의.
-- [ ] 카테고리 모델 정의.
-- [ ] 관심 카드 모델 정의.
+- 영향 파일: `memory-bank/db-schema.md`, `memory-bank/implementation-plan.md`, `memory-bank/architecture.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: MVP P0/P1에 필요한 카드 탐색, 검색, 상품 상세 가격 차트, Supabase Auth 기반 관심 카드 저장을 지원하는 Supabase Postgres 스키마를 문서로 확정한다. 상세 설계는 `memory-bank/db-schema.md`를 단일 출처로 두고, 실제 Supabase 적용은 별도 migration/MCP 실행 단계에서 진행한다.
+- [x] 카드 기본 정보 모델 정의.
+- [x] 가격 요약/가격 히스토리 모델 정의.
+- [x] 카테고리 모델 정의.
+- [x] 관심 카드 모델 정의.
+
+상세 스키마: `memory-bank/db-schema.md`
 
 ### 4. UI 구현
 
@@ -69,4 +73,4 @@
 
 ## 다음 작업
 
-Supabase Auth 클라이언트를 `/login` 화면에 연결해 이메일/비밀번호 입력 검증, 로그인 요청 중 상태, 실패 메시지, 성공 후 이동 동작을 구현한다.
+Supabase MCP 또는 migration으로 3단계 DB 스키마를 실제 Supabase 프로젝트에 적용한다. 적용 후 로그인 화면은 Supabase Auth 클라이언트에 연결하고, 카드/검색/상세 화면은 정적 `lib/tcg-data.ts`에서 Supabase 조회로 전환한다.

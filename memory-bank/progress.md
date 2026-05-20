@@ -5,10 +5,12 @@
 
 ## 현재 작업
 
-- 2026-05-20: 다음 작업은 Supabase Auth 클라이언트를 `/login` 동작에 연결하는 것이다. 이메일/비밀번호 입력 검증, 요청 중 상태, 실패 메시지, 성공 후 이동 처리를 구현한다.
+- 2026-05-20: 다음 작업은 Supabase MCP 또는 migration으로 MVP DB 스키마(`tcg_games`, `card_sets`, `cards`, `card_categories`, `card_category_links`, `card_price_snapshots`, `favorite_cards`)를 실제 Supabase 프로젝트에 적용하는 것이다.
 
 ## 완료 로그
 
+- 2026-05-20: MVP 데이터 모델 상세 설계를 `memory-bank/db-schema.md`로 분리했다. `implementation-plan.md`는 3단계 체크리스트와 참조 링크만 남기고, `architecture.md`는 핵심 데이터 모델과 보안 기준 요약을 유지한다.
+- 2026-05-20: MVP 데이터 모델 설계를 완료했다. Supabase Postgres 기준 테이블, 컬럼, 인덱스, 조회 기준, RLS 정책 방향을 문서화했고 `architecture.md`에는 핵심 데이터 모델과 보안 기준을 요약했다.
 - 2026-05-20: 사용자가 제공한 Supabase 설정 지시에 따라 인증 수단을 Supabase Auth로 확정하고 `prd/plan.md`, `prd/login.md`, `implementation-plan.md`에 반영했다.
 - 2026-05-20: `@supabase/supabase-js`, `@supabase/ssr`를 설치하고 shadcn Supabase Next.js 클라이언트 파일(`lib/supabase/client.ts`, `lib/supabase/server.ts`, `lib/supabase/middleware.ts`)을 추가했다. `.env.local`에는 사용자가 제공한 Supabase URL과 publishable key를 설정했다. `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`을 통과했다.
 - 2026-05-20: `implementation-plan.md`와 `architecture.md`를 실제 라우트/페이지 구현 상태에 맞춰 동기화했다. 카테고리와 상품 상세 정적 UI는 완료로 표시하고, 로그인은 정적 화면 완료와 인증 동작 미완료를 분리했다. 다음 작업을 상품 상세 가격 차트 데이터 모델화로 정리했다.
@@ -24,6 +26,7 @@
 
 ## 의사결정 로그
 
+- 2026-05-20: MVP DB는 `tcg_games`, `card_sets`, `cards`, `card_categories`, `card_category_links`, `card_price_snapshots`, `favorite_cards` 7개 테이블로 시작한다. 가격 요약은 별도 테이블로 중복 저장하지 않고 최신 `card_price_snapshots` 조회를 기준으로 하며, 성능 문제가 생기면 `card_price_summaries` view 또는 materialized view로 확장한다.
 - 2026-05-20: 인증 수단은 Supabase Auth로 확정한다. 이유는 사용자가 Supabase 프로젝트 URL과 publishable key, `@supabase/supabase-js`, `@supabase/ssr`, shadcn Supabase 클라이언트 설치 지시를 제공했고, 기존 PRD의 인증 수단 미결 항목을 해소하기 때문이다.
 - 2026-05-20: 로그인 페이지는 현재 정적 화면 구현 완료로만 간주하고 인증 동작은 별도 작업으로 진행한다. 인증 수단은 Supabase Auth로 확정됐으므로 다음 작업부터 Supabase 클라이언트 기준으로 로그인 요청/세션/리다이렉트 계약을 구현한다.
 - 2026-05-08: 검색 결과 페이지 카드 명칭/세트/그레이딩 라벨은 영문 표기를 유지한다. 이유는 홈에서 이미 영문 카드 식별자를 사용 중이고 TCG 업계에서 영문 표기가 검색 매칭의 기준이기 때문이다. UI 라벨(필터, 가격: 높은순, 결과 카운트, 빈 상태 안내)은 한국어로 통일한다.
