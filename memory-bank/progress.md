@@ -9,6 +9,7 @@
 
 ## 완료 로그
 
+- 2026-05-20: `memory-bank/implementation-plan.md`에 4.3 Storybook 컴포넌트 라이브러리 문서화 단계를 추가했다. 기본 Storybook 카탈로그 구축, `components/ui/*`와 `components/tcg/*` 스토리 작성, `storybook`/`build-storybook` 스크립트, 품질 게이트를 후속 작업으로 정리하고 Storybook MCP(`@storybook/addon-mcp`)는 기본 카탈로그 구축 이후 도입 여부를 검토하는 항목으로 분리했다.
 - 2026-05-20: 포켓몬 우선 가격 데이터 수집 전략을 DB 모델에 반영했다. Supabase MCP migration `extend_price_collection_models`로 `card_printings`, `price_observations`, `price_collection_runs`를 추가하고 `card_price_snapshots`를 `card_printing_id` 기준으로 확장했다. 이어 `lock_internal_price_collection_tables` migration으로 원천 관측치와 source별 실행 로그에 명시적 deny-all RLS 정책을 적용했다. Supabase MCP로 테이블, FK, 인덱스, 정책, migration 기록을 확인했고 Security Advisor는 lint 없음, Performance Advisor는 아직 데이터/쿼리가 없어 신규 unused index 정보만 남았다. Rollback smoke test로 같은 Charizard의 `en`/`ja`/`ko` printing 3개, raw/PSA 10 관측치와 snapshot 2개, source 실패 run 1개가 구분 저장되는 것을 확인했다. `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, 변경 문서 Prettier check를 통과했다.
 - 2026-05-20: Supabase MCP migration `create_tcg_mvp_schema`로 MVP DB 스키마 7개 테이블(`tcg_games`, `card_sets`, `cards`, `card_categories`, `card_category_links`, `card_price_snapshots`, `favorite_cards`)과 FK, unique/index, `updated_at` trigger, RLS 정책을 실제 Supabase 프로젝트에 적용했다. 이어 `optimize_favorite_cards_rls_policies` migration으로 `favorite_cards` RLS 정책을 Supabase Performance Advisor 권장 형태로 최적화했다. Supabase MCP로 테이블, RLS, 정책, 인덱스, 트리거, migration 기록을 확인했고 Security Advisor는 lint 없음, Performance Advisor는 신규 미사용 인덱스 정보만 남았다.
 - 2026-05-20: MVP 데이터 모델 상세 설계를 `memory-bank/db-schema.md`로 분리했다. `implementation-plan.md`는 3단계 체크리스트와 참조 링크만 남기고, `architecture.md`는 핵심 데이터 모델과 보안 기준 요약을 유지한다.
@@ -28,6 +29,7 @@
 
 ## 의사결정 로그
 
+- 2026-05-20: Storybook은 우선 내부 개발/문서화 도구로만 도입한다. 제품 기능 변경, 외부 배포, Chromatic 연동은 초기 범위에서 제외하고, Storybook MCP(`@storybook/addon-mcp`)는 컴포넌트 기본 카탈로그가 완성된 뒤 AI 에이전트가 실제 stories/docs를 참조할 필요가 확인되면 도입을 검토한다.
 - 2026-05-20: MVP 가격 수집은 포켓몬 우선, 실거래가 중심, source별 관측치 저장 후 일별 snapshot 집계 방식으로 확정한다. 카드 카탈로그는 TCGdex와 Pokémon TCG API 조합으로 시작하고, 북미 가격은 API 접근성이 좋은 TCGplayer/eBay 계열을 먼저 검토한다. 일본/한국판은 안정적인 공개 가격 API가 부족할 수 있으므로 수동 import와 ToS가 허용된 crawler/partner adapter를 분리해 붙인다.
 - 2026-05-20: 기존 `cards`는 대표 카드로 유지하고 가격은 `card_printings` 기준으로 저장한다. 같은 카드명이라도 언어판, 지역판, 세트 코드, collector number, finish가 다르면 가격이 섞이지 않아야 하며, raw/graded와 상태/등급 구분은 `price_observations`와 `card_price_snapshots`의 `variant`, `condition_label`, `grade_company`, `grade_value` 축으로 분리한다.
 - 2026-05-20: `price_observations`와 `price_collection_runs`는 원천 payload와 adapter 오류를 담을 수 있으므로 공개 읽기 대상에서 제외하고 명시적 deny-all RLS 정책을 둔다. 공개 UI는 검증/집계된 `card_price_snapshots`와 `card_printings`만 읽는다.
