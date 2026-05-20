@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-05-08
+> 마지막 갱신: 2026-05-20
 
 ## 현재 기준 PRD
 
@@ -27,11 +27,11 @@
 
 ### 2. 정보 구조 및 라우팅 설계
 
-- [ ] 페이지별 라우트 구조 결정.
+- [x] 페이지별 라우트 구조 결정: `/`, `/search`, `/categories/[categoryId]`, `/cards/[cardId]`, `/login`.
 - [x] 홈 화면에서 사용할 1차 링크 타깃 정의: 검색 `/search?q=...`, 카테고리 `/categories/[categoryId]`, 카드 상세 `/cards/[cardId]`.
-- [ ] 공통 헤더/검색 진입 UX 정의.
-- [ ] 카테고리 URL 구조 결정.
-- [ ] 상품 상세 URL 구조 결정.
+- [x] 공통 헤더/검색 진입 UX 정의: 홈 검색 폼을 `HomeSearchForm`으로 분리하고 헤더 변형(`size='header'`)을 재사용.
+- [x] 카테고리 URL 구조 결정: `/categories/[categoryId]`.
+- [x] 상품 상세 URL 구조 결정: `/cards/[cardId]`.
 
 ### 3. 데이터 모델 설계
 
@@ -42,14 +42,24 @@
 
 ### 4. UI 구현
 
-- 영향 파일: `app/page.tsx`, `app/search/page.tsx`, `app/globals.css`, `app/layout.tsx`, `components/tcg/HomeSearchForm.tsx`, `components/tcg/HomeSearchForm.test.tsx`.
-- 최소 변경 범위: Stitch `TCGround Price Tracker`의 `TCGround | Home (Search Optimized)` 화면 HTML 구조, 한국어 문구, 히어로 검색, 이미지 카드 구성을 우선 기준으로 홈페이지 UI를 재구현하고, `TCGround | Search: Charizard` 화면 구조를 기준으로 검색 결과 페이지를 구현한다.
+- 영향 파일: `app/page.tsx`, `app/search/page.tsx`, `app/categories/[categoryId]/page.tsx`, `app/cards/[cardId]/page.tsx`, `app/login/page.tsx`, `app/globals.css`, `app/layout.tsx`, `components/tcg/HomeSearchForm.tsx`, `components/tcg/HomeSearchForm.test.tsx`, `lib/tcg-data.ts`.
+- 최소 변경 범위: Stitch `TCGround Price Tracker` 화면 구조와 한국어 UI 문구를 우선 기준으로 P0 페이지의 정적 UI를 구현한다. 인증·실데이터 연동은 데이터 모델과 인증 수단 결정 이후 별도 단계로 진행한다.
 - [x] Stitch `TCGround Price Tracker` 디자인 시스템 기반 전역 CSS 토큰과 `tcg-*` component utility 구조 수립.
 - [x] 홈페이지 검색/카테고리/인기 카드 영역을 `TCGround | Home (Search Optimized)` 기준으로 갱신.
 - [x] 검색 결과 목록과 상태 화면 구현 (`TCGround | Search: Charizard` 기반, 빈 검색어 안내 포함).
-- [ ] 카테고리 탐색 화면 구현.
-- [ ] 상품 상세 정보와 가격 차트 구현.
-- [ ] 로그인 화면 구현.
+- [x] 카테고리 탐색 화면 구현 (`/categories/[categoryId]`, `pokemon` 정상 상태와 준비 중 빈 상태).
+- [x] 상품 상세 정보와 가격 차트 정적 UI 구현 (`/cards/[cardId]`, 404 분기 포함).
+- [x] 로그인 정적 화면 구현 (`/login`, 이메일/비밀번호 폼과 가입/소셜 진입 링크).
+- [ ] 로그인 입력 검증, 요청 중 상태, 실패 메시지, 성공 후 이동 동작 구현.
+
+### 4.1 Supabase 인증 기반 설정
+
+- 영향 파일: `package.json`, `pnpm-lock.yaml`, `.env.local`, shadcn Supabase 클라이언트 생성 파일, `memory-bank/prd/plan.md`, `memory-bank/prd/login.md`, `memory-bank/architecture.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: Supabase Auth를 로그인 구현 기준으로 확정하고, Next.js용 Supabase 패키지와 shadcn Supabase 클라이언트 유틸을 설치한다. 실제 로그인 액션 연결은 별도 작업으로 진행한다.
+- [x] 인증 수단을 Supabase Auth로 결정하고 PRD/진행 로그에 반영.
+- [x] `@supabase/supabase-js`, `@supabase/ssr` 설치.
+- [x] shadcn Supabase Next.js 클라이언트 컴포넌트 추가.
+- [x] `.env.local`에 Supabase 공개 URL/Publishable Key 설정.
 
 ### 5. 품질 게이트
 
@@ -59,4 +69,4 @@
 
 ## 다음 작업
 
-검색 결과 페이지에서 연결되는 카테고리 탐색 화면(`/categories/[categoryId]`)을 정적 데이터 기반으로 구현한다.
+Supabase Auth 클라이언트를 `/login` 화면에 연결해 이메일/비밀번호 입력 검증, 로그인 요청 중 상태, 실패 메시지, 성공 후 이동 동작을 구현한다.

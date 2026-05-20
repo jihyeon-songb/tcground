@@ -2,13 +2,14 @@
 
 > 기술 스택·디렉터리 구조·수정 범위·Next.js/UI 가이드.
 > 명명·코딩 스타일·테스트·커밋 룰은 `CONVENTIONS.md`.
-> 마지막 갱신: 2026-05-06
+> 마지막 갱신: 2026-05-20
 
 ## 1. 스택
 
 - Next.js 16 (App Router) · React 19 · TypeScript 5 (strict)
 - Tailwind CSS v4 + `prettier-plugin-tailwindcss`
 - shadcn/ui (Radix 기반) + lucide-react + class-variance-authority + tailwind-merge + clsx + cmdk
+- Supabase JS + Supabase SSR (Auth/서버 클라이언트)
 - Vitest 4 + Testing Library + jsdom
 - ESLint 9 (`next/core-web-vitals` + `next/typescript`)
 - pnpm (단일 앱. `pnpm-workspace.yaml`은 미래 확장용)
@@ -21,9 +22,15 @@
 app/                 # Next.js App Router (페이지·layout·route handler)
   layout.tsx         # 루트 레이아웃 + TooltipProvider
   page.tsx           # 홈
+  search/page.tsx    # 검색 결과
+  categories/[categoryId]/page.tsx # 카테고리 탐색
+  cards/[cardId]/page.tsx          # 상품 상세
+  login/page.tsx     # 로그인
   globals.css        # Tailwind 엔트리 + CSS 변수 / 디자인 토큰
 components/
   ui/                # shadcn/ui 생성 컴포넌트 (직접 수정 지양)
+  tcg/               # TCGround 도메인 컴포넌트
+lib/                 # 도메인 정적 데이터·유틸·Supabase 클라이언트
 public/              # 정적 자산
 docs/                # 본 문서들
 ```
@@ -32,8 +39,11 @@ docs/                # 본 문서들
 
 - 절대 import 별칭: `@/*` → 프로젝트 루트 (예: `@/components/ui/button`).
 - 공통 UI 부품: `components/ui/*` (shadcn). 도메인 컴포넌트는 `components/<domain>/*`로 신설.
+- TCGround 도메인 컴포넌트: `components/tcg/*`.
+- 현재 정적 카드/카테고리 데이터: `lib/tcg-data.ts`. 실데이터 연동 전까지 페이지 간 링크와 가격 표시의 기준 데이터로 사용한다.
+- Supabase 클라이언트 유틸은 shadcn Supabase Next.js 컴포넌트가 생성하는 파일을 기준으로 사용한다.
 - 디자인 토큰·전역 CSS: `app/globals.css`.
-- 향후 추가 예정 디렉터리: `lib/` (유틸·서버 클라이언트), `hooks/`, `types/`.
+- 향후 추가 예정 디렉터리: `hooks/`, `types/`.
 
 ## 3. 수정 범위
 
@@ -82,7 +92,7 @@ docs/                # 본 문서들
 | --------------------- | ----------------------------------- |
 | 호스팅                | Vercel                              |
 | DB                    | Supabase Postgres                   |
-| 인증                  | Supabase Auth 또는 Clerk            |
+| 인증                  | Supabase Auth                       |
 | 이미지 저장           | Supabase Storage 또는 Cloudflare R2 |
 | 캐시·rate limit·queue | Upstash Redis                       |
 | 이메일                | Resend                              |
@@ -95,3 +105,5 @@ docs/                # 본 문서들
 - 2026-05-06: 초기 ARCHITECTURE 정리.
 - 2026-05-08: Stitch 기반 전역 CSS 토큰과 `tcg-*` component utility 사용 기준 추가.
 - 2026-05-08: 특정 Stitch 화면 1:1 구현 요청 시 실제 Stitch 화면 HTML을 우선 기준으로 삼는 예외 기준 추가.
+- 2026-05-20: 구현된 App Router 경로, `components/tcg`, `lib/tcg-data.ts` 기준을 현재 코드 상태에 맞춰 반영.
+- 2026-05-20: 인증 수단을 Supabase Auth로 확정하고 Supabase JS/SSR 사용 기준 추가.

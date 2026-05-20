@@ -1,14 +1,17 @@
 # PROGRESS
 
 > 작업 진행 상황과 의사결정 로그.
-> 마지막 갱신: 2026-05-08
+> 마지막 갱신: 2026-05-20
 
 ## 현재 작업
 
-- 2026-05-08: 다음 작업은 카드 상세 가격 차트 데이터 연동(현재는 정적 SVG 경로 placeholder).
+- 2026-05-20: 다음 작업은 Supabase Auth 클라이언트를 `/login` 동작에 연결하는 것이다. 이메일/비밀번호 입력 검증, 요청 중 상태, 실패 메시지, 성공 후 이동 처리를 구현한다.
 
 ## 완료 로그
 
+- 2026-05-20: 사용자가 제공한 Supabase 설정 지시에 따라 인증 수단을 Supabase Auth로 확정하고 `prd/plan.md`, `prd/login.md`, `implementation-plan.md`에 반영했다.
+- 2026-05-20: `@supabase/supabase-js`, `@supabase/ssr`를 설치하고 shadcn Supabase Next.js 클라이언트 파일(`lib/supabase/client.ts`, `lib/supabase/server.ts`, `lib/supabase/middleware.ts`)을 추가했다. `.env.local`에는 사용자가 제공한 Supabase URL과 publishable key를 설정했다. `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`을 통과했다.
+- 2026-05-20: `implementation-plan.md`와 `architecture.md`를 실제 라우트/페이지 구현 상태에 맞춰 동기화했다. 카테고리와 상품 상세 정적 UI는 완료로 표시하고, 로그인은 정적 화면 완료와 인증 동작 미완료를 분리했다. 다음 작업을 상품 상세 가격 차트 데이터 모델화로 정리했다.
 - 2026-05-08: Stitch `TCGround Price Tracker`의 `TCGround | Card Detail (Updated Nav)` 화면과 `memory-bank/prd/product-detail.md` PRD를 기준으로 상품 상세 페이지(`app/cards/[cardId]/page.tsx`)를 구현했다. 동적 라우트로 `charizard-base-set-1st-edition` 슬러그에 Stitch HTML 기반 헤더(`HomeSearchForm size='header'`), `Base Set로 돌아가기` 단일 back 링크, 2컬럼 디테일(좌측 카드 이미지 / 우측 chip·display 가격·트렌드 칩·최저/최고가·관심 카드/가격 알림 액션·기간 탭이 달린 SVG 가격 차트·데이터 출처·마지막 업데이트), `Base Set의 다른 카드` 4개 columns masonry, 공통 footer를 구성했다. 알 수 없는 슬러그는 `notFound`로 분기한다. UI 라벨은 한국어, 카드명·세트·레어도는 영문 표기 컨벤션을 유지했다. `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build`, 변경 파일 Prettier check를 통과했고 dev `http://localhost:3000/cards/charizard-base-set-1st-edition`에서 키 섹션 렌더(평균 거래가, 관심 카드 추가, 가격 변동(90일), Base Set의 다른 카드 등)와 `/cards/unknown-card` 404 응답을 확인했다.
 - 2026-05-08: Stitch `TCGround Price Tracker`의 `TCGround | Category: Pokemon (Updated Nav)` 화면을 기준으로 카테고리 페이지(`app/categories/[categoryId]/page.tsx`)를 구현했다. 동적 라우트로 `pokemon` 슬러그에는 Stitch HTML을 따라 헤더(`HomeSearchForm size='header'`), Home > Categories > 포켓몬 breadcrumb, 한국어 hero, 사이드바(레어도 체크박스 / 시대 라디오), 5개 인기 세트 bento, 5개 인기 카드 columns masonry, footer를 구성했다. 알 수 없는 슬러그는 `notFound`로 분기하거나 `KNOWN_CATEGORY_LABELS`(magic, yugioh, one-piece)에 한해 "준비 중" 빈 상태를 노출한다. 카드 식별자는 영문, UI 라벨은 한국어 컨벤션을 따랐다. `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build`, 변경 파일 Prettier check를 통과했고 dev `http://localhost:3050/categories/pokemon`과 `/categories/yugioh`에서 정상 상태와 빈 상태 렌더를 확인했다.
 - 2026-05-08: Stitch `TCGround Price Tracker`의 `TCGround | Search: Charizard` 화면을 기준으로 검색 결과 페이지(`app/search/page.tsx`)를 구현했다. 헤더에는 prefilled 검색 입력(`HomeSearchForm size='header' showClearButton initialQuery=...`)을 두고, 정렬·필터 칩 스트립과 결과 카운트, 6개 정적 카드의 columns 기반 masonry, 빈 검색어 안내 상태를 구성했다. `HomeSearchForm`에 `initialQuery`/`showClearButton`/`size='header'` 변형을 추가하고 단위 테스트를 두 건 추가했다. `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build`, 변경 파일 Prettier check를 통과했고 dev `http://localhost:3000/search?q=Charizard`와 `/search`에서 결과/빈 상태 렌더를 확인했다.
@@ -21,6 +24,8 @@
 
 ## 의사결정 로그
 
+- 2026-05-20: 인증 수단은 Supabase Auth로 확정한다. 이유는 사용자가 Supabase 프로젝트 URL과 publishable key, `@supabase/supabase-js`, `@supabase/ssr`, shadcn Supabase 클라이언트 설치 지시를 제공했고, 기존 PRD의 인증 수단 미결 항목을 해소하기 때문이다.
+- 2026-05-20: 로그인 페이지는 현재 정적 화면 구현 완료로만 간주하고 인증 동작은 별도 작업으로 진행한다. 인증 수단은 Supabase Auth로 확정됐으므로 다음 작업부터 Supabase 클라이언트 기준으로 로그인 요청/세션/리다이렉트 계약을 구현한다.
 - 2026-05-08: 검색 결과 페이지 카드 명칭/세트/그레이딩 라벨은 영문 표기를 유지한다. 이유는 홈에서 이미 영문 카드 식별자를 사용 중이고 TCG 업계에서 영문 표기가 검색 매칭의 기준이기 때문이다. UI 라벨(필터, 가격: 높은순, 결과 카운트, 빈 상태 안내)은 한국어로 통일한다.
 - 2026-05-08: 홈 UI는 기존 한국어 PRD 재구성안보다 Stitch `TCGround | Home` 및 `TCGround | Home (Search Optimized)` 화면을 우선 기준으로 둔다. 이유는 사용자가 Stitch 화면 1:1 참고를 명시했고, 해당 화면의 실제 레이아웃·문구·이미지가 구현 기준이기 때문이다.
 - 2026-05-08: 홈 화면 링크 타깃은 검색 `/search?q=...`, 카테고리 `/categories/[categoryId]`, 카드 상세 `/cards/[cardId]`를 1차 기준으로 둔다. 이유는 PRD의 다음 이동 경로를 실제 라우트 골격과 연결하고, 이후 검색 결과/카테고리/상세 페이지 구현 시 같은 URL 계약을 재사용하기 위해서다.
