@@ -2,8 +2,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getAuthEntryHref } from '@/lib/auth/redirect';
 import { createClient } from '@/lib/supabase/server';
-import { HomeSearchForm } from './HomeSearchForm';
-import { logout } from './logout-action';
+import { HomeSearchForm } from '@/components/tcg/search/HomeSearchForm';
+import { logout } from '@/components/tcg/auth/logout-action';
 
 type HeaderSearchOptions =
   | {
@@ -18,8 +18,16 @@ interface PublicHeaderProps {
   search?: HeaderSearchOptions;
 }
 
+const NAV_ITEMS = [
+  { label: '홈', href: '/' },
+  { label: '검색', href: '/search' },
+  { label: '카테고리', href: '/categories' },
+  { label: '인기', href: '/cards' },
+] as const;
+
 export async function PublicHeader({ currentPath, search = false }: PublicHeaderProps) {
   const isAuthenticated = await getIsAuthenticated();
+  const activePath = getActivePath(currentPath);
 
   return (
     <header className='sticky top-0 z-50 mx-auto flex w-full max-w-[1440px] items-center justify-between gap-4 bg-[#f8f9fb] px-5 py-4'>
@@ -35,27 +43,23 @@ export async function PublicHeader({ currentPath, search = false }: PublicHeader
           />
         </Link>
         <nav className='hidden gap-6 md:flex' aria-label='Primary navigation'>
-          <Link className='border-b-2 border-[#bb001a] pb-1 font-bold text-[#191c1e]' href='/'>
-            탐색
-          </Link>
-          <Link
-            className='font-normal text-[#535f73] transition-transform duration-200 hover:scale-[1.02] hover:text-[#bb001a]'
-            href='/categories'
-          >
-            세트
-          </Link>
-          <Link
-            className='font-normal text-[#535f73] transition-transform duration-200 hover:scale-[1.02] hover:text-[#bb001a]'
-            href='/cards'
-          >
-            인기
-          </Link>
-          <Link
-            className='font-normal text-[#535f73] transition-transform duration-200 hover:scale-[1.02] hover:text-[#bb001a]'
-            href='/search'
-          >
-            가격 가이드
-          </Link>
+          {NAV_ITEMS.map((item) => {
+            const isActive =
+              item.href === '/' ? activePath === '/' : activePath.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                className={
+                  isActive
+                    ? 'border-b-2 border-[#bb001a] pb-1 font-bold text-[#191c1e]'
+                    : 'font-normal text-[#535f73] transition-transform duration-200 hover:scale-[1.02] hover:text-[#bb001a]'
+                }
+                href={item.href}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
       </div>
 
@@ -110,4 +114,12 @@ async function getIsAuthenticated() {
   } catch {
     return false;
   }
+}
+
+function getActivePath(currentPath: string) {
+  if (!currentPath.startsWith('/')) {
+    return '/';
+  }
+
+  return currentPath.split('?')[0] || '/';
 }

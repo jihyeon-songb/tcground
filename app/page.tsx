@@ -2,8 +2,8 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
-import { HomeSearchForm } from '@/components/tcg/HomeSearchForm';
-import { PublicHeader } from '@/components/tcg/PublicHeader';
+import { HomeSearchForm } from '@/components/tcg/search/HomeSearchForm';
+import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
 
 export const metadata: Metadata = {
   title: 'TCGround - Curated Discovery for Collectors',

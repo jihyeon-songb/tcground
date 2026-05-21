@@ -57,6 +57,15 @@ export const tcgCategories: TcgCategory[] = [
     momentum: 'down',
     href: '/categories/magic',
   },
+  {
+    id: 'one-piece',
+    name: '원피스',
+    label: '리더 카드와 병행 수입판',
+    cardCount: 412,
+    trackedSets: 14,
+    momentum: 'up',
+    href: '/categories/one-piece',
+  },
 ];
 
 export const featuredCards: FeaturedCard[] = [

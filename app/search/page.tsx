@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
-import { PublicHeader } from '@/components/tcg/PublicHeader';
+import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
 
 export const metadata: Metadata = {
   title: 'TCGround | 검색 결과',

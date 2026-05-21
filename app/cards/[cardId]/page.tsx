@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { PublicHeader } from '@/components/tcg/PublicHeader';
+import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
 
 type ChangeTone = 'up' | 'down' | 'flat';
 

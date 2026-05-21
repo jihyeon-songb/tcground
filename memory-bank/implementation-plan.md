@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-05-20
+> 마지막 갱신: 2026-05-21 (components/tcg 도메인 분리)
 
 ## 현재 기준 PRD
 
@@ -142,6 +142,28 @@
 - [ ] `pnpm storybook`, `pnpm build-storybook` 실행 스크립트 추가.
 - [ ] Storybook 기본 카탈로그 구축 후, AI 에이전트가 실제 stories/docs를 참조할 수 있도록 Storybook MCP(`@storybook/addon-mcp`) 도입 여부를 검토한다.
 - [ ] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build-storybook` 검증.
+
+### 4.7 MVP 헤더 메뉴 정리와 목록 라우트 추가
+
+- 영향 파일: `components/tcg/PublicHeader.tsx`, `components/tcg/PublicHeader.test.tsx`, `app/categories/page.tsx`, `app/categories/page.test.tsx`, `app/cards/page.tsx`, `app/cards/page.test.tsx`, `lib/tcg-data.ts`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/architecture.md`.
+- 최소 변경 범위: MVP 공개 헤더 메뉴를 실제 사용자 행동과 라우트 구조에 맞춰 `홈 / 검색 / 카테고리 / 인기`로 정리한다. 헤더 링크가 깨지지 않도록 `/categories` 대분류 목록 페이지와 `/cards` 인기 카드 목록 페이지를 정적/seed 기반 최소 UI로 추가한다. 실제 Supabase 조회 전환은 후속 데이터 연동 단계로 유지한다.
+- [x] 헤더 메뉴 라벨과 href를 `홈`(`/`), `검색`(`/search`), `카테고리`(`/categories`), `인기`(`/cards`)로 변경.
+- [x] `/categories`에서 포켓몬, 매직 더 개더링, 유희왕, 원피스 대분류 링크 렌더링.
+- [x] `/cards`에서 정적/seed 기반 인기 카드 목록과 빈 상태 렌더링.
+- [x] `PublicHeader`, `/categories`, `/cards` 단위 테스트 추가 또는 갱신.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run` 검증.
+
+### 4.8 components/tcg 도메인 폴더 분리
+
+- 영향 파일: `components/tcg/**`, `app/page.tsx`, `app/search/page.tsx`, `app/categories/page.tsx`, `app/categories/[categoryId]/page.tsx`, `app/cards/page.tsx`, `app/cards/[cardId]/page.tsx`, `app/login/page.tsx`, `app/signup/page.tsx`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: `components/tcg/` 평탄 구조를 기능 도메인별 `auth/`, `layout/`, `search/` 하위 폴더로 이동하고 import 경로만 갱신한다. 동작·UI·테스트 케이스 변경 없음. 빈 `components/home/` 디렉터리는 제거한다.
+- [x] `LoginForm`, `SignupForm`, `logout-action(+test)`을 `components/tcg/auth/`로 이동.
+- [x] `PublicHeader(+test)`를 `components/tcg/layout/`으로 이동.
+- [x] `HomeSearchForm(+test)`을 `components/tcg/search/`로 이동.
+- [x] `app/**` 9개 페이지의 `@/components/tcg/...` import 경로 갱신.
+- [x] `PublicHeader` 내부 cross-domain import를 `@/components/tcg/<sub>/...` 절대 경로로 갱신.
+- [x] 빈 `components/home/` 디렉터리 제거.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
 
 ### 5. 품질 게이트
 

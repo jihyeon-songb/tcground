@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { SignupForm } from '@/components/tcg/SignupForm';
+import { SignupForm } from '@/components/tcg/auth/SignupForm';
 import { getAuthEntryHref, getSafeNextPath } from '@/lib/auth/redirect';
 import { createClient } from '@/lib/supabase/server';
 

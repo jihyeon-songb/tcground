@@ -1,7 +1,7 @@
 # PROGRESS
 
 > 작업 진행 상황과 의사결정 로그.
-> 마지막 갱신: 2026-05-20
+> 마지막 갱신: 2026-05-21 (components/tcg 도메인 분리)
 
 ## 현재 작업
 
@@ -9,6 +9,8 @@
 
 ## 완료 로그
 
+- 2026-05-21: `components/tcg/` 평탄 구조를 기능 도메인별 하위 폴더로 분리했다. 인증 폼/액션 4개는 `components/tcg/auth/`, 공개 헤더 2개는 `components/tcg/layout/`, 홈 검색 폼 2개는 `components/tcg/search/`로 이동하고, `app/**`의 9개 페이지 import와 `PublicHeader` 내부 cross-domain import를 `@/components/tcg/<sub>/...` 절대 경로로 갱신했다. 빈 `components/home/` 디렉터리는 제거했고, `architecture.md`에 새 디렉터리 구조와 same/cross sub-folder import 규칙을 명문화했다. 동작·UI 변경은 없으며 `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`(39/39), `pnpm build`를 통과했다. `grep -rn 'components/tcg/(PublicHeader|HomeSearchForm|LoginForm|SignupForm|logout-action)' app components`로 구 경로 잔존이 없음을 확인했다.
+- 2026-05-21: MVP 헤더 메뉴 정리를 완료했다. `PublicHeader`의 1차 메뉴를 `홈 / 검색 / 카테고리 / 인기`로 바꾸고, 현재 경로 기준 active 상태를 `/`, `/search`, `/categories`, `/cards` 라우트에 맞게 계산하도록 정리했다. 깨진 링크 방지를 위해 `/categories` 대분류 목록 페이지와 `/cards` 인기 카드 목록 페이지를 추가했고, `lib/tcg-data.ts`의 정적 카테고리에 원피스를 추가했다. `/cards`는 정적 featured card 목록과 빈 상태 컴포넌트를 제공하며, 실제 Supabase `cards.is_featured = true` 조회 전환은 후속 데이터 연동 작업으로 유지한다. `PublicHeader`, `CategoryOverviewList`, `FeaturedCardsGrid` 테스트를 추가/갱신했고 `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build`를 통과했다. dev 서버 `http://localhost:3000`에서 `/`, `/categories`, `/cards`가 200 응답을 반환하고 새 헤더 메뉴와 목록 콘텐츠가 렌더되는 것을 확인했다.
 - 2026-05-20: Next.js App Router project-structure 기준에 맞춰 인증 route 내부 구조 정리를 완료했다. `app/login`과 `app/signup`에는 공개 route 파일인 `page.tsx`만 상위에 남기고, route 전용 서버 액션은 `_actions`, route 전용 유틸은 `_lib` private folder로 이동했다. `LoginForm`, `SignupForm`, page, action test, util test import 경로를 새 구조에 맞췄고, `app/auth/confirm/route.ts`와 `route.test.ts`는 route handler 테스트 co-location으로 유지했다. `memory-bank/architecture.md`, `memory-bank/conventions.md`, `memory-bank/implementation-plan.md`를 갱신했으며 `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build`를 통과했다. Build route 목록에서 `_actions`, `_lib`는 route로 노출되지 않는 것을 확인했다.
 - 2026-05-20: 인증 상태 기반 공개 헤더와 로그아웃을 완료했다. 홈, 검색 결과, 카테고리, 상품 상세의 중복 헤더를 서버 컴포넌트 `PublicHeader`로 교체하고 Supabase Auth `getClaims()`로 로그인 여부를 판별하게 했다. 비로그인 사용자는 현재 내부 경로를 보존한 `/login?next=...`, `/signup?next=...` 링크를 보고, 루트(`/`)에서는 쿼리 없는 `/login`, `/signup`을 본다. 로그인 사용자는 `로그아웃` 버튼만 보며, `components/tcg/logout-action.ts` 서버 액션은 `supabase.auth.signOut()` 후 항상 `/`로 이동한다. 헤더 인증 상태/안전한 링크/로그아웃 액션 테스트를 추가했고 `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build`를 통과했다. 기존 dev 서버 `http://localhost:3000`에서 홈, 검색 결과, 카테고리, 상품 상세 HTML 응답의 헤더 렌더를 확인했다.
 - 2026-05-20: 4.4 회원가입 Supabase Auth 연결을 완료했다. `/signup` 페이지와 `SignupForm`을 추가하고 서버 액션에서 이메일/비밀번호/비밀번호 확인 검증, 최소 8자 비밀번호 검증, `supabase.auth.signUp` 호출, 한국어 실패 메시지, 인증 메일 확인 성공 상태를 구현했다. 인증 진입점의 `next` 검증은 `lib/auth/redirect.ts`로 공통화해 외부 URL, protocol-relative URL, `/login`, `/signup`을 `/`로 fallback한다. `/auth/confirm` route handler는 `token_hash`, `type`, optional `next`를 받아 `supabase.auth.verifyOtp` 성공 시 안전한 내부 경로로 이동하고 실패/누락 시 `/login`으로 이동한다. 회원가입 검증/실패/성공과 인증 콜백 단위 테스트를 추가했고, `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build`를 통과했다.
@@ -33,6 +35,8 @@
 
 ## 의사결정 로그
 
+- 2026-05-21: `components/tcg/` 하위는 페이지/라우트 기준이 아니라 기능 도메인 기준(`auth/`, `layout/`, `search/`)으로 분리한다. 이유는 `PublicHeader`가 다중 페이지에서 공유돼 페이지 기준이 어느 한 라우트 폴더에 종속되면 깨지고, 인증 컴포넌트 3개가 이미 명확한 군집을 이루기 때문이다. App Router의 route 전용 파일은 `app/<route>/_components`로 두는 것이 표준이므로 `components/tcg/<page>/` 구조는 역할 충돌 가능성도 있다. 동일 하위 폴더 내부는 상대 import, cross-domain은 `@/components/tcg/<sub>/...` 절대 경로로 통일해 import 경로만 보고 도메인 경계를 알 수 있게 했다.
+- 2026-05-21: MVP 공통 헤더의 1차 메뉴는 `홈 / 검색 / 카테고리 / 인기`로 확정한다. 기존 `세트`는 카테고리 하위 탐색 축으로 두고, `가격 가이드`는 실제 문서/가이드 콘텐츠가 생기기 전까지 최상위 메뉴에서 제외한다. `/categories`와 `/cards`는 헤더 링크가 깨지지 않도록 정적/seed 기반 목록 페이지로 먼저 제공하고, 실제 Supabase 조회는 후속 데이터 연동 작업에서 처리한다.
 - 2026-05-20: 공개 페이지 헤더 인증 상태는 별도 클라이언트 상태나 새 프로필 조회 없이 Supabase Auth `getClaims()`로 판별한다. 로그인 상태에서는 아직 마이페이지/내 컬렉션 라우트가 없으므로 헤더 우측에는 `로그아웃`만 표시하고, 로그아웃 후 이동 경로는 항상 홈페이지(`/`)로 고정한다.
 - 2026-05-20: 회원가입은 Supabase Auth 이메일 인증 방식으로 구현하고, 가입 액션 성공 시 즉시 세션을 신뢰하거나 내부 페이지로 보내지 않고 인증 메일 확인 안내를 표시한다. SSR 환경에서 확인 링크가 세션 쿠키를 설정하려면 Supabase Confirm signup 이메일 템플릿이 `/auth/confirm`으로 `token_hash`와 `type`을 전달해야 하며, `next` 보존은 `emailRedirectTo`/`{{ .RedirectTo }}` 기반으로 처리한다.
 - 2026-05-20: Storybook은 우선 내부 개발/문서화 도구로만 도입한다. 제품 기능 변경, 외부 배포, Chromatic 연동은 초기 범위에서 제외하고, Storybook MCP(`@storybook/addon-mcp`)는 컴포넌트 기본 카탈로그가 완성된 뒤 AI 에이전트가 실제 stories/docs를 참조할 필요가 확인되면 도입을 검토한다.

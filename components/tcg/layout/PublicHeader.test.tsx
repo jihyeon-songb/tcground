@@ -45,6 +45,23 @@ describe('PublicHeader', () => {
     expect(screen.queryByRole('button', { name: '로그아웃' })).toBeNull();
   });
 
+  it('renders the MVP primary navigation labels and routes', async () => {
+    getClaimsMock.mockResolvedValue({
+      data: { claims: null },
+      error: null,
+    });
+
+    render(await PublicHeader({ currentPath: '/categories/pokemon' }));
+
+    expect(screen.getByRole('link', { name: '홈' }).getAttribute('href')).toBe('/');
+    expect(screen.getByRole('link', { name: '검색' }).getAttribute('href')).toBe('/search');
+    expect(screen.getByRole('link', { name: '카테고리' }).getAttribute('href')).toBe('/categories');
+    expect(screen.getByRole('link', { name: '인기' }).getAttribute('href')).toBe('/cards');
+    expect(screen.queryByRole('link', { name: '탐색' })).toBeNull();
+    expect(screen.queryByRole('link', { name: '세트' })).toBeNull();
+    expect(screen.queryByRole('link', { name: '가격 가이드' })).toBeNull();
+  });
+
   it('keeps root auth links without next query params', async () => {
     getClaimsMock.mockResolvedValue({
       data: { claims: null },
