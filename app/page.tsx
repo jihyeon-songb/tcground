@@ -4,6 +4,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { HomeSearchForm } from '@/components/tcg/search/HomeSearchForm';
 import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
+import { getFeaturedPokemonCards, type PokemonCatalogCard } from '@/lib/tcg-catalog';
+import { formatKrw } from '@/lib/tcg-data';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'TCGround - Curated Discovery for Collectors',
@@ -31,46 +35,9 @@ const categoryTiles = [
   },
 ];
 
-const trendingCards = [
-  {
-    name: 'Charizard - Base Set (1st Ed)',
-    meta: 'PSA 10 • Base Set',
-    price: '$4,500.00',
-    alt: 'Charizard Card',
-    href: '/cards/charizard-base-set-1st-edition',
-    imageClassName: '',
-    src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDOni32VwUOrLn-uLou0EQusuhtbW1b84d1VuLfN4tLqSq63siw-Lup1ku1yxQt4jf9M3dN_TZmfdAeIoGaRj8Gccc0NXMPldRHHgGuiC7eIpoxWJ6p1zea_du-Mixq2CY1qK-hWmBcsdjUUGgHUGVwyxct1nHPn6sgE_CAxERWO43onctEFBiJdjGi009-MEmqXi0Giqzk6PO6v2B3-KAmKbgxlUPSXHjaSjbT94tviWsln4UNcZ6Cyj6df20LzH_B6VMiRJS6PU3z',
-  },
-  {
-    name: 'Black Lotus',
-    meta: 'BGS 9.5 • Alpha Edition',
-    price: '$25,000.00',
-    alt: 'Black Lotus',
-    href: '/cards/black-lotus',
-    imageClassName: 'aspect-[3/4]',
-    src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDwEe5tN4zhLz0twKG5wT8bV4UodfyMMNKqrSczviL6eUQTdJ-9rBEtXQ3uAoPOwSbDmow3Rqm3utIGZx64XH-NRHYJ5agNPkxbTnDo4svGUXYoeugDIKpK4B29Bmn4svQWaAShNrgQ06josNBs6txsvSi1wlKW-pslmfYIUqkocucG6ZCbP0cviInqE_XfYVAv12OoX2TNpXoulQEtWIIKj93MKcIbLUPm24hog1BHNv8oM-Y_aYzsgHucNb6-YROi0lF-QUEx1x_C',
-  },
-  {
-    name: 'Blue-Eyes White Dragon',
-    meta: 'PSA 9 • Legend of Blue Eyes',
-    price: '$1,200.00',
-    alt: 'Blue-Eyes White Dragon',
-    href: '/cards/blue-eyes-white-dragon',
-    imageClassName: 'aspect-square',
-    src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCoPQRlzR_ORWX81K0GrsdvuRkZXbywakAPjd57PomF7JPSYcXPM9oGPk_59_nNTWi7-aauaIx4o6dfhUO83emTScuRtp09-F4oRORhrrR-UoFC1RN-LpilPmlXDsKxnm_Zw6FU3uECaiho6WsWUjo4_GSP54mVPwvItSImzNC2nZtAgYaz24_4o1ciJl07F8D9VbJPhgM_qzZ2E0Ampi2RHD0HggwaNaQCKH1c82mDN8omT2X_Fa9V088h5iVQqkACHAKQbctCgYb7',
-  },
-  {
-    name: 'Pikachu (Shadowless)',
-    meta: 'PSA 8 • Base Set',
-    price: '$850.00',
-    alt: 'Pikachu Illustrator',
-    href: '/cards/pikachu-shadowless',
-    imageClassName: 'aspect-[4/5]',
-    src: 'https://lh3.googleusercontent.com/aida-public/AB6AXuADmoJLQ4toSy6aiQwlRRX47JDhHRx_Vy5m-DfDi34O08iLarqfc5sCrcAF4fFsuJCZmk8iaB9bEqTi7IxYdJjyXD-f1rgVftEu0efJPvMzthMvpcr6EJZK9wmfa91vrtSOc30erGIcxxwnUccaf6kdMvZRJjQHVayvs5oUbs1_rULQIXUhtycOCDQNQd4o3Gvl-IXw0OmIYc-WaHIfdJZcXsSE0XJTYY1GEDyxUAyIjQoZs1gh6W7Ns6_CFAa2qRJU58lYpJvO0uPo',
-  },
-];
+export default async function Home() {
+  const trendingCards = await getFeaturedPokemonCards({ limit: 8 });
 
-export default function Home() {
   return (
     <div className='flex min-h-screen flex-col bg-[#f8f9fb] text-[#191c1e]'>
       <PublicHeader currentPath='/' />
@@ -137,58 +104,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className='columns-1 gap-5 space-y-5 sm:columns-2 md:columns-3 lg:columns-4'>
-            {trendingCards.map((card) => (
-              <Link
-                key={card.name}
-                href={card.href}
-                className='group block cursor-pointer break-inside-avoid overflow-hidden rounded-2xl bg-white transition-transform duration-200 hover:scale-[1.02]'
-              >
-                <div className='relative'>
-                  <img
-                    alt={card.alt}
-                    className={`block h-auto w-full object-cover ${card.imageClassName}`}
-                    src={card.src}
-                  />
-                  <div className='absolute top-3 right-3 flex items-center gap-1 rounded-full border border-[#e6bdb9] bg-white/90 px-3 py-1 shadow-sm backdrop-blur-sm'>
-                    <span className='text-sm leading-none font-bold text-[#191c1e]'>
-                      {card.price}
-                    </span>
-                  </div>
-                </div>
-                <div className='bg-white p-3'>
-                  <h4 className='truncate text-base leading-[1.5] font-bold text-[#191c1e]'>
-                    {card.name}
-                  </h4>
-                  <p className='mt-1 text-sm leading-none font-semibold text-[#535f73]'>
-                    {card.meta}
-                  </p>
-                </div>
-              </Link>
-            ))}
-
-            <Link
-              href='/cards/mewtwo-vstar'
-              className='group block cursor-pointer break-inside-avoid overflow-hidden rounded-2xl bg-white transition-transform duration-200 hover:scale-[1.02]'
-            >
-              <div className='relative flex aspect-[3/4] items-center justify-center bg-[#e6e8ea]'>
-                <span className='material-symbols-outlined text-[70px] leading-none text-[#bb001a] opacity-50'>
-                  style
-                </span>
-                <div className='absolute top-3 right-3 flex items-center gap-1 rounded-full border border-[#e6bdb9] bg-white/90 px-3 py-1 shadow-sm backdrop-blur-sm'>
-                  <span className='text-sm leading-none font-bold text-[#191c1e]'>$340.00</span>
-                </div>
-              </div>
-              <div className='bg-white p-3'>
-                <h4 className='truncate text-base leading-[1.5] font-bold text-[#191c1e]'>
-                  Mewtwo VSTAR
-                </h4>
-                <p className='mt-1 text-sm leading-none font-semibold text-[#535f73]'>
-                  Ungraded • Crown Zenith
-                </p>
-              </div>
-            </Link>
-          </div>
+          <TrendingCardsGrid cards={trendingCards} />
         </section>
 
         <section className='mb-16 px-5'>
@@ -229,6 +145,58 @@ export default function Home() {
         <FooterColumn title='게임' links={['포켓몬', '매직: 더 개더링', '유희왕!']} />
         <FooterColumn title='법적 고지' links={['개인정보 처리방침', '이용약관', '채용정보']} />
       </footer>
+    </div>
+  );
+}
+
+export function TrendingCardsGrid({ cards }: { cards: readonly PokemonCatalogCard[] }) {
+  if (cards.length === 0) {
+    return (
+      <div className='rounded-2xl bg-white p-12 text-center text-base text-[#535f73]'>
+        아직 표시할 인기 카드가 없습니다.
+      </div>
+    );
+  }
+
+  return (
+    <div className='columns-1 gap-5 space-y-5 sm:columns-2 md:columns-3 lg:columns-4'>
+      {cards.map((card) => (
+        <Link
+          key={card.slug}
+          href={card.href}
+          aria-label={`${card.name} 상세 보기`}
+          className='group block cursor-pointer break-inside-avoid overflow-hidden rounded-2xl bg-white transition-transform duration-200 hover:scale-[1.02]'
+        >
+          <div className='relative'>
+            {card.imageUrl ? (
+              <img
+                alt={`${card.name} 카드`}
+                className='block aspect-[2.5/3.5] w-full object-cover'
+                src={card.imageUrl}
+              />
+            ) : (
+              <div className='flex aspect-[2.5/3.5] w-full items-center justify-center bg-[#e6e8ea]'>
+                <span className='material-symbols-outlined text-[70px] leading-none text-[#bb001a] opacity-50'>
+                  style
+                </span>
+              </div>
+            )}
+            <div className='absolute top-3 right-3 flex items-center gap-1 rounded-full border border-[#e6bdb9] bg-white/90 px-3 py-1 shadow-sm backdrop-blur-sm'>
+              <span className='text-sm leading-none font-bold text-[#191c1e] tabular-nums'>
+                {formatKrw(card.price.avgPrice)}
+              </span>
+            </div>
+          </div>
+          <div className='bg-white p-3'>
+            <h4 className='truncate text-base leading-[1.5] font-bold text-[#191c1e]'>
+              {card.name}
+            </h4>
+            <p className='mt-1 text-sm leading-none font-semibold text-[#535f73]'>
+              {card.setName} · {card.rarity}
+            </p>
+          </div>
+        </Link>
+      ))}
     </div>
   );
 }

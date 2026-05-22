@@ -247,6 +247,59 @@ export async function getPokemonCategoryPageData(
   );
 }
 
+export interface FeaturedPokemonCardsOptions {
+  client?: SupabaseClient;
+  limit?: number;
+}
+
+export async function getFeaturedPokemonCards(
+  options: FeaturedPokemonCardsOptions = {},
+): Promise<PokemonCatalogCard[]> {
+  const { client, limit = 8 } = options;
+  const supabase = client ?? (await createClient());
+
+  const { data: gameData, error: gameError } = await supabase
+    .from('tcg_games')
+    .select('id')
+    .eq('slug', 'pokemon')
+    .maybeSingle();
+
+  throwIfSupabaseError(gameError);
+
+  const game = gameData as { id: string } | null;
+  if (!game) return [];
+
+  const { data: cardData, error: cardError } = await supabase
+    .from('cards')
+    .select(
+      [
+        'id',
+        'slug',
+        'name',
+        'collector_number',
+        'rarity',
+        'image_url',
+        'thumbnail_url',
+        'card_sets(slug, name, name_ko)',
+        'card_printings(id, language, region, set_name, set_code, collector_number, rarity, finish, image_url, external_ids)',
+      ].join(', '),
+    )
+    .eq('game_id', game.id)
+    .order('slug', { ascending: true });
+
+  throwIfSupabaseError(cardError);
+
+  const rows = (cardData ?? []) as unknown as PokemonCatalogCardRow[];
+  return selectFeaturedPokemonCards(rows.map(mapCatalogCardRow), limit);
+}
+
+export function selectFeaturedPokemonCards(
+  cards: readonly PokemonCatalogCard[],
+  limit = 8,
+): PokemonCatalogCard[] {
+  return cards.filter((card) => card.imageUrl !== null && card.imageUrl !== '').slice(0, limit);
+}
+
 export async function getCardDetailBySlug(
   slug: string,
   client?: SupabaseClient,

@@ -1,15 +1,21 @@
+/* eslint-disable @next/next/no-img-element */
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
-import { featuredCards, formatKrw, type FeaturedCard } from '@/lib/tcg-data';
+import { getFeaturedPokemonCards, type PokemonCatalogCard } from '@/lib/tcg-catalog';
+import { formatKrw } from '@/lib/tcg-data';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'TCGround | 인기 카드',
   description: '현재 TCGround에서 우선 추적하는 인기 카드와 가격 요약을 확인하세요.',
 };
 
-export default function CardsPage() {
+export default async function CardsPage() {
+  const cards = await getFeaturedPokemonCards({ limit: 8 });
+
   return (
     <div className='flex min-h-screen flex-col bg-[#f8f9fb] text-[#191c1e]'>
       <PublicHeader currentPath='/cards' search={{ desktopOnly: true }} />
@@ -27,7 +33,7 @@ export default function CardsPage() {
           </p>
         </section>
 
-        <FeaturedCardsGrid cards={featuredCards} />
+        <FeaturedCardsGrid cards={cards} />
       </main>
 
       <footer className='mt-auto grid w-full gap-5 bg-[#f2f4f6] px-5 py-16 md:grid-cols-4 md:px-16'>
@@ -51,7 +57,7 @@ export default function CardsPage() {
   );
 }
 
-export function FeaturedCardsGrid({ cards }: { cards: readonly FeaturedCard[] }) {
+export function FeaturedCardsGrid({ cards }: { cards: readonly PokemonCatalogCard[] }) {
   if (cards.length === 0) {
     return <EmptyFeaturedCardsState />;
   }
@@ -75,67 +81,93 @@ export function FeaturedCardsGrid({ cards }: { cards: readonly FeaturedCard[] })
         </Link>
       </div>
 
-      <div className='grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4'>
+      <div className='grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3'>
         {cards.map((card) => (
           <Link
-            key={card.id}
+            key={card.href}
             href={card.href}
-            className='group flex min-h-72 flex-col justify-between rounded-2xl border border-[#e0e3e5] bg-white p-6 shadow-sm transition-transform duration-200 hover:scale-[1.01] hover:shadow-md'
+            aria-label={`${card.name} 상세 보기`}
+            className='group flex min-h-96 flex-col overflow-hidden rounded-xl border border-[#e0e3e5] bg-white shadow-sm transition-all duration-200 hover:shadow-md'
           >
-            <div>
-              <div className='mb-5 flex items-center justify-between gap-3'>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-bold ${paletteClass(card.palette)}`}
-                >
-                  {card.gameTitle}
-                </span>
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-bold ${changeClass(card.priceChangeRate)}`}
-                >
-                  {formatChangeRate(card.priceChangeRate)}
-                </span>
+            <CardImage card={card} />
+            <div className='flex flex-1 flex-col justify-between p-4'>
+              <div>
+                <h3 className='line-clamp-1 text-lg leading-tight font-bold text-[#191c1e]'>
+                  {card.name}
+                </h3>
+                <p className='mt-1 text-sm font-medium text-[#535f73]'>
+                  {card.setName} · {card.rarity} · {card.collectorNumber}
+                </p>
               </div>
-              <h3 className='text-2xl leading-[1.15] font-extrabold text-[#191c1e]'>
-                {card.cardName}
-              </h3>
-              <p className='mt-3 text-base leading-[1.5] text-[#535f73]'>
-                {card.setName} · {card.rarity}
-              </p>
-            </div>
-
-            <div className='mt-8 border-t border-[#e6e8ea] pt-5'>
-              <p className='text-xs font-semibold tracking-wider text-[#535f73] uppercase'>
-                평균 거래가
-              </p>
-              <p className='mt-1 text-3xl font-extrabold tabular-nums'>
-                {formatKrw(card.avgPrice)}
-              </p>
-              <dl className='mt-5 grid grid-cols-2 gap-3'>
-                <div>
-                  <dt className='text-xs font-semibold tracking-wider text-[#535f73] uppercase'>
-                    최저
-                  </dt>
-                  <dd className='mt-1 text-base font-bold tabular-nums'>
-                    {formatKrw(card.minPrice)}
-                  </dd>
+              <div className='mt-5'>
+                <div className='flex items-center justify-between gap-3'>
+                  <span className='text-2xl leading-none font-bold text-[#191c1e] tabular-nums'>
+                    {formatKrw(card.price.avgPrice)}
+                  </span>
+                  <span
+                    className={`rounded-full px-2 py-1 text-xs font-bold ${changeChipClass(
+                      card.price.changeTone,
+                    )}`}
+                  >
+                    {formatChangeRate(card.price.changeRate)}
+                  </span>
                 </div>
-                <div>
-                  <dt className='text-xs font-semibold tracking-wider text-[#535f73] uppercase'>
-                    최고
-                  </dt>
-                  <dd className='mt-1 text-base font-bold tabular-nums'>
-                    {formatKrw(card.maxPrice)}
-                  </dd>
-                </div>
-              </dl>
-              <p className='mt-5 text-sm leading-[1.5] text-[#535f73]'>
-                마지막 업데이트: {card.lastUpdatedAt}
-              </p>
+                <dl className='mt-4 grid grid-cols-2 gap-3 border-t border-[#e6e8ea] pt-4'>
+                  <div>
+                    <dt className='text-xs font-semibold tracking-wider text-[#535f73] uppercase'>
+                      최저
+                    </dt>
+                    <dd className='mt-1 text-base font-bold tabular-nums'>
+                      {formatKrw(card.price.minPrice)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className='text-xs font-semibold tracking-wider text-[#535f73] uppercase'>
+                      최고
+                    </dt>
+                    <dd className='mt-1 text-base font-bold tabular-nums'>
+                      {formatKrw(card.price.maxPrice)}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
             </div>
           </Link>
         ))}
       </div>
     </section>
+  );
+}
+
+function CardImage({ card }: { card: PokemonCatalogCard }) {
+  if (card.imageUrl) {
+    return (
+      <img
+        alt={`${card.name} 카드`}
+        src={card.imageUrl}
+        className='block aspect-[2.5/3.5] w-full object-cover'
+      />
+    );
+  }
+
+  return (
+    <div className='flex aspect-[2.5/3.5] w-full flex-col justify-between bg-[#eceef0] p-5'>
+      <div className='flex items-center justify-between gap-3'>
+        <span className='rounded-full bg-white/80 px-3 py-1 text-xs font-bold text-[#535f73]'>
+          {card.sampleId}
+        </span>
+        <span className='rounded-full bg-[#bb001a] px-3 py-1 text-xs font-bold text-white'>
+          {card.rarity}
+        </span>
+      </div>
+      <div>
+        <p className='text-sm font-semibold tracking-wider text-[#535f73] uppercase'>
+          Korean Pokemon
+        </p>
+        <p className='mt-2 text-3xl leading-[1.05] font-extrabold text-[#191c1e]'>{card.name}</p>
+        <p className='mt-3 text-sm font-semibold text-[#535f73]'>{card.collectorNumber}</p>
+      </div>
+    </div>
   );
 }
 
@@ -158,7 +190,7 @@ function EmptyFeaturedCardsState() {
         인기 카드 데이터가 준비되면 이곳에 가격 요약과 함께 표시됩니다.
       </p>
       <Link
-        href='/search'
+        href='/categories/pokemon'
         className='mt-2 inline-flex rounded-lg bg-[#bb001a] px-6 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#930012]'
       >
         카드 검색하기
@@ -172,17 +204,10 @@ function formatChangeRate(rate: number) {
   return `${rate.toFixed(1)}%`;
 }
 
-function changeClass(rate: number) {
-  if (rate > 0) return 'bg-[#e8f5e9] text-[#2e7d32]';
-  if (rate < 0) return 'bg-[#ffebee] text-[#c62828]';
-  return 'bg-[#e6e8ea] text-[#535f73]';
-}
-
-function paletteClass(palette: FeaturedCard['palette']) {
-  if (palette === 'red') return 'bg-[#ffebee] text-[#bb001a]';
-  if (palette === 'blue') return 'bg-[#edf4ff] text-[#2459a6]';
-  if (palette === 'green') return 'bg-[#e8f5e9] text-[#2e7d32]';
-  return 'bg-[#f2f4f6] text-[#535f73]';
+function changeChipClass(tone: 'up' | 'down' | 'flat'): string {
+  if (tone === 'up') return 'bg-[#eceef0] text-[#1e8e3e]';
+  if (tone === 'down') return 'bg-[#eceef0] text-[#d93025]';
+  return 'bg-[#eceef0] text-[#535f73]';
 }
 
 function FooterColumn({ title, links }: { title: string; links: string[] }) {

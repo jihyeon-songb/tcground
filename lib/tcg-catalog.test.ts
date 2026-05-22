@@ -3,7 +3,9 @@ import {
   createDeterministicPriceDisplay,
   mapCardDetailRow,
   mapPokemonCategoryPageData,
+  selectFeaturedPokemonCards,
   type CardDetailRow,
+  type PokemonCatalogCard,
   type PokemonCatalogCardRow,
   type TcgGameRow,
 } from './tcg-catalog';
@@ -189,6 +191,23 @@ describe('tcg catalog view models', () => {
     expect(data.query).toBe('리자몽');
   });
 
+  it('selects featured cards with images and respects the limit', () => {
+    const cards: PokemonCatalogCard[] = [
+      makeSimpleCard('kr-001-charizard-ex', null),
+      makeSimpleCard('kr-003-charizard-ex-bf', 'https://assets.tcgdex.net/3.webp'),
+      makeSimpleCard('kr-004-charizard-ex-151', 'https://assets.tcgdex.net/4.webp'),
+      makeSimpleCard('kr-005-mew-ex-151', ''),
+      makeSimpleCard('kr-006-pikachu-151', 'https://assets.tcgdex.net/6.webp'),
+    ];
+
+    const selected = selectFeaturedPokemonCards(cards, 2);
+
+    expect(selected.map((card) => card.slug)).toEqual([
+      'kr-003-charizard-ex-bf',
+      'kr-004-charizard-ex-151',
+    ]);
+  });
+
   it('creates deterministic price display values without DB snapshots', () => {
     const first = createDeterministicPriceDisplay('kr-004-charizard-ex-151', 'KR-004');
     const second = createDeterministicPriceDisplay('kr-004-charizard-ex-151', 'KR-004');
@@ -199,6 +218,29 @@ describe('tcg catalog view models', () => {
     expect(first.sourceLabel).not.toContain('임시 가격 표시');
   });
 });
+
+function makeSimpleCard(slug: string, imageUrl: string | null): PokemonCatalogCard {
+  return {
+    slug,
+    name: slug,
+    href: `/cards/${slug}`,
+    setName: '포켓몬 카드 151',
+    setSlug: 'pokemon-kr-151',
+    rarity: 'SAR',
+    collectorNumber: '201/165',
+    sampleId: 'KR-000',
+    imageUrl,
+    price: {
+      avgPrice: 100000,
+      minPrice: 80000,
+      maxPrice: 130000,
+      changeRate: 1.2,
+      changeTone: 'up',
+      lastUpdatedAt: '2026년 5월 22일',
+      sourceLabel: '카탈로그 대표값',
+    },
+  };
+}
 
 function createCardRow({
   sampleId,
