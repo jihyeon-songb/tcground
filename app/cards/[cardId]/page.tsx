@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -251,10 +250,13 @@ function CardArtPanel({ card }: { card: CatalogCardDetail }) {
   if (card.imageUrl) {
     return (
       <div className='mx-auto w-full max-w-md overflow-hidden rounded-[32px] bg-white'>
-        <img
+        <Image
           alt={`${card.cardName} 카드`}
           src={card.imageUrl}
-          className='block aspect-[2.5/3.5] w-full rounded-[32px] object-cover'
+          width={640}
+          height={896}
+          sizes='(min-width: 1024px) 33vw, 100vw'
+          className='block h-auto w-full rounded-[32px] object-contain'
         />
       </div>
     );

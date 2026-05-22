@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -151,11 +150,15 @@ export function FeaturedCardsGrid({ cards }: { cards: readonly PokemonCatalogCar
 function CardImage({ card }: { card: PokemonCatalogCard }) {
   if (card.imageUrl) {
     return (
-      <img
-        alt={`${card.name} 카드`}
-        src={card.imageUrl}
-        className='block aspect-[2.5/3.5] w-full object-cover'
-      />
+      <div className='relative aspect-[2.5/3.5] w-full bg-[#eceef0]'>
+        <Image
+          alt={`${card.name} 카드`}
+          src={card.imageUrl}
+          fill
+          sizes='(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw'
+          className='object-contain'
+        />
+      </div>
     );
   }
 

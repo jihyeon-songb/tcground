@@ -1,7 +1,20 @@
 # TROUBLE SHOOTING
 
 > PRD에 없던 엣지 케이스, 예외 상황, source 리스크 기록.
-> 마지막 갱신: 2026-05-22 (1차 adapter source 결정)
+> 마지막 갱신: 2026-05-23 (외부 이미지 전송량)
+
+## 배포 외부 이미지 전송량
+
+### 문제
+
+TCGdex 카드 이미지와 홈 카테고리 타일 이미지가 외부 원본 URL로 직접 렌더링되면 배포 환경에서 필요한 표시 크기보다 큰 이미지를 전송할 수 있다. 특히 목록/홈/인기 카드처럼 작은 카드 그리드에서는 `high.webp`를 그대로 받으면 초기 로드와 모바일 전송량이 커진다.
+
+### 처리
+
+- `next.config.ts`에 `assets.tcgdex.net`, `lh3.googleusercontent.com`만 remote image source로 허용하고, `next/image`가 `/_next/image` 최적화 경로를 사용하게 했다.
+- 목록/홈/인기 카드 view model은 `cards.thumbnail_url`을 우선 사용해 TCGdex `low.webp`를 먼저 렌더링한다.
+- 상세 페이지는 카드 검사 품질을 위해 `card_printings.image_url`의 고해상도 이미지를 우선하되, `next/image` width/height와 `sizes`로 필요한 폭에 맞춰 최적화한다.
+- 새 외부 이미지 출처를 추가할 때는 `remotePatterns`와 fallback 우선순위를 함께 검토한다.
 
 ## 한국판 포켓몬 가격 source 검증
 

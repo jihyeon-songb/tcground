@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-05-22 (검색 라우트를 카테고리로 흡수)
+> 마지막 갱신: 2026-05-23 (외부 이미지 최적화)
 
 ## 현재 기준 PRD
 
@@ -238,6 +238,17 @@
 - [x] `storybook-static/**`를 ESLint global ignore에 추가.
 - [x] `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
 - [x] `next start -p 3007` 기준 `/`, `/cards` 200 응답 확인.
+
+### 4.13 배포 이미지 전송량 최적화
+
+- 영향 파일: `next.config.ts`, `app/page.tsx`, `app/categories/[categoryId]/page.tsx`, `app/cards/page.tsx`, `app/cards/[cardId]/page.tsx`, `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `app/cards/page.test.tsx`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`.
+- 최소 변경 범위: 외부 카드/카테고리 이미지를 직접 원본 크기로 전송하지 않고 `next/image` 최적화 경로를 사용한다. 목록/홈/인기 카드 view model은 `thumbnail_url`을 우선 사용하고, 상세 이미지만 `card_printings.image_url`의 고해상도 이미지를 우선한다.
+- [x] `next.config.ts`에 `assets.tcgdex.net`, `lh3.googleusercontent.com` remote image pattern과 크기 후보 설정 추가.
+- [x] 홈 카테고리 타일, 홈 인기 카드, 카테고리 카드, 인기 카드 목록, 상품 상세 카드 이미지를 `next/image`로 전환.
+- [x] 목록/홈/인기 카드 이미지 fallback 우선순위를 `thumbnail_url` → `card_printings.image_url` → `cards.image_url`로 변경.
+- [x] 관련 이미지 우선순위/Next 최적화 URL 테스트 갱신.
+- [x] `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
+- [x] `next start -p 3002` 기준 `/`, `/cards`, `/categories/pokemon`, `/cards/kr-004-charizard-ex-151` 응답과 `/_next/image` URL 렌더 확인.
 
 ### 5. 품질 게이트이
 

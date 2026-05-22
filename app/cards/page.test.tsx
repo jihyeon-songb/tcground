@@ -25,7 +25,9 @@ describe('FeaturedCardsGrid', () => {
     expect(screen.getByRole('heading', { name: '인기 카드 목록' })).toBeTruthy();
     const link = screen.getByRole('link', { name: '리자몽 ex 상세 보기' });
     expect(link.getAttribute('href')).toBe('/cards/kr-004-charizard-ex-151');
-    expect(link.querySelector('img')?.getAttribute('src')).toBe(
+    const imageSrc = link.querySelector('img')?.getAttribute('src') ?? '';
+    expect(imageSrc).toContain('/_next/image');
+    expect(decodeURIComponent(imageSrc)).toContain(
       'https://assets.tcgdex.net/ja/SV/SV2a/201/high.webp',
     );
     expect(screen.getByText('₩168,000')).toBeTruthy();

@@ -67,7 +67,7 @@ describe('tcg catalog view models', () => {
     expect(detail.chips).toContain('201/165');
   });
 
-  it('maps category card images by printing, thumbnail, then card image priority', () => {
+  it('maps category card images by thumbnail, printing, then card image priority', () => {
     const printingImageUrl = 'https://assets.tcgdex.net/ja/SV/SV2a/201/high.webp';
     const thumbnailUrl = 'https://assets.tcgdex.net/ja/SV/SV2a/205/low.webp';
     const cardImageUrl = 'https://assets.tcgdex.net/ja/SV/SV2a/202/high.webp';
@@ -102,7 +102,7 @@ describe('tcg catalog view models', () => {
     ]);
 
     expect(data.cards.map((card) => card.imageUrl)).toEqual([
-      printingImageUrl,
+      'https://assets.tcgdex.net/ja/SV/SV2a/201/low.webp',
       thumbnailUrl,
       cardImageUrl,
     ]);

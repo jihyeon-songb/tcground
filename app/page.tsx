@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -64,8 +63,10 @@ export default async function Home() {
                 href={category.href}
                 className='group relative aspect-[4/5] cursor-pointer overflow-hidden rounded-2xl'
               >
-                <img
+                <Image
                   alt={category.alt}
+                  fill
+                  sizes='(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw'
                   className='absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105'
                   src={category.src}
                 />
@@ -178,11 +179,15 @@ export function TrendingCardsGrid({ cards }: { cards: readonly PokemonCatalogCar
         >
           <div className='relative'>
             {card.imageUrl ? (
-              <img
-                alt={`${card.name} 카드`}
-                className='block aspect-[2.5/3.5] w-full object-cover'
-                src={card.imageUrl}
-              />
+              <div className='relative aspect-[2.5/3.5] w-full bg-[#eceef0]'>
+                <Image
+                  alt={`${card.name} 카드`}
+                  src={card.imageUrl}
+                  fill
+                  sizes='(min-width: 1024px) 25vw, (min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw'
+                  className='object-contain'
+                />
+              </div>
             ) : (
               <div className='flex aspect-[2.5/3.5] w-full items-center justify-center bg-[#e6e8ea]'>
                 <span className='material-symbols-outlined text-[70px] leading-none text-[#bb001a] opacity-50'>

@@ -2,7 +2,7 @@
 
 > 기술 스택·디렉터리 구조·수정 범위·Next.js/UI 가이드.
 > 명명·코딩 스타일·테스트·커밋 룰은 `CONVENTIONS.md`.
-> 마지막 갱신: 2026-05-22 (검색 라우트를 카테고리로 흡수)
+> 마지막 갱신: 2026-05-23 (외부 이미지 최적화)
 
 ## 1. 스택
 
@@ -63,9 +63,10 @@ docs/                # 본 문서들
 - Supabase 이메일 확인 링크는 `app/auth/confirm/route.ts`에서 `token_hash`, `type`, optional `next`를 받아 `verifyOtp`로 처리한다. Confirm signup 이메일 템플릿은 `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email`처럼 `token_hash`와 `type`을 `/auth/confirm` 요청에 포함해야 한다.
 - 인증 진입점의 `next` 값은 `lib/auth/redirect.ts`에서 내부 경로만 허용하며, 외부 URL, protocol-relative URL, `/login`, `/signup`은 `/`로 fallback한다.
 - 현재 정적 카드/카테고리 데이터: `lib/tcg-data.ts`. 홈, `/categories`, `/cards` 목록의 페이지 간 링크와 가격 표시의 기준 데이터로 사용한다.
-- 포켓몬 카탈로그 서버 조회: `lib/tcg-catalog.ts`. Supabase 공개 카탈로그 테이블(`tcg_games`, `card_sets`, `cards`, `card_printings`, `card_categories`, `card_category_links`)에서 `/categories/pokemon`과 `/cards/[cardId]` view model을 만든다. 가격 snapshot이 없을 때는 DB에 가짜 가격을 쓰지 않고 UI view model에서 deterministic 표시값만 만든다. 이미지 URL은 `card_printings.image_url`을 우선하고, 목록은 `cards.thumbnail_url`, 상세는 `cards.image_url`로 fallback한다.
+- 포켓몬 카탈로그 서버 조회: `lib/tcg-catalog.ts`. Supabase 공개 카탈로그 테이블(`tcg_games`, `card_sets`, `cards`, `card_printings`, `card_categories`, `card_category_links`)에서 `/categories/pokemon`과 `/cards/[cardId]` view model을 만든다. 가격 snapshot이 없을 때는 DB에 가짜 가격을 쓰지 않고 UI view model에서 deterministic 표시값만 만든다. 목록/홈/인기 카드 이미지는 전송량을 줄이기 위해 `cards.thumbnail_url`을 우선하고, 없을 때 `card_printings.image_url`, `cards.image_url` 순서로 fallback한다. 상세 페이지는 `card_printings.image_url`을 우선하고 `cards.image_url`로 fallback한다.
 - Supabase 클라이언트 유틸은 shadcn Supabase Next.js 컴포넌트가 생성하는 파일을 기준으로 사용하고, 세션 쿠키 갱신은 루트 `proxy.ts`에서 `lib/supabase/middleware.ts`를 호출해 처리한다.
 - 디자인 토큰·전역 CSS: `app/globals.css`.
+- 외부 이미지는 `next.config.ts`의 `images.remotePatterns`에 허용한 `assets.tcgdex.net`, `lh3.googleusercontent.com`만 `next/image` 최적화 경로로 렌더링한다. 새 외부 이미지 출처를 추가하면 `remotePatterns`와 이미지 fallback 우선순위를 함께 갱신한다.
 - 향후 추가 예정 디렉터리: `hooks/`, `types/`.
 
 ## 3. 데이터 모델 기준
@@ -185,3 +186,4 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 2026-05-22: 검증된 한국판 포켓몬 대표 카드 10장을 Supabase 카탈로그에 seed하고, `/categories/pokemon`과 `/cards/[cardId]`를 `lib/tcg-catalog.ts` 기반 DB 조회로 전환. 가격 snapshot seed 없이 UI view model의 deterministic 표시값만 사용한다.
 - 2026-05-22: 포켓몬 seed 카드 8장을 TCGdex equivalent 이미지 URL로 enrichment하고, 이미지 우선순위(`card_printings.image_url` 우선, 목록 `thumbnail_url`, 상세 `image_url` fallback)를 문서화.
 - 2026-05-22: Storybook 10(`@storybook/nextjs-vite`) UI 카탈로그 도입. `.storybook/` 설정과 `components/ui/*.stories.tsx`(24개) 추가, `pnpm storybook`/`pnpm build-storybook` 스크립트 등록.
+- 2026-05-23: 외부 카드/카테고리 이미지를 직접 `<img>`로 로드하지 않고 `next/image` 최적화 경로로 렌더링하도록 변경. 목록 이미지는 `thumbnail_url`을 우선 사용하고, `next.config.ts`에 `assets.tcgdex.net`, `lh3.googleusercontent.com` remote pattern과 이미지 크기 후보를 추가.

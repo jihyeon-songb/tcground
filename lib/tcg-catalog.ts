@@ -422,7 +422,7 @@ function mapCatalogCardRow(row: PokemonCatalogCardRow): PokemonCatalogCard {
     rarity: printing?.rarity ?? row.rarity ?? '레어도 미상',
     collectorNumber: printing?.collector_number ?? row.collector_number ?? '번호 미상',
     sampleId,
-    imageUrl: printing?.image_url ?? row.thumbnail_url ?? row.image_url,
+    imageUrl: row.thumbnail_url ?? printing?.image_url ?? row.image_url,
     price: createDeterministicPriceDisplay(row.slug, sampleId),
   };
 }
