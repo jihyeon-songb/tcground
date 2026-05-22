@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-05-21 (components/tcg 도메인 분리)
+> 마지막 갱신: 2026-05-22 (포켓몬 이미지 enrichment)
 
 ## 현재 기준 PRD
 
@@ -63,6 +63,31 @@
 - [x] `price_observations` 원천 실거래 테이블 추가.
 - [x] source별 수집 실패/성공을 기록할 실행 로그 테이블 추가.
 - [x] RLS, 인덱스, FK, migration 기록을 Supabase MCP로 검증.
+
+### 3.3 한국판 포켓몬 가격 source 검증
+
+- 영향 파일: `memory-bank/prd/plan.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`.
+- 최소 변경 범위: 한국판 포켓몬 카드 시세 수집은 자동 crawler 구현 전에 source별 실거래성, ToS/접근 가능성, 카드 식별 정확도, 표본 수를 검증한다. MVP 자동화 전에는 인기 한국판 카드 10장을 수동 import 후보로 삼아 `price_observations`에 맞는 데이터 형태를 확인한다. 코드 구현은 source 검증표와 수동 import CSV 계약을 확정한 뒤 진행한다.
+- [x] source 평가 기준과 후보군을 문서화.
+- [x] 한국판 포켓몬 인기/대표 카드 10장 검증 샘플 목록 확정.
+- [x] source별 ToS/API/파트너 접근 가능 여부 1차 확인.
+- [x] 수동 import CSV 컬럼 계약을 `price_observations` 필드 기준으로 정의.
+- [x] `KR-004` 리자몽 ex 151 SAR의 1차 source별 수동 표본을 `memory-bank/price-source-validation.csv`에 기록.
+- [x] 남은 9장에 대해 eBay sold 1차 공개 표본을 `memory-bank/price-source-validation.csv`에 추가 기록.
+- [x] `KR-001`, `KR-008`, `KR-009`의 부족 raw sold 표본을 eBay/국내 수동 source로 보강.
+- [x] `KR-002` M리자몽 EX 104/100의 추가 raw sold 표본 확보.
+- [x] 수동 import 샘플 데이터로 matching rule과 이상치 제거 기준 검증.
+- [x] 검증 결과를 바탕으로 1차 자동 adapter 대상 source 결정.
+
+### 3.4 `ebay_sold` adapter 구현 준비
+
+- 영향 파일: `lib/**`, `app/**` 또는 후속 수집 작업 위치, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`.
+- 최소 변경 범위: 1차 자동 adapter source는 `ebay_sold`로 결정하되, eBay Marketplace Insights API가 restricted/limited release이므로 production adapter 구현은 eBay Buy API/Marketplace Insights production access와 API License Agreement 준수 조건을 확인한 뒤 진행한다. 승인 전에는 eBay 페이지 scraping adapter를 만들지 않고, 수동 검증 CSV와 sandbox/API 계약 설계만 허용한다.
+- [ ] eBay Developer 계정, Buy API production access, Marketplace Insights access 가능 여부 확인.
+- [ ] API License Agreement 기준 데이터 저장/표시/집계 범위를 검토하고, raw eBay content와 공개 snapshot 표시 계약을 분리한다.
+- [ ] `ebay_sold` adapter 입력 계약 확정: keyword/category/date window/condition filters, card_printing 매칭 필드, 단일 카드 판정 규칙.
+- [ ] `lastSoldDate`, `lastSoldPrice`, `totalSoldQuantity`, condition, item/itemSales ID, item URL, seller/user 관련 필드 저장 최소화 정책 확정.
+- [ ] 승인 후 `price_observations` import adapter와 collection run logging 구현.
 
 ### 4. UI 구현
 
@@ -165,7 +190,32 @@
 - [x] 빈 `components/home/` 디렉터리 제거.
 - [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
 
-### 5. 품질 게이트
+### 4.9 포켓몬 카탈로그 seed 및 카테고리/상세 DB 전환
+
+- 영향 파일: `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `app/categories/[categoryId]/page.tsx`, `app/cards/[cardId]/page.tsx`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, Supabase MCP migration 기록.
+- 최소 변경 범위: `memory-bank/price-source-validation.csv`의 `KR-001`~`KR-010` 한국판 포켓몬 대표 카드 10장을 Supabase 공개 카탈로그 테이블에 seed한다. `/categories/pokemon`과 `/cards/[cardId]`만 DB 조회로 전환하고, 다른 카테고리는 기존 준비 중 상태를 유지한다. 가격 snapshot은 아직 seed하지 않고, UI view model에서 deterministic placeholder 가격만 표시한다.
+- [x] Supabase MCP migration으로 `pokemon` 게임, 한국판 seed 세트, 카드 10개, printing 10개, 탐색 카테고리와 링크를 upsert.
+- [x] Supabase MCP로 `tcg_games.slug = 'pokemon'`, `cards` 10개, `card_printings` 10개, 카테고리 링크를 row count 검증.
+- [x] `lib/tcg-catalog.ts`에 포켓몬 카테고리 목록/상세 조회와 가격 placeholder view model 추가.
+- [x] `/categories/pokemon`을 DB 목록 렌더링으로 전환하고 카드가 없을 때 “등록된 카드가 없습니다” 상태 표시.
+- [x] `/cards/[cardId]`를 Supabase 상세 조회로 전환하고 없는 slug는 404 처리.
+- [x] 목록/상세 view model 테스트와 404 테스트 추가.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
+
+### 4.10 포켓몬 이미지 enrichment
+
+- 영향 파일: `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `app/categories/[categoryId]/page.tsx`, `app/cards/[cardId]/page.tsx`, `next.config.ts`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`, Supabase MCP migration 기록.
+- 최소 변경 범위: TCGdex REST API를 1차 이미지 출처로 사용해 seed 카드 10장을 `set_code + collector_number + name` 기준으로 매칭한다. 매칭 성공 시 `card_printings.image_url`에는 상세용 `high.webp`, `cards.thumbnail_url`에는 목록용 `low.webp`, `cards.image_url`에는 상세 fallback용 `high.webp`를 저장하고, `card_printings.external_ids`에 `tcgdex_id`, `image_source='tcgdex'`를 추가한다. 미매칭 카드는 placeholder를 유지하고 실패 사유를 trouble-shooting에 기록한다.
+- [x] Supabase MCP로 현재 seed 카드 10장의 `set_code`, `collector_number`, `name`, 이미지 URL 상태를 조회.
+- [x] TCGdex REST API 매칭 결과와 이미지 URL 후보를 검증.
+- [x] Supabase MCP migration으로 매칭 성공 카드의 image URL과 `external_ids`를 보강.
+- [x] Supabase MCP 조회로 이미지 URL 채움 수와 미매칭 수를 검증.
+- [x] 목록/상세 view model 이미지 fallback 우선순위 테스트 추가.
+- [x] 필요 시 `assets.tcgdex.net` 외부 이미지 설정 추가. 현재 UI는 `<img>`를 직접 사용하므로 Next Image remote config 변경은 필요 없다.
+- [x] `/categories/pokemon`, `/cards/kr-004-charizard-ex-151`에서 실제 이미지 또는 placeholder fallback 렌더를 확인.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, 필요 시 `pnpm build` 검증.
+
+### 5. 품질 게이트이
 
 - [x] `pnpm lint`
 - [x] `pnpm exec tsc --noEmit`
@@ -174,4 +224,4 @@
 
 ## 다음 작업
 
-카드/검색/상세 화면을 정적 `lib/tcg-data.ts`에서 Supabase 조회로 전환한다. 데이터 연동 전에는 MVP seed 데이터 입력 전략, 대표 `card_printings` 선택 기준, 포켓몬 카탈로그 import 순서(TCGdex/Pokémon TCG API)를 확정한다.
+포켓몬 카탈로그 seed와 `/categories/pokemon`, `/cards/[cardId]` DB 전환, TCGdex 기반 이미지 enrichment를 완료했다. TCGdex 한국어 endpoint는 seed secret rare 이미지를 제공하지 않아, SV/SV2a/SV3/SV8a 8장은 TCGdex 일본어 equivalent set/localId 이미지로 보강했고, CP6 20th Anniversary `KR-001`, `KR-002`는 placeholder를 유지한다. 다음 작업은 eBay Buy API/Marketplace Insights production access와 API License Agreement 준수 범위를 확인한 뒤 adapter 계약을 확정하는 것이다. 승인 전에는 eBay 페이지 scraping adapter를 만들지 않고, 국내 source는 수동 import source로 유지한다. `confidence_score < 0.8`, damaged/played, `clean_raw` 표본 3개 미만 행은 snapshot 집계에서 보류한다.

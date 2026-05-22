@@ -2,7 +2,7 @@
 
 > Project Requirement Document. 제품의 **무엇을·왜·어디까지** 만들지를 적는다.
 > 구현 방법·기술 결정은 `architecture.md`로.
-> 마지막 갱신: 2026-05-20
+> 마지막 갱신: 2026-05-22
 
 ## 1. 제품 한 줄 요약
 
@@ -53,6 +53,8 @@ TCG(Trading Card Game) 카드의 가격을 추적하고, 컬렉터가 정보를 
 - 가격 기준은 판매중 최저가가 아니라 실거래가 중심으로 둔다. 판매중 최저가는 보조 지표로만 사용한다.
 - 가격 데이터는 단일 현재가가 아니라 `market`, `source`, `condition`, `variant`, `observed_at`를 가진 관측치로 저장하고, 일별 snapshot으로 집계한다.
 - 한글/일본판은 안정적인 공개 가격 API가 부족할 수 있으므로 MVP 초기에는 수동 import와 ToS가 허용하는 source별 crawler/partner adapter를 병행할 수 있게 설계한다.
+- 한국판 포켓몬 가격 수집은 자동화 전에 인기/대표 카드 10장 기준으로 source별 실거래성, ToS/접근 가능성, 카드 식별 정확도, 표본 수를 검증한다.
+- 한국판 포켓몬의 1차 자동 가격 adapter source는 `ebay_sold`로 둔다. 단, eBay Marketplace Insights API 접근 승인과 API License Agreement 준수 범위가 확인된 뒤 production adapter를 구현한다. 승인 전에는 eBay 페이지 scraping을 자동화하지 않는다.
 - UI에는 가격 출처, 마지막 업데이트, 표본 수를 노출해 가격 신뢰도를 숨기지 않는다.
 
 ## 6. 범위 외 (Out of Scope)
@@ -74,7 +76,7 @@ TCG(Trading Card Game) 카드의 가격을 추적하고, 컬렉터가 정보를 
 
 ## 8. 결정 대기 / 미결 항목
 
-- 일본/한국 가격 source별 ToS 확인과 adapter 우선순위
+- `ebay_sold` production adapter 구현 전 eBay Buy API/Marketplace Insights 접근 승인, 저장/표시/집계 권한, rate limit, 공개 snapshot 표시 범위를 확인한다.
 - 이미지 저장소: Supabase Storage vs Cloudflare R2
 - 카테고리 최종 구조: TCG 종류 / 세트 / 카드 타입 / 레어도 중 MVP 포함 범위
 
@@ -86,5 +88,7 @@ TCG(Trading Card Game) 카드의 가격을 추적하고, 컬렉터가 정보를 
 - 2026-05-08: MVP 페이지 범위와 우선순위를 로그인, 홈, 검색 결과, 카테고리, 상품 상세 중심으로 정리.
 - 2026-05-20: 인증 수단을 Supabase Auth로 확정.
 - 2026-05-20: MVP 가격 데이터 수집 전략을 포켓몬 우선, 실거래가 관측치 중심, source별 adapter 구조로 확정.
+- 2026-05-21: 한국판 포켓몬 가격 수집은 자동화 전에 source 검증과 10장 수동 import 검증을 선행하도록 구체화.
 - 2026-05-20: 회원가입은 Supabase Auth 이메일 인증 방식으로 추가하고, 가입 직후 즉시 로그인 대신 인증 메일 확인 안내를 표시하기로 확정.
 - 2026-05-21: MVP 공통 헤더 메뉴를 `홈 / 검색 / 카테고리 / 인기`로 확정.
+- 2026-05-22: 한국판 포켓몬 가격의 1차 자동 adapter source를 `ebay_sold`로 결정하되, eBay Marketplace Insights 승인과 API License Agreement 준수 확인 전까지 scraping 자동화는 하지 않기로 확정.

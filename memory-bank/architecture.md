@@ -2,7 +2,7 @@
 
 > 기술 스택·디렉터리 구조·수정 범위·Next.js/UI 가이드.
 > 명명·코딩 스타일·테스트·커밋 룰은 `CONVENTIONS.md`.
-> 마지막 갱신: 2026-05-21 (components/tcg 도메인 분리)
+> 마지막 갱신: 2026-05-22 (포켓몬 이미지 enrichment)
 
 ## 1. 스택
 
@@ -60,7 +60,8 @@ docs/                # 본 문서들
 - 홈/검색 헤더 검색 입력: `components/tcg/search/HomeSearchForm.tsx` 클라이언트 컴포넌트. `PublicHeader`가 옵션에 따라 재사용한다.
 - Supabase 이메일 확인 링크는 `app/auth/confirm/route.ts`에서 `token_hash`, `type`, optional `next`를 받아 `verifyOtp`로 처리한다. Confirm signup 이메일 템플릿은 `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email`처럼 `token_hash`와 `type`을 `/auth/confirm` 요청에 포함해야 한다.
 - 인증 진입점의 `next` 값은 `lib/auth/redirect.ts`에서 내부 경로만 허용하며, 외부 URL, protocol-relative URL, `/login`, `/signup`은 `/`로 fallback한다.
-- 현재 정적 카드/카테고리 데이터: `lib/tcg-data.ts`. 실데이터 연동 전까지 홈, `/categories`, `/cards`의 페이지 간 링크와 가격 표시의 기준 데이터로 사용한다.
+- 현재 정적 카드/카테고리 데이터: `lib/tcg-data.ts`. 홈, `/categories`, `/cards` 목록의 페이지 간 링크와 가격 표시의 기준 데이터로 사용한다.
+- 포켓몬 카탈로그 서버 조회: `lib/tcg-catalog.ts`. Supabase 공개 카탈로그 테이블(`tcg_games`, `card_sets`, `cards`, `card_printings`, `card_categories`, `card_category_links`)에서 `/categories/pokemon`과 `/cards/[cardId]` view model을 만든다. 가격 snapshot이 없을 때는 DB에 가짜 가격을 쓰지 않고 UI view model에서 deterministic 표시값만 만든다. 이미지 URL은 `card_printings.image_url`을 우선하고, 목록은 `cards.thumbnail_url`, 상세는 `cards.image_url`로 fallback한다.
 - Supabase 클라이언트 유틸은 shadcn Supabase Next.js 컴포넌트가 생성하는 파일을 기준으로 사용하고, 세션 쿠키 갱신은 루트 `proxy.ts`에서 `lib/supabase/middleware.ts`를 호출해 처리한다.
 - 디자인 토큰·전역 CSS: `app/globals.css`.
 - 향후 추가 예정 디렉터리: `hooks/`, `types/`.
@@ -96,6 +97,8 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 가격 기준은 실거래가 관측치이며, 판매중 최저가는 보조 지표로만 둔다.
 - daily job은 `price_observations` 저장, 이상치 제거/매칭 검증, `card_price_snapshots` 집계 순서로 처리한다.
 - 일본/한국 가격 source는 공개 API가 부족할 수 있으므로 수동 import와 ToS가 허용된 source adapter를 분리해 붙인다.
+- 한국판 포켓몬의 1차 자동 가격 adapter source는 `ebay_sold`다. 단, production 구현은 eBay Buy API/Marketplace Insights 접근 승인과 API License Agreement 준수 범위 확인 이후에만 진행한다.
+- 승인 전에는 eBay web page scraping adapter를 만들지 않고, 수동 CSV import와 adapter contract/sandbox mock 기반 검증만 허용한다.
 
 ## 4. 수정 범위
 
@@ -167,3 +170,6 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 2026-05-20: Next.js App Router private folder 기준에 맞춰 `app/login`과 `app/signup`의 route 전용 action/lib 위치를 `_actions`, `_lib`로 정리.
 - 2026-05-21: MVP 헤더 메뉴를 `홈 / 검색 / 카테고리 / 인기`로 정리하고 `/categories`, `/cards` 목록 라우트 기준 추가.
 - 2026-05-21: `components/tcg/` 평탄 구조를 기능 도메인별 `auth/`, `layout/`, `search/` 하위 폴더로 정리하고 같은/다른 도메인 import 규칙 추가. 빈 `components/home/` 디렉터리 제거.
+- 2026-05-22: 한국판 포켓몬 1차 자동 가격 adapter source를 `ebay_sold`로 결정하고, eBay Marketplace Insights 승인 전 scraping 자동화 금지 기준 추가.
+- 2026-05-22: 검증된 한국판 포켓몬 대표 카드 10장을 Supabase 카탈로그에 seed하고, `/categories/pokemon`과 `/cards/[cardId]`를 `lib/tcg-catalog.ts` 기반 DB 조회로 전환. 가격 snapshot seed 없이 UI view model의 deterministic 표시값만 사용한다.
+- 2026-05-22: 포켓몬 seed 카드 8장을 TCGdex equivalent 이미지 URL로 enrichment하고, 이미지 우선순위(`card_printings.image_url` 우선, 목록 `thumbnail_url`, 상세 `image_url` fallback)를 문서화.
