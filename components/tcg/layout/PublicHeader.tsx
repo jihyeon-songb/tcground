@@ -20,7 +20,6 @@ interface PublicHeaderProps {
 
 const NAV_ITEMS = [
   { label: '홈', href: '/' },
-  { label: '검색', href: '/search' },
   { label: '카테고리', href: '/categories' },
   { label: '인기', href: '/cards' },
 ] as const;

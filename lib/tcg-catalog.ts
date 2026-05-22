@@ -78,19 +78,21 @@ export interface PokemonCatalogCard {
   price: PriceDisplay;
 }
 
-export interface PokemonSetSummary {
+export interface AvailableSetOption {
   slug: string;
   name: string;
-  href: string;
-  cardCount: number;
 }
 
 export interface PokemonCategoryPageData {
   gameName: string;
   gameNameKo: string;
   description: string;
-  sets: PokemonSetSummary[];
+  availableSets: AvailableSetOption[];
+  availableRarities: string[];
+  selectedRarities: string[];
+  selectedSetSlugs: string[];
   cards: PokemonCatalogCard[];
+  query: string;
 }
 
 export interface CatalogCardDetail {
@@ -117,10 +119,29 @@ export interface CatalogCardDetail {
   backLabel: string;
 }
 
+export interface PokemonCategoryQueryOptions {
+  client?: SupabaseClient;
+  query?: string;
+  rarities?: readonly string[];
+  setSlugs?: readonly string[];
+}
+
+export interface MapPokemonCategoryOptions {
+  availableSets?: AvailableSetOption[];
+  availableRarities?: string[];
+  selectedRarities?: string[];
+  selectedSetSlugs?: string[];
+  query?: string;
+}
+
 export async function getPokemonCategoryPageData(
-  client?: SupabaseClient,
+  options: PokemonCategoryQueryOptions = {},
 ): Promise<PokemonCategoryPageData | null> {
+  const { client, query = '', rarities, setSlugs } = options;
   const supabase = client ?? (await createClient());
+  const trimmedQuery = query.trim();
+  const selectedRarities = normalizeStringList(rarities);
+  const selectedSetSlugs = normalizeStringList(setSlugs);
 
   const { data: gameData, error: gameError } = await supabase
     .from('tcg_games')
@@ -133,7 +154,60 @@ export async function getPokemonCategoryPageData(
   const game = gameData as TcgGameRow | null;
   if (!game) return null;
 
-  const { data: cardData, error: cardError } = await supabase
+  const { data: setRows, error: setError } = await supabase
+    .from('card_sets')
+    .select('id, slug, name, name_ko')
+    .eq('game_id', game.id)
+    .order('slug', { ascending: true });
+
+  throwIfSupabaseError(setError);
+
+  const allSets = (setRows ?? []) as Array<{
+    id: string;
+    slug: string;
+    name: string;
+    name_ko: string | null;
+  }>;
+  const availableSets: AvailableSetOption[] = allSets.map((row) => ({
+    slug: row.slug,
+    name: row.name_ko ?? row.name,
+  }));
+
+  const { data: rarityRows, error: rarityError } = await supabase
+    .from('cards')
+    .select('rarity')
+    .eq('game_id', game.id)
+    .not('rarity', 'is', null);
+
+  throwIfSupabaseError(rarityError);
+
+  const availableRarities = Array.from(
+    new Set(
+      ((rarityRows ?? []) as Array<{ rarity: string | null }>)
+        .map((row) => row.rarity)
+        .filter((rarity): rarity is string => Boolean(rarity)),
+    ),
+  ).sort((a, b) => a.localeCompare(b, 'ko-KR'));
+
+  const baseMapOptions: MapPokemonCategoryOptions = {
+    availableSets,
+    availableRarities,
+    selectedRarities,
+    selectedSetSlugs,
+    query: trimmedQuery,
+  };
+
+  let setIdsForFilter: string[] | null = null;
+  if (selectedSetSlugs.length > 0) {
+    setIdsForFilter = allSets
+      .filter((row) => selectedSetSlugs.includes(row.slug))
+      .map((row) => row.id);
+    if (setIdsForFilter.length === 0) {
+      return mapPokemonCategoryPageData(game, [], baseMapOptions);
+    }
+  }
+
+  let cardQuery = supabase
     .from('cards')
     .select(
       [
@@ -148,12 +222,29 @@ export async function getPokemonCategoryPageData(
         'card_printings(id, language, region, set_name, set_code, collector_number, rarity, finish, image_url, external_ids)',
       ].join(', '),
     )
-    .eq('game_id', game.id)
-    .order('slug', { ascending: true });
+    .eq('game_id', game.id);
+
+  if (trimmedQuery) {
+    cardQuery = cardQuery.ilike('name', `%${trimmedQuery}%`);
+  }
+
+  if (selectedRarities.length > 0) {
+    cardQuery = cardQuery.in('rarity', selectedRarities);
+  }
+
+  if (setIdsForFilter) {
+    cardQuery = cardQuery.in('set_id', setIdsForFilter);
+  }
+
+  const { data: cardData, error: cardError } = await cardQuery.order('slug', { ascending: true });
 
   throwIfSupabaseError(cardError);
 
-  return mapPokemonCategoryPageData(game, (cardData ?? []) as unknown as PokemonCatalogCardRow[]);
+  return mapPokemonCategoryPageData(
+    game,
+    (cardData ?? []) as unknown as PokemonCatalogCardRow[],
+    baseMapOptions,
+  );
 }
 
 export async function getCardDetailBySlug(
@@ -190,37 +281,21 @@ export async function getCardDetailBySlug(
 export function mapPokemonCategoryPageData(
   game: TcgGameRow,
   rows: readonly PokemonCatalogCardRow[],
+  options: MapPokemonCategoryOptions = {},
 ): PokemonCategoryPageData {
   const cards = rows.map(mapCatalogCardRow);
-  const sets = new Map<string, PokemonSetSummary>();
-
-  cards.forEach((card) => {
-    const setSlug = card.setSlug;
-    const current = sets.get(setSlug);
-
-    if (current) {
-      sets.set(setSlug, {
-        ...current,
-        cardCount: current.cardCount + 1,
-      });
-      return;
-    }
-
-    sets.set(setSlug, {
-      slug: setSlug,
-      name: card.setName,
-      href: `/categories/pokemon/${setSlug}`,
-      cardCount: 1,
-    });
-  });
 
   return {
     gameName: game.name,
     gameNameKo: game.name_ko ?? game.name,
     description:
       game.description ?? '포켓몬 카드의 대표 한국판 카탈로그를 세트와 레어도 기준으로 탐색하세요.',
-    sets: Array.from(sets.values()).sort((a, b) => a.slug.localeCompare(b.slug)),
+    availableSets: options.availableSets ?? deriveAvailableSetsFromCards(cards),
+    availableRarities: options.availableRarities ?? deriveAvailableRaritiesFromCards(cards),
+    selectedRarities: options.selectedRarities ?? [],
+    selectedSetSlugs: options.selectedSetSlugs ?? [],
     cards,
+    query: options.query ?? '',
   };
 }
 
@@ -297,6 +372,33 @@ function mapCatalogCardRow(row: PokemonCatalogCardRow): PokemonCatalogCard {
     imageUrl: printing?.image_url ?? row.thumbnail_url ?? row.image_url,
     price: createDeterministicPriceDisplay(row.slug, sampleId),
   };
+}
+
+function deriveAvailableSetsFromCards(
+  cards: readonly PokemonCatalogCard[],
+): AvailableSetOption[] {
+  const seen = new Map<string, string>();
+  cards.forEach((card) => {
+    if (!seen.has(card.setSlug)) {
+      seen.set(card.setSlug, card.setName);
+    }
+  });
+  return Array.from(seen.entries())
+    .map(([slug, name]) => ({ slug, name }))
+    .sort((a, b) => a.slug.localeCompare(b.slug));
+}
+
+function deriveAvailableRaritiesFromCards(cards: readonly PokemonCatalogCard[]): string[] {
+  return Array.from(new Set(cards.map((card) => card.rarity))).sort((a, b) =>
+    a.localeCompare(b, 'ko-KR'),
+  );
+}
+
+function normalizeStringList(list: readonly string[] | undefined): string[] {
+  if (!list || list.length === 0) return [];
+  return Array.from(
+    new Set(list.map((value) => value.trim()).filter((value) => value.length > 0)),
+  );
 }
 
 function selectPrimaryPrinting(row: PokemonCatalogCardRow): CardPrintingRow | null {

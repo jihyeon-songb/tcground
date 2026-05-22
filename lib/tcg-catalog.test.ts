@@ -34,20 +34,13 @@ describe('tcg catalog view models', () => {
     expect(data.cards).toHaveLength(10);
     expect(data.cards[0]?.href).toBe('/cards/kr-001-sample-card');
     expect(data.cards[0]?.sampleId).toBe('KR-001');
-    expect(data.sets).toEqual([
-      {
-        slug: 'pokemon-kr-151',
-        name: '포켓몬 카드 151',
-        href: '/categories/pokemon/pokemon-kr-151',
-        cardCount: 5,
-      },
-      {
-        slug: 'pokemon-kr-terastal-festa-ex',
-        name: '테라스탈 페스타 ex',
-        href: '/categories/pokemon/pokemon-kr-terastal-festa-ex',
-        cardCount: 5,
-      },
+    expect(data.availableSets).toEqual([
+      { slug: 'pokemon-kr-151', name: '포켓몬 카드 151' },
+      { slug: 'pokemon-kr-terastal-festa-ex', name: '테라스탈 페스타 ex' },
     ]);
+    expect(data.availableRarities).toEqual(['SAR']);
+    expect(data.selectedRarities).toEqual([]);
+    expect(data.selectedSetSlugs).toEqual([]);
   });
 
   it('maps card detail with set, rarity, collector number, and printing identity', () => {
@@ -147,6 +140,53 @@ describe('tcg catalog view models', () => {
         }),
       ).imageUrl,
     ).toBe(cardImageUrl);
+  });
+
+  it('propagates the search query into the category page data', () => {
+    const data = mapPokemonCategoryPageData(pokemonGame, [], { query: '리자몽' });
+
+    expect(data.query).toBe('리자몽');
+    expect(data.cards).toEqual([]);
+    expect(data.availableSets).toEqual([]);
+    expect(data.availableRarities).toEqual([]);
+  });
+
+  it('defaults the search query to an empty string when omitted', () => {
+    const data = mapPokemonCategoryPageData(pokemonGame, []);
+
+    expect(data.query).toBe('');
+  });
+
+  it('preserves provided filter option pools and selections through mapping', () => {
+    const rows = Array.from({ length: 3 }, (_, index) =>
+      createCardRow({
+        sampleId: `KR-${String(index + 1).padStart(3, '0')}`,
+        slug: `kr-${String(index + 1).padStart(3, '0')}-sample-card`,
+        name: `샘플 카드 ${index + 1}`,
+        setSlug: 'pokemon-kr-151',
+        setName: '포켓몬 카드 151',
+      }),
+    );
+
+    const data = mapPokemonCategoryPageData(pokemonGame, rows, {
+      availableSets: [
+        { slug: 'pokemon-kr-151', name: '포켓몬 카드 151' },
+        { slug: 'pokemon-kr-terastal-festa-ex', name: '테라스탈 페스타 ex' },
+      ],
+      availableRarities: ['SAR', 'AR'],
+      selectedRarities: ['SAR'],
+      selectedSetSlugs: ['pokemon-kr-151'],
+      query: '리자몽',
+    });
+
+    expect(data.availableSets).toEqual([
+      { slug: 'pokemon-kr-151', name: '포켓몬 카드 151' },
+      { slug: 'pokemon-kr-terastal-festa-ex', name: '테라스탈 페스타 ex' },
+    ]);
+    expect(data.availableRarities).toEqual(['SAR', 'AR']);
+    expect(data.selectedRarities).toEqual(['SAR']);
+    expect(data.selectedSetSlugs).toEqual(['pokemon-kr-151']);
+    expect(data.query).toBe('리자몽');
   });
 
   it('creates deterministic price display values without DB snapshots', () => {

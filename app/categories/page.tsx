@@ -63,12 +63,6 @@ export function CategoryOverviewList({ categories }: { categories: readonly TcgC
             주요 TCG 시장을 한눈에 비교하고 관심 카테고리로 이동하세요.
           </p>
         </div>
-        <Link
-          href='/search'
-          className='inline-flex rounded-lg border border-[#e0e3e5] bg-white px-5 py-2 text-sm font-semibold text-[#191c1e] transition-colors hover:bg-[#f2f4f6]'
-        >
-          카드 검색
-        </Link>
       </div>
 
       <div className='grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4'>

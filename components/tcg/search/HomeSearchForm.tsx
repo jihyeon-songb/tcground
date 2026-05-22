@@ -31,7 +31,7 @@ export function HomeSearchForm({
       return;
     }
 
-    router.push(`/search?q=${encodeURIComponent(trimmedQuery)}`);
+    router.push(`/categories/pokemon?q=${encodeURIComponent(trimmedQuery)}`);
   }
 
   const inputBaseClasses =

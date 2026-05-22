@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-05-22 (포켓몬 이미지 enrichment)
+> 마지막 갱신: 2026-05-22 (검색 라우트를 카테고리로 흡수)
 
 ## 현재 기준 PRD
 
@@ -27,8 +27,8 @@
 
 ### 2. 정보 구조 및 라우팅 설계
 
-- [x] 페이지별 라우트 구조 결정: `/`, `/search`, `/categories/[categoryId]`, `/cards/[cardId]`, `/login`.
-- [x] 홈 화면에서 사용할 1차 링크 타깃 정의: 검색 `/search?q=...`, 카테고리 `/categories/[categoryId]`, 카드 상세 `/cards/[cardId]`.
+- [x] 페이지별 라우트 구조 결정: `/`, `/categories/[categoryId]`(검색 `?q=...` 포함), `/cards/[cardId]`, `/login`. `/search`는 폐기.
+- [x] 홈 화면에서 사용할 1차 링크 타깃 정의: 검색 `/categories/pokemon?q=...`, 카테고리 `/categories/[categoryId]`, 카드 상세 `/cards/[cardId]`.
 - [x] 공통 헤더/검색 진입 UX 정의: 홈 검색 폼을 `HomeSearchForm`으로 분리하고 헤더 변형(`size='header'`)을 재사용.
 - [x] 카테고리 URL 구조 결정: `/categories/[categoryId]`.
 - [x] 상품 상세 URL 구조 결정: `/cards/[cardId]`.
@@ -159,14 +159,14 @@
 
 ### 4.6 Storybook 컴포넌트 라이브러리 문서화
 
-- 영향 파일: `package.json`, `pnpm-lock.yaml`, `.storybook/**`, `components/**/*.stories.tsx`, `memory-bank/architecture.md`, `memory-bank/progress.md`.
-- 최소 변경 범위: Storybook을 내부 개발/문서화 도구로 도입하고, `components/ui/*` 전체와 `components/tcg/*` 도메인 컴포넌트의 주요 상태를 카탈로그화한다. 제품 기능 변경이나 외부 배포/Chromatic 연동은 이번 범위에 포함하지 않는다.
-- [ ] Storybook Next.js 설정과 preview global CSS/provider 구성 추가.
-- [ ] `components/ui/*` shadcn 컴포넌트 전체 스토리 작성.
-- [ ] `components/tcg/*` 도메인 컴포넌트 스토리 작성.
-- [ ] `pnpm storybook`, `pnpm build-storybook` 실행 스크립트 추가.
-- [ ] Storybook 기본 카탈로그 구축 후, AI 에이전트가 실제 stories/docs를 참조할 수 있도록 Storybook MCP(`@storybook/addon-mcp`) 도입 여부를 검토한다.
-- [ ] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build-storybook` 검증.
+- 영향 파일: `package.json`, `pnpm-lock.yaml`, `.gitignore`, `.storybook/**`, `components/**/*.stories.tsx`, `memory-bank/architecture.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: Storybook을 내부 개발/문서화 도구로 도입하고, `components/ui/*` 전체와 `components/tcg/*` 도메인 컴포넌트의 주요 상태를 카탈로그화한다. 제품 기능 변경이나 외부 배포/Chromatic 연동은 이번 범위에 포함하지 않는다. `components/tcg/*` 도메인 컴포넌트 스토리와 Storybook MCP 도입은 다음 단계로 미룬다.
+- [x] Storybook Next.js 설정과 preview global CSS/provider 구성 추가 (`@storybook/nextjs-vite`, `app/globals.css`, `TooltipProvider`).
+- [x] `components/ui/*` shadcn 컴포넌트 전체(24개) 스토리 작성.
+- [ ] `components/tcg/*` 도메인 컴포넌트 스토리 작성. (후속)
+- [x] `pnpm storybook`, `pnpm build-storybook` 실행 스크립트 추가.
+- [ ] Storybook 기본 카탈로그 구축 후, AI 에이전트가 실제 stories/docs를 참조할 수 있도록 Storybook MCP(`@storybook/addon-mcp`) 도입 여부를 검토한다. (후속)
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build-storybook` 검증.
 
 ### 4.7 MVP 헤더 메뉴 정리와 목록 라우트 추가
 
@@ -214,6 +214,20 @@
 - [x] 필요 시 `assets.tcgdex.net` 외부 이미지 설정 추가. 현재 UI는 `<img>`를 직접 사용하므로 Next Image remote config 변경은 필요 없다.
 - [x] `/categories/pokemon`, `/cards/kr-004-charizard-ex-151`에서 실제 이미지 또는 placeholder fallback 렌더를 확인.
 - [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, 필요 시 `pnpm build` 검증.
+
+### 4.11 검색 라우트를 카테고리 페이지로 흡수
+
+- 영향 파일: `app/search/page.tsx`(삭제), `app/categories/[categoryId]/page.tsx`, `app/categories/[categoryId]/page.test.tsx`, `app/categories/page.tsx`, `app/cards/page.tsx`, `app/cards/page.test.tsx`, `components/tcg/layout/PublicHeader.tsx`, `components/tcg/layout/PublicHeader.test.tsx`, `components/tcg/search/HomeSearchForm.tsx`, `components/tcg/search/HomeSearchForm.test.tsx`, `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `memory-bank/architecture.md`, `memory-bank/prd/plan.md`, `memory-bank/prd/search-results.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: `/search` 라우트와 mock 데이터를 폐기하고, 카드 이름 검색을 `/categories/[categoryId]?q=...`로 흡수한다. `getPokemonCategoryPageData`에 `query` 옵션을 추가해 Supabase `cards.name`에 `ilike '%q%'` 필터를 적용하고, 페이지는 `q`가 있을 때 결과 인디케이터를 노출하고 등록 세트 그리드를 숨긴다. 헤더 NAV에서 `검색` 메뉴를 제거하고, 헤더/홈 검색은 `/categories/pokemon?q=...`로 이동한다. 다중 TCG 확장 시 기본 카테고리/검색 진입을 재검토한다.
+- [x] `lib/tcg-catalog.ts`에 `query` 옵션 추가, `PokemonCategoryPageData.query` 노출, `mapPokemonCategoryPageData` 시그니처 갱신.
+- [x] `app/categories/[categoryId]/page.tsx`가 `searchParams.q`를 파싱하고 `PublicHeader.initialQuery`로 전달.
+- [x] `q`가 있을 때 등록 세트 그리드 숨김과 검색 결과 인디케이터 표시.
+- [x] `app/search/page.tsx` 삭제 및 빈 디렉터리 정리.
+- [x] `HomeSearchForm` 리다이렉트 URL을 `/categories/pokemon?q=...`로 변경.
+- [x] `PublicHeader` NAV_ITEMS에서 `검색` 항목 제거.
+- [x] `/categories`, `/cards`의 `/search` 인바운드 링크 정리.
+- [x] `PublicHeader`, `HomeSearchForm`, `app/categories/[categoryId]`, `lib/tcg-catalog`, `app/cards` 테스트 갱신/추가.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
 
 ### 5. 품질 게이트이
 

@@ -34,13 +34,13 @@ describe('PublicHeader', () => {
       error: null,
     });
 
-    render(await PublicHeader({ currentPath: '/search?q=Charizard' }));
+    render(await PublicHeader({ currentPath: '/categories/pokemon?q=Charizard' }));
 
     expect(screen.getByRole('link', { name: '로그인' }).getAttribute('href')).toBe(
-      '/login?next=%2Fsearch%3Fq%3DCharizard',
+      '/login?next=%2Fcategories%2Fpokemon%3Fq%3DCharizard',
     );
     expect(screen.getByRole('link', { name: '가입하기' }).getAttribute('href')).toBe(
-      '/signup?next=%2Fsearch%3Fq%3DCharizard',
+      '/signup?next=%2Fcategories%2Fpokemon%3Fq%3DCharizard',
     );
     expect(screen.queryByRole('button', { name: '로그아웃' })).toBeNull();
   });
@@ -54,9 +54,9 @@ describe('PublicHeader', () => {
     render(await PublicHeader({ currentPath: '/categories/pokemon' }));
 
     expect(screen.getByRole('link', { name: '홈' }).getAttribute('href')).toBe('/');
-    expect(screen.getByRole('link', { name: '검색' }).getAttribute('href')).toBe('/search');
     expect(screen.getByRole('link', { name: '카테고리' }).getAttribute('href')).toBe('/categories');
     expect(screen.getByRole('link', { name: '인기' }).getAttribute('href')).toBe('/cards');
+    expect(screen.queryByRole('link', { name: '검색' })).toBeNull();
     expect(screen.queryByRole('link', { name: '탐색' })).toBeNull();
     expect(screen.queryByRole('link', { name: '세트' })).toBeNull();
     expect(screen.queryByRole('link', { name: '가격 가이드' })).toBeNull();

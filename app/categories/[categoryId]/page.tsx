@@ -8,9 +8,9 @@ import {
   getPokemonCategoryPageData,
   type PokemonCatalogCard,
   type PokemonCategoryPageData,
-  type PokemonSetSummary,
 } from '@/lib/tcg-catalog';
 import { formatKrw } from '@/lib/tcg-data';
+import { CategoryFilterSidebar } from './CategoryFilterSidebar';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +23,11 @@ const KNOWN_CATEGORY_LABELS: Record<string, string> = {
 
 interface CategoryPageProps {
   params: Promise<{ categoryId: string }>;
+  searchParams: Promise<{
+    q?: string | string[];
+    rarity?: string | string[];
+    set?: string | string[];
+  }>;
 }
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
@@ -51,19 +56,31 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
   };
 }
 
-export default async function CategoryPage({ params }: CategoryPageProps) {
+export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   const { categoryId } = await params;
+  const { q: rawQuery, rarity: rawRarity, set: rawSet } = await searchParams;
+  const query = (Array.isArray(rawQuery) ? rawQuery[0] : rawQuery ?? '').trim();
+  const rarities = parseListParam(rawRarity);
+  const setSlugs = parseListParam(rawSet);
   const breadcrumbLabel = KNOWN_CATEGORY_LABELS[categoryId] ?? null;
 
   if (!breadcrumbLabel) {
     notFound();
   }
 
-  const pokemonData = categoryId === 'pokemon' ? await getPokemonCategoryPageData() : null;
+  const pokemonData =
+    categoryId === 'pokemon'
+      ? await getPokemonCategoryPageData({ query, rarities, setSlugs })
+      : null;
+
+  const currentPath = buildCurrentPath(`/categories/${categoryId}`, { query, rarities, setSlugs });
 
   return (
     <div className='flex min-h-screen flex-col bg-[#f8f9fb] text-[#191c1e]'>
-      <PublicHeader currentPath={`/categories/${categoryId}`} search={{ desktopOnly: true }} />
+      <PublicHeader
+        currentPath={currentPath}
+        search={{ initialQuery: query, showClearButton: true, desktopOnly: true }}
+      />
 
       <main className='mx-auto w-full max-w-[1440px] flex-grow px-5 pb-16'>
         <CategoryBreadcrumb label={breadcrumbLabel} />
@@ -81,11 +98,9 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 }
 
 export function PokemonCategoryContent({ data }: { data: PokemonCategoryPageData | null }) {
-  const sets = data?.sets ?? [];
   const cards = data?.cards ?? [];
-  const rarityFilters = Array.from(new Set(cards.map((card) => card.rarity))).sort((a, b) =>
-    a.localeCompare(b, 'ko-KR'),
-  );
+  const query = data?.query ?? '';
+  const hasQuery = query.length > 0;
 
   return (
     <>
@@ -100,60 +115,35 @@ export function PokemonCategoryContent({ data }: { data: PokemonCategoryPageData
           {data?.description ??
             '포켓몬 카드의 대표 한국판 카탈로그를 세트와 레어도 기준으로 탐색하세요.'}
         </p>
+        {hasQuery ? <SearchResultBanner query={query} resultCount={cards.length} /> : null}
       </section>
 
       <div className='flex flex-col gap-6 lg:flex-row lg:gap-8'>
-        <aside className='flex w-full shrink-0 flex-col gap-6 lg:w-64'>
-          <FilterCard title='레어도'>
-            <div className='flex flex-col gap-3'>
-              {rarityFilters.length === 0 ? (
-                <p className='text-sm leading-[1.5] text-[#535f73]'>등록된 레어도가 없습니다.</p>
-              ) : (
-                rarityFilters.map((rarity, index) => (
-                  <label key={rarity} className='group flex cursor-pointer items-center gap-3'>
-                    <input
-                      type='checkbox'
-                      defaultChecked={index === 0}
-                      className='h-5 w-5 rounded border-[#535f73] text-[#bb001a] focus:ring-[#bb001a]'
-                    />
-                    <span className='text-base text-[#191c1e] transition-colors group-hover:text-[#bb001a]'>
-                      {rarity}
-                    </span>
-                  </label>
-                ))
-              )}
-            </div>
-          </FilterCard>
-
-          <FilterCard title='세트'>
-            <div className='flex flex-col gap-3'>
-              {sets.length === 0 ? (
-                <p className='text-sm leading-[1.5] text-[#535f73]'>등록된 세트가 없습니다.</p>
-              ) : (
-                sets.map((set, index) => (
-                  <label key={set.slug} className='group flex cursor-pointer items-center gap-3'>
-                    <input
-                      type='radio'
-                      name='set'
-                      defaultChecked={index === 0}
-                      className='h-5 w-5 border-[#535f73] text-[#bb001a] focus:ring-[#bb001a]'
-                    />
-                    <span className='text-base text-[#191c1e] transition-colors group-hover:text-[#bb001a]'>
-                      {set.name}
-                    </span>
-                  </label>
-                ))
-              )}
-            </div>
-          </FilterCard>
-        </aside>
+        <CategoryFilterSidebar
+          availableRarities={data?.availableRarities ?? []}
+          availableSets={data?.availableSets ?? []}
+          selectedRarities={data?.selectedRarities ?? []}
+          selectedSetSlugs={data?.selectedSetSlugs ?? []}
+        />
 
         <div className='flex flex-1 flex-col gap-12'>
-          <PokemonSetSection sets={sets} />
           <PokemonCardSection cards={cards} />
         </div>
       </div>
     </>
+  );
+}
+
+function SearchResultBanner({ query, resultCount }: { query: string; resultCount: number }) {
+  return (
+    <div
+      aria-live='polite'
+      className='text-base leading-[1.5] font-bold text-[#191c1e]'
+      data-testid='search-result-banner'
+    >
+      <span className='font-bold'>{`'${query}'`}</span>에 대한{' '}
+      <span className='font-bold'>{resultCount}</span>개 결과
+    </div>
   );
 }
 
@@ -177,47 +167,6 @@ function CategoryBreadcrumb({ label }: { label: string }) {
       </span>
       <span className='text-[#191c1e]'>{label}</span>
     </nav>
-  );
-}
-
-function PokemonSetSection({ sets }: { sets: readonly PokemonSetSummary[] }) {
-  return (
-    <section aria-labelledby='popular-sets-heading'>
-      <div className='mb-6 flex items-center justify-between'>
-        <h2
-          id='popular-sets-heading'
-          className='text-[32px] leading-[1.2] font-bold text-[#191c1e]'
-        >
-          등록 세트
-        </h2>
-      </div>
-
-      {sets.length === 0 ? (
-        <EmptyCardsState title='등록된 세트가 없습니다' />
-      ) : (
-        <div className='grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3'>
-          {sets.map((set) => (
-            <Link
-              key={set.slug}
-              href={set.href}
-              className='group flex min-h-44 flex-col justify-between rounded-xl border border-[#e0e3e5] bg-white p-5 shadow-sm transition-transform duration-200 hover:scale-[1.01] hover:shadow-md'
-            >
-              <div>
-                <p className='text-xs font-bold tracking-wider text-[#bb001a] uppercase'>
-                  Korean Pokemon
-                </p>
-                <h3 className='mt-3 text-2xl leading-[1.2] font-extrabold text-[#191c1e]'>
-                  {set.name}
-                </h3>
-              </div>
-              <p className='mt-6 text-sm font-semibold text-[#535f73]'>
-                등록 카드 {set.cardCount.toLocaleString('ko-KR')}장
-              </p>
-            </Link>
-          ))}
-        </div>
-      )}
-    </section>
   );
 }
 
@@ -324,15 +273,25 @@ function CardImagePlaceholder({ card }: { card: PokemonCatalogCard }) {
   );
 }
 
-function FilterCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className='rounded-xl border border-[#e0e3e5] bg-white p-6 shadow-sm'>
-      <h3 className='mb-4 text-xs font-semibold tracking-wider text-[#535f73] uppercase'>
-        {title}
-      </h3>
-      {children}
-    </div>
-  );
+function parseListParam(value: string | string[] | undefined): string[] {
+  if (!value) return [];
+  const raw = Array.isArray(value) ? value.join(',') : value;
+  return raw
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
+function buildCurrentPath(
+  base: string,
+  filters: { query: string; rarities: readonly string[]; setSlugs: readonly string[] },
+): string {
+  const params = new URLSearchParams();
+  if (filters.query) params.set('q', filters.query);
+  if (filters.rarities.length > 0) params.set('rarity', filters.rarities.join(','));
+  if (filters.setSlugs.length > 0) params.set('set', filters.setSlugs.join(','));
+  const query = params.toString();
+  return query ? `${base}?${query}` : base;
 }
 
 function changeChipClass(tone: 'up' | 'down' | 'flat'): string {

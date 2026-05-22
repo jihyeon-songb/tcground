@@ -27,7 +27,7 @@ describe('HomeSearchForm', () => {
     expect(pushMock).not.toHaveBeenCalled();
   });
 
-  it('navigates to search results with an encoded query', () => {
+  it('navigates to the Pokemon category with an encoded query', () => {
     render(<HomeSearchForm />);
 
     fireEvent.change(screen.getByLabelText('카드 명칭, 세트 또는 캐릭터 검색'), {
@@ -35,7 +35,7 @@ describe('HomeSearchForm', () => {
     });
     fireEvent.submit(screen.getByRole('form', { name: 'Card search' }));
 
-    expect(pushMock).toHaveBeenCalledWith('/search?q=Black%20Lotus');
+    expect(pushMock).toHaveBeenCalledWith('/categories/pokemon?q=Black%20Lotus');
   });
 
   it('can render a visible search button for the hero search', () => {
@@ -53,7 +53,7 @@ describe('HomeSearchForm', () => {
 
     fireEvent.submit(screen.getByRole('form', { name: 'Card search' }));
 
-    expect(pushMock).toHaveBeenCalledWith('/search?q=Charizard');
+    expect(pushMock).toHaveBeenCalledWith('/categories/pokemon?q=Charizard');
   });
 
   it('clears the input via the clear button when enabled', () => {

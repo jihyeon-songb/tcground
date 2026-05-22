@@ -2,7 +2,7 @@
 
 > 기술 스택·디렉터리 구조·수정 범위·Next.js/UI 가이드.
 > 명명·코딩 스타일·테스트·커밋 룰은 `CONVENTIONS.md`.
-> 마지막 갱신: 2026-05-22 (포켓몬 이미지 enrichment)
+> 마지막 갱신: 2026-05-22 (검색 라우트를 카테고리로 흡수)
 
 ## 1. 스택
 
@@ -12,6 +12,7 @@
 - Supabase JS + Supabase SSR (Auth/서버 클라이언트)
 - Vitest 4 + Testing Library + jsdom
 - ESLint 9 (`next/core-web-vitals` + `next/typescript`)
+- Storybook 10 (`@storybook/nextjs-vite`) — UI 컴포넌트 카탈로그/문서화 도구
 - pnpm (단일 앱. `pnpm-workspace.yaml`은 미래 확장용)
 
 전제: Node 20+, pnpm.
@@ -19,12 +20,12 @@
 ## 2. 디렉터리 구조
 
 ```
+.storybook/          # Storybook 설정 (`main.ts`, `preview.tsx`)
 app/                 # Next.js App Router (페이지·layout·route handler)
   layout.tsx         # 루트 레이아웃 + TooltipProvider
   page.tsx           # 홈
-  search/page.tsx    # 검색 결과
   categories/page.tsx # TCG 대분류 목록
-  categories/[categoryId]/page.tsx # 카테고리 탐색
+  categories/[categoryId]/page.tsx # 카테고리 탐색 + 카드 이름 검색(`?q=`)
   cards/page.tsx      # 인기 카드 목록
   cards/[cardId]/page.tsx          # 상품 상세
   login/page.tsx     # 로그인
@@ -57,7 +58,8 @@ docs/                # 본 문서들
 - 회원가입 인증 동작: `app/signup/_actions/signup.ts` 서버 액션, `app/signup/_lib/signup-utils.ts` route 전용 유틸, `components/tcg/auth/SignupForm.tsx` 클라이언트 폼을 기준으로 한다.
 - App Router route segment 안에서 route 전용 지원 파일을 둘 때는 `_actions`, `_lib` 같은 private folder를 사용해 공개 route 파일(`page.tsx`, `route.ts`)과 내부 구현 파일을 구분한다.
 - 로그아웃 인증 동작: `components/tcg/auth/logout-action.ts` 서버 액션에서 `supabase.auth.signOut()`을 호출하고 항상 `/`로 이동한다.
-- 홈/검색 헤더 검색 입력: `components/tcg/search/HomeSearchForm.tsx` 클라이언트 컴포넌트. `PublicHeader`가 옵션에 따라 재사용한다.
+- 홈/카테고리 헤더 검색 입력: `components/tcg/search/HomeSearchForm.tsx` 클라이언트 컴포넌트. 제출 시 기본 카테고리 `/categories/pokemon?q=...`로 이동한다. `PublicHeader`가 옵션에 따라 재사용한다.
+- 카드 이름 검색은 독립 라우트가 아니라 `/categories/[categoryId]?q=...` 쿼리로 동작한다. `q`가 있으면 `lib/tcg-catalog.ts`의 `getPokemonCategoryPageData`가 Supabase `cards.name`에 `ilike '%q%'` 필터를 적용하고, 페이지는 세트 그리드를 숨긴 채 결과 인디케이터와 매칭 카드 그리드만 노출한다. 헤더 검색창의 `initialQuery`/`showClearButton`은 그대로 유지한다.
 - Supabase 이메일 확인 링크는 `app/auth/confirm/route.ts`에서 `token_hash`, `type`, optional `next`를 받아 `verifyOtp`로 처리한다. Confirm signup 이메일 템플릿은 `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email`처럼 `token_hash`와 `type`을 `/auth/confirm` 요청에 포함해야 한다.
 - 인증 진입점의 `next` 값은 `lib/auth/redirect.ts`에서 내부 경로만 허용하며, 외부 URL, protocol-relative URL, `/login`, `/signup`은 `/`로 fallback한다.
 - 현재 정적 카드/카테고리 데이터: `lib/tcg-data.ts`. 홈, `/categories`, `/cards` 목록의 페이지 간 링크와 가격 표시의 기준 데이터로 사용한다.
@@ -155,7 +157,15 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 > 도입 시 시크릿·세션 처리 코드는 코드오너 리뷰 필수.
 > 결정 사항은 `PRD.md`의 "결정 대기"와 동기화 유지.
 
-## 8. 변경 이력
+## 8. Storybook
+
+- Framework: `@storybook/nextjs-vite` (Vite 기반 Next.js 프레임워크). Vitest 4와 같은 React 플러그인을 공유한다.
+- 설정: `.storybook/main.ts`에서 `components/**/*.stories.@(ts|tsx|mdx)` 패턴으로 스토리를 수집하고, `@storybook/addon-docs`, `@storybook/addon-a11y`를 활성화한다.
+- Preview: `.storybook/preview.tsx`에서 `app/globals.css`(Tailwind v4 + tcg 토큰)를 import하고 모든 스토리를 `TooltipProvider`로 감싼다.
+- 카탈로그 범위: `components/ui/*` shadcn 컴포넌트 24개에 대해 기본/variant/주요 상태 스토리를 co-location한다(`<component>.stories.tsx`). `components/tcg/*` 도메인 컴포넌트 스토리와 Storybook MCP 도입은 별도 후속 작업이다.
+- 스크립트: `pnpm storybook`은 dev 서버, `pnpm build-storybook`은 정적 빌드를 `storybook-static/`에 생성한다. 결과물 디렉터리는 `.gitignore`로 제외한다.
+
+## 9. 변경 이력
 
 - 2026-05-06: 초기 ARCHITECTURE 정리.
 - 2026-05-08: Stitch 기반 전역 CSS 토큰과 `tcg-*` component utility 사용 기준 추가.
@@ -169,7 +179,9 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 2026-05-20: 공개 페이지 공통 `PublicHeader`와 Supabase Auth claims 기반 헤더 버튼 전환, 로그아웃 서버 액션 기준 추가.
 - 2026-05-20: Next.js App Router private folder 기준에 맞춰 `app/login`과 `app/signup`의 route 전용 action/lib 위치를 `_actions`, `_lib`로 정리.
 - 2026-05-21: MVP 헤더 메뉴를 `홈 / 검색 / 카테고리 / 인기`로 정리하고 `/categories`, `/cards` 목록 라우트 기준 추가.
+- 2026-05-22: `/search` 라우트를 폐기하고 카드 이름 검색을 카테고리 페이지(`/categories/[categoryId]?q=...`)로 흡수. 헤더 메뉴는 `홈 / 카테고리 / 인기`로 정리하고, 헤더/홈 검색 입력은 기본 카테고리 `pokemon`으로 이동하도록 변경.
 - 2026-05-21: `components/tcg/` 평탄 구조를 기능 도메인별 `auth/`, `layout/`, `search/` 하위 폴더로 정리하고 같은/다른 도메인 import 규칙 추가. 빈 `components/home/` 디렉터리 제거.
 - 2026-05-22: 한국판 포켓몬 1차 자동 가격 adapter source를 `ebay_sold`로 결정하고, eBay Marketplace Insights 승인 전 scraping 자동화 금지 기준 추가.
 - 2026-05-22: 검증된 한국판 포켓몬 대표 카드 10장을 Supabase 카탈로그에 seed하고, `/categories/pokemon`과 `/cards/[cardId]`를 `lib/tcg-catalog.ts` 기반 DB 조회로 전환. 가격 snapshot seed 없이 UI view model의 deterministic 표시값만 사용한다.
 - 2026-05-22: 포켓몬 seed 카드 8장을 TCGdex equivalent 이미지 URL로 enrichment하고, 이미지 우선순위(`card_printings.image_url` 우선, 목록 `thumbnail_url`, 상세 `image_url` fallback)를 문서화.
+- 2026-05-22: Storybook 10(`@storybook/nextjs-vite`) UI 카탈로그 도입. `.storybook/` 설정과 `components/ui/*.stories.tsx`(24개) 추가, `pnpm storybook`/`pnpm build-storybook` 스크립트 등록.
