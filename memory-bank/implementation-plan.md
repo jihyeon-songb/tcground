@@ -229,6 +229,16 @@
 - [x] `PublicHeader`, `HomeSearchForm`, `app/categories/[categoryId]`, `lib/tcg-catalog`, `app/cards` 테스트 갱신/추가.
 - [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
 
+### 4.12 홈/인기 카드 런타임 fallback
+
+- 영향 파일: `app/page.tsx`, `app/cards/page.tsx`, `eslint.config.mjs`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`.
+- 최소 변경 범위: Supabase 카탈로그 조회 실패가 `/`와 `/cards` 전체 500으로 번지지 않도록 인기 카드 영역만 빈 상태로 fallback한다. Storybook 정적 산출물은 생성 파일이므로 ESLint 검사 대상에서 제외한다.
+- [x] `/`의 인기 카드 조회 실패를 `console.error` 기록 후 빈 목록으로 fallback.
+- [x] `/cards`의 인기 카드 조회 실패를 `console.error` 기록 후 기존 빈 상태 UI로 fallback.
+- [x] `storybook-static/**`를 ESLint global ignore에 추가.
+- [x] `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
+- [x] `next start -p 3007` 기준 `/`, `/cards` 200 응답 확인.
+
 ### 5. 품질 게이트이
 
 - [x] `pnpm lint`

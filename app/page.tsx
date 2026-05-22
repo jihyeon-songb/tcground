@@ -36,7 +36,7 @@ const categoryTiles = [
 ];
 
 export default async function Home() {
-  const trendingCards = await getFeaturedPokemonCards({ limit: 8 });
+  const trendingCards = await getTrendingCards();
 
   return (
     <div className='flex min-h-screen flex-col bg-[#f8f9fb] text-[#191c1e]'>
@@ -147,6 +147,15 @@ export default async function Home() {
       </footer>
     </div>
   );
+}
+
+async function getTrendingCards(): Promise<PokemonCatalogCard[]> {
+  try {
+    return await getFeaturedPokemonCards({ limit: 8 });
+  } catch (error) {
+    console.error('Failed to load home featured cards', error);
+    return [];
+  }
 }
 
 export function TrendingCardsGrid({ cards }: { cards: readonly PokemonCatalogCard[] }) {

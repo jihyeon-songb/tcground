@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CardsPage() {
-  const cards = await getFeaturedPokemonCards({ limit: 8 });
+  const cards = await getCardsPageFeaturedCards();
 
   return (
     <div className='flex min-h-screen flex-col bg-[#f8f9fb] text-[#191c1e]'>
@@ -55,6 +55,15 @@ export default async function CardsPage() {
       </footer>
     </div>
   );
+}
+
+async function getCardsPageFeaturedCards(): Promise<PokemonCatalogCard[]> {
+  try {
+    return await getFeaturedPokemonCards({ limit: 8 });
+  } catch (error) {
+    console.error('Failed to load cards page featured cards', error);
+    return [];
+  }
 }
 
 export function FeaturedCardsGrid({ cards }: { cards: readonly PokemonCatalogCard[] }) {

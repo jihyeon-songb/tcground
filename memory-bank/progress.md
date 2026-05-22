@@ -1,7 +1,7 @@
 # PROGRESS
 
 > 작업 진행 상황과 의사결정 로그.
-> 마지막 갱신: 2026-05-22 (Storybook UI 카탈로그 도입)
+> 마지막 갱신: 2026-05-23 (배포 런타임 에러 대응)
 
 ## 현재 작업
 
@@ -9,6 +9,7 @@
 
 ## 완료 로그
 
+- 2026-05-23: `/`와 `/cards` 배포 런타임 에러 대응을 완료했다. 두 페이지 모두 `getFeaturedPokemonCards` 실패 시 `console.error`로 원인을 남기고 빈 목록으로 fallback하도록 변경해 Supabase 카탈로그 조회 실패가 페이지 전체 500으로 번지지 않게 했다. 검증 중 로컬 production 서버에서 Supabase `Invalid API key`가 재현됐고, fallback 후 `/`와 `/cards`가 200 응답을 반환하는 것을 확인했다. `storybook-static/**`를 ESLint ignore에 추가해 정적 산출물 lint 실패를 제거했다. `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`(60/60), `pnpm build`를 통과했고 `next start -p 3007` 기준 `/`, `/cards` 200 응답을 확인했다.
 - 2026-05-22: Storybook 9 기반 UI 컴포넌트 카탈로그를 도입했다. `@storybook/nextjs-vite` 프레임워크로 `.storybook/main.ts`, `.storybook/preview.tsx`를 추가하고 `app/globals.css`와 `TooltipProvider`를 preview에 주입했다. `components/ui/*` shadcn 컴포넌트 24개 모두에 대해 기본/variant/주요 상태 스토리를 `*.stories.tsx`로 작성했다. `package.json`에 `storybook`, `build-storybook` 스크립트를 추가하고 `/storybook-static` 결과물을 `.gitignore`에 등록했다. `components/tcg/*` 도메인 컴포넌트 스토리와 Storybook MCP(`@storybook/addon-mcp`) 도입은 별도 후속 작업으로 남겼다. `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`(59/59), `pnpm build-storybook`을 통과했다.
 - 2026-05-22: 검색 라우트를 카테고리 페이지로 흡수했다. `/search` 라우트와 mock 데이터를 제거하고, `lib/tcg-catalog.ts`의 `getPokemonCategoryPageData`에 `query` 옵션을 추가해 Supabase `cards.name`에 `ilike '%q%'` 필터를 적용하도록 했다. `/categories/[categoryId]`는 `searchParams.q`를 받아 `PublicHeader`에 `initialQuery`/`showClearButton`을 전달하고, `q`가 있을 때 검색 결과 인디케이터를 노출하면서 등록 세트 그리드를 숨긴다. 헤더 NAV에서 `검색` 메뉴를 제거했고, `HomeSearchForm` 제출은 `/categories/pokemon?q=...`로 이동한다. `/categories`와 `/cards`의 `/search` 인바운드 링크는 `/categories/pokemon`으로 정리했다. `PublicHeader`, `HomeSearchForm`, `app/categories/[categoryId]`, `lib/tcg-catalog`, `app/cards` 테스트를 새 동작에 맞춰 갱신했다. `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`(52/52), `pnpm build`를 통과했고 build route 목록에서 `/search`가 사라진 것을 확인했다.
 - 2026-05-22: 포켓몬 카탈로그 이미지 enrichment를 완료했다. TCGdex REST API 확인 결과 한국어 endpoint는 seed secret rare 카드 이미지를 제공하지 않아, TCGdex 일본어 equivalent set/localId로 정확히 매칭되는 8장(`KR-003`~`KR-010`)만 Supabase MCP migration `enrich_pokemon_seed_images_tcgdex`로 보강했다. `cards.image_url`과 `card_printings.image_url`에는 `high.webp`, `cards.thumbnail_url`에는 `low.webp`를 저장하고, `card_printings.external_ids`에는 `tcgdex_id`, `image_source='tcgdex'`, `tcgdex_locale='ja'`, `tcgdex_match_basis='equivalent_japanese_set_local_id'`를 추가했다. `KR-001`, `KR-002`는 TCGdex CP6 set shell에 card rows/images가 없어 placeholder를 유지한다. Supabase 검증 결과 10개 seed printing 중 image URL과 `tcgdex_id`가 채워진 행은 8개다. 목록/상세 이미지 fallback 테스트를 추가했고 `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`(48/48), `pnpm build`를 통과했다. 기존 dev 서버 `http://localhost:3000`에서 `/categories/pokemon`은 8개 실제 이미지가 로드되고, `/cards/kr-004-charizard-ex-151`은 상세 이미지가 로드되며, `/cards/kr-001-charizard-ex`는 placeholder fallback을 유지하는 것을 확인했다.
