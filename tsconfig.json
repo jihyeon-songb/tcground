@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@tcground/headless-ui": ["./packages/ui/src"],
+      "@tcground/headless-ui/*": ["./packages/ui/src/*"]
     }
   },
   "include": [

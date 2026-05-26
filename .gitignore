@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -19,6 +19,9 @@
 
 # production
 /build
+/apps/docs/build
+/apps/docs/.docusaurus
+/packages/ui/dist
 
 # misc
 .DS_Store
@@ -27,6 +30,7 @@
 # IDE / tooling
 .idea/
 .claude/
+.playwright-mcp/
 
 # debug
 npm-debug.log*

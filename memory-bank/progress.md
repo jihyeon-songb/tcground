@@ -1,14 +1,15 @@
 # PROGRESS
 
 > 작업 진행 상황과 의사결정 로그.
-> 마지막 갱신: 2026-05-23 (배포 이미지 최적화)
+> 마지막 갱신: 2026-05-26 (Headless UI workspace)
 
 ## 현재 작업
 
-- 2026-05-22: `ebay_sold` adapter 구현 준비. eBay Developer 계정, Buy API production access, Marketplace Insights access 가능 여부를 실제 계정 기준으로 확인하고, API License Agreement 기준 데이터 저장/표시/집계 범위를 adapter contract에 반영한다.
+- 2026-05-26: Headless UI 라이브러리 후속 고도화. `packages/ui`의 Dropdown typeahead/nested menu, Tabs activation mode, npm publish 준비 여부를 검토한다. 기존 `ebay_sold` adapter 준비는 API access 확인 전까지 보류한다.
 
 ## 완료 로그
 
+- 2026-05-26: 접근성 중심 Headless UI 라이브러리와 Docusaurus 문서 사이트 1차 구현을 완료했다. 기존 Next 앱은 유지하고 workspace에 `packages/ui`와 `apps/docs`를 추가했다. `packages/ui`는 CSS 변수 기반 Pokemon theme tokens, Button, Dialog, Dropdown Menu, Tabs, Toggle을 직접 구현하고 React 18/19 peer range로 설정했다. Button은 `asChild`/disabled/variant/size를 지원하고, Dialog는 focus trap, Escape close, focus restore, `aria-modal`/label 연결을 포함한다. Dropdown Menu, Tabs, Toggle은 주요 ARIA 속성과 키보드 조작을 테스트로 검증한다. Storybook은 새 `Headless UI/Pokemon Components` 스토리를 수집하고, Docusaurus는 소개/설치/테마/접근성/컴포넌트/Radix 분석/라이브러리 비교/캐시 전략 문서를 포함한다. Docusaurus 최신 next 문서는 Node 24를 요구하므로 현재 Node 22 환경에서는 공식 3.9.2 문서의 Node 20+ 기준에 맞춰 `@docusaurus/*` 3.9.2를 사용했다.
 - 2026-05-23: 배포 이미지 전송량 최적화를 완료했다. `next.config.ts`에 `assets.tcgdex.net`, `lh3.googleusercontent.com` remote image pattern과 크기 후보를 추가하고, 홈 카테고리 타일, 홈 인기 카드, 카테고리 카드, 인기 카드 목록, 상품 상세 카드 이미지를 `next/image`로 전환했다. 목록/홈/인기 카드 view model은 고해상도 `card_printings.image_url`보다 `cards.thumbnail_url`을 우선 사용하도록 바꿔 TCGdex `low.webp`를 먼저 전송한다. `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`(60/60), `pnpm build`를 통과했고, `next start -p 3002` 기준 `/`, `/cards`, `/categories/pokemon`, `/cards/kr-004-charizard-ex-151`에서 `/_next/image` 최적화 URL 렌더를 확인했다.
 - 2026-05-23: `/`와 `/cards` 배포 런타임 에러 대응을 완료했다. 두 페이지 모두 `getFeaturedPokemonCards` 실패 시 `console.error`로 원인을 남기고 빈 목록으로 fallback하도록 변경해 Supabase 카탈로그 조회 실패가 페이지 전체 500으로 번지지 않게 했다. 검증 중 로컬 production 서버에서 Supabase `Invalid API key`가 재현됐고, fallback 후 `/`와 `/cards`가 200 응답을 반환하는 것을 확인했다. `storybook-static/**`를 ESLint ignore에 추가해 정적 산출물 lint 실패를 제거했다. `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`(60/60), `pnpm build`를 통과했고 `next start -p 3007` 기준 `/`, `/cards` 200 응답을 확인했다.
 - 2026-05-22: Storybook 9 기반 UI 컴포넌트 카탈로그를 도입했다. `@storybook/nextjs-vite` 프레임워크로 `.storybook/main.ts`, `.storybook/preview.tsx`를 추가하고 `app/globals.css`와 `TooltipProvider`를 preview에 주입했다. `components/ui/*` shadcn 컴포넌트 24개 모두에 대해 기본/variant/주요 상태 스토리를 `*.stories.tsx`로 작성했다. `package.json`에 `storybook`, `build-storybook` 스크립트를 추가하고 `/storybook-static` 결과물을 `.gitignore`에 등록했다. `components/tcg/*` 도메인 컴포넌트 스토리와 Storybook MCP(`@storybook/addon-mcp`) 도입은 별도 후속 작업으로 남겼다. `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`(59/59), `pnpm build-storybook`을 통과했다.
@@ -49,6 +50,9 @@
 
 ## 의사결정 로그
 
+- 2026-05-26: 멘토 과제는 기존 TCGround 앱을 폐기하지 않고 모노레포 안의 별도 산출물로 진행한다. 이유는 현재 PRD와 구현이 TCG 가격 추적 서비스로 이미 축적돼 있고, Headless UI 과제는 `packages/ui`와 `apps/docs`로 분리할 때 기존 앱과 충돌 없이 npm 패키지/문서 사이트 형태를 보여줄 수 있기 때문이다.
+- 2026-05-26: Headless UI 컴포넌트는 Radix UI를 런타임 의존성으로 감싸지 않고 직접 구현한다. Radix/shadcn은 접근성 구현 방식 분석과 비교 리포트의 참고 대상으로만 사용한다.
+- 2026-05-26: Docusaurus는 `3.9.2`로 고정한다. 최신 next 문서는 Node 24.14 이상을 요구하지만 현재 로컬 환경은 Node 22.17.0이므로, 공식 3.9.2 문서의 Node 20+ 요구사항에 맞춰 빌드 가능한 버전을 선택했다. docs package는 Docusaurus 서버 번들 호환을 위해 `"type": "module"`을 두지 않는다.
 - 2026-05-22: 별도 `/search` 라우트를 폐기하고 카드 이름 검색을 카테고리 페이지(`/categories/[categoryId]?q=...`)로 흡수한다. 이유는 두 페이지가 카드 그리드/가격 표시/필터를 거의 동일하게 갖고 있고, `/search`는 mock 데이터만 갖고 있어 카탈로그가 실제로 살아 있는 카테고리 페이지에 통합하는 편이 정보 구조와 코드 양쪽 모두를 단순하게 만들기 때문이다. 단일 TCG(포켓몬)만 Supabase에 들어와 있는 현 단계에서는 기본 카테고리를 `pokemon`으로 고정한다. 다중 TCG가 들어오면 cross-TCG 검색 진입점과 기본 카테고리 결정 규칙을 다시 정의한다.
 - 2026-05-22: 포켓몬 seed 이미지 출처는 TCGdex를 우선하되, 한국어 endpoint가 secret rare 이미지 row를 제공하지 않는 경우 TCGdex 일본어 equivalent set/localId가 카드명/세트/번호를 만족하는 1:1 매칭일 때만 사용한다. 이 보강은 한국판 원본 이미지가 아니라 TCGdex 일본어 equivalent 이미지임을 `external_ids.tcgdex_locale='ja'`, `tcgdex_match_basis='equivalent_japanese_set_local_id'`로 명시한다. TCGdex에 equivalent card row/image가 없는 `KR-001`, `KR-002`는 다른 출처나 임의 이미지로 대체하지 않고 placeholder를 유지한다.
 - 2026-05-22: 1차 자동 adapter source는 `ebay_sold`로 결정한다. 이유는 검증 샘플에서 개별 sold item ID, sold price, sold timestamp/date, condition 일부를 가장 구조화하기 쉽고, eBay 공식 Marketplace Insights API가 sold item sales history를 제공하는 경로이기 때문이다. 단, Marketplace Insights는 restricted/limited release이고 Buy API production access와 formal agreement가 필요하므로, 승인 전에는 eBay web page scraping이나 우회적 bulk 수집을 하지 않는다.

@@ -1,15 +1,18 @@
 {
-  "name": "my-app",
+  "name": "tcg-round",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:docs": "pnpm --filter @tcground/docs build",
+    "build:ui": "pnpm --filter @tcground/headless-ui build",
     "start": "next start",
     "test": "vitest",
     "lint": "eslint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "docs": "pnpm --filter @tcground/docs start",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

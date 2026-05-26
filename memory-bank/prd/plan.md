@@ -12,6 +12,7 @@ TCG(Trading Card Game) 카드의 가격을 추적하고, 컬렉터가 정보를 
 
 - 가격 추적 → 커뮤니티 → 중고 거래 → 경매로 단계적 확장.
 - 사용자 흐름은 실용적·검색 가능·확장 가능하게 유지한다.
+- 별도 과제 산출물로 접근성 중심 Headless UI 라이브러리와 Docusaurus 문서 사이트를 모노레포 안에 분리해 진행한다. 상세 범위는 `memory-bank/prd/headless-ui.md`를 기준으로 한다.
 
 ## 3. 타깃 사용자
 
@@ -93,3 +94,4 @@ TCG(Trading Card Game) 카드의 가격을 추적하고, 컬렉터가 정보를 
 - 2026-05-22: 한국판 포켓몬 가격의 1차 자동 adapter source를 `ebay_sold`로 결정하되, eBay Marketplace Insights 승인과 API License Agreement 준수 확인 전까지 scraping 자동화는 하지 않기로 확정.
 - 2026-05-22: 별도 `/search` 라우트를 폐기하고 카드 이름 검색을 카테고리 페이지(`/categories/[categoryId]?q=...`)로 흡수. 헤더 메뉴는 `홈 / 카테고리 / 인기`로 정리하고, 헤더/홈 검색은 기본 카테고리 `pokemon`으로 진입한다. 다중 TCG가 Supabase에 들어오면 "기본 카테고리"와 cross-TCG 검색 경로를 다시 결정한다.
 - 2026-05-22: 카테고리 상세 페이지의 "등록 세트" 그리드(별도 세트 페이지 진입)를 제거하고, 세트 선택을 사이드바 필터로 일원화. 사이드바는 레어도/세트 모두 다중 선택 체크박스로 동작하며 URL 쿼리(`?rarity=SAR,AR&set=pokemon-kr-151,...`)와 즉시 동기화한다. 옵션 목록은 게임 전체 기준으로 항상 노출해 다른 카테고리로 이동 없이 필터를 추가/해제할 수 있게 한다.
+- 2026-05-26: 기존 TCGround 앱은 유지하되, 멘토 과제 산출물로 접근성 중심 Headless UI 라이브러리(`packages/ui`)와 Docusaurus 문서 사이트(`apps/docs`)를 모노레포 안에 분리해 진행하기로 결정.

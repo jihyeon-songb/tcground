@@ -2,18 +2,21 @@
 
 > 기술 스택·디렉터리 구조·수정 범위·Next.js/UI 가이드.
 > 명명·코딩 스타일·테스트·커밋 룰은 `CONVENTIONS.md`.
-> 마지막 갱신: 2026-05-23 (외부 이미지 최적화)
+> 마지막 갱신: 2026-05-26 (Headless UI workspace)
 
 ## 1. 스택
 
 - Next.js 16 (App Router) · React 19 · TypeScript 5 (strict)
+- 모노레포 workspace: 기존 Next 앱 + `packages/ui` Headless UI 라이브러리 + `apps/docs` Docusaurus 문서 사이트
 - Tailwind CSS v4 + `prettier-plugin-tailwindcss`
 - shadcn/ui (Radix 기반) + lucide-react + class-variance-authority + tailwind-merge + clsx + cmdk
+- `packages/ui`: React 18/19 peer range, TypeScript build, CSS 변수 기반 Pokemon theme tokens
+- `apps/docs`: Docusaurus 3.9.2 classic preset. 최신 Docusaurus next 문서는 Node 24를 요구하므로 현재 Node 22 환경에서는 3.9.2를 고정한다.
 - Supabase JS + Supabase SSR (Auth/서버 클라이언트)
 - Vitest 4 + Testing Library + jsdom
 - ESLint 9 (`next/core-web-vitals` + `next/typescript`)
 - Storybook 10 (`@storybook/nextjs-vite`) — UI 컴포넌트 카탈로그/문서화 도구
-- pnpm (단일 앱. `pnpm-workspace.yaml`은 미래 확장용)
+- pnpm workspace
 
 전제: Node 20+, pnpm.
 
@@ -46,6 +49,8 @@ components/
 lib/                 # 도메인 정적 데이터·유틸·Supabase 클라이언트
 public/              # 정적 자산
 docs/                # 본 문서들
+packages/ui/         # 접근성 중심 Headless UI 컴포넌트 라이브러리
+apps/docs/           # Docusaurus 제출/배포용 문서 사이트
 ```
 
 핵심 위치:
@@ -161,9 +166,9 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 ## 8. Storybook
 
 - Framework: `@storybook/nextjs-vite` (Vite 기반 Next.js 프레임워크). Vitest 4와 같은 React 플러그인을 공유한다.
-- 설정: `.storybook/main.ts`에서 `components/**/*.stories.@(ts|tsx|mdx)` 패턴으로 스토리를 수집하고, `@storybook/addon-docs`, `@storybook/addon-a11y`를 활성화한다.
+- 설정: `.storybook/main.ts`에서 `components/**/*.stories.@(ts|tsx|mdx)`와 `packages/ui/src/**/*.stories.@(ts|tsx|mdx)` 패턴으로 스토리를 수집하고, `@storybook/addon-docs`, `@storybook/addon-a11y`를 활성화한다.
 - Preview: `.storybook/preview.tsx`에서 `app/globals.css`(Tailwind v4 + tcg 토큰)를 import하고 모든 스토리를 `TooltipProvider`로 감싼다.
-- 카탈로그 범위: `components/ui/*` shadcn 컴포넌트 24개에 대해 기본/variant/주요 상태 스토리를 co-location한다(`<component>.stories.tsx`). `components/tcg/*` 도메인 컴포넌트 스토리와 Storybook MCP 도입은 별도 후속 작업이다.
+- 카탈로그 범위: `components/ui/*` shadcn 컴포넌트 24개와 `packages/ui` headless 컴포넌트 스토리를 co-location한다. `components/tcg/*` 도메인 컴포넌트 스토리와 Storybook MCP 도입은 별도 후속 작업이다.
 - 스크립트: `pnpm storybook`은 dev 서버, `pnpm build-storybook`은 정적 빌드를 `storybook-static/`에 생성한다. 결과물 디렉터리는 `.gitignore`로 제외한다.
 
 ## 9. 변경 이력
@@ -187,3 +192,4 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 2026-05-22: 포켓몬 seed 카드 8장을 TCGdex equivalent 이미지 URL로 enrichment하고, 이미지 우선순위(`card_printings.image_url` 우선, 목록 `thumbnail_url`, 상세 `image_url` fallback)를 문서화.
 - 2026-05-22: Storybook 10(`@storybook/nextjs-vite`) UI 카탈로그 도입. `.storybook/` 설정과 `components/ui/*.stories.tsx`(24개) 추가, `pnpm storybook`/`pnpm build-storybook` 스크립트 등록.
 - 2026-05-23: 외부 카드/카테고리 이미지를 직접 `<img>`로 로드하지 않고 `next/image` 최적화 경로로 렌더링하도록 변경. 목록 이미지는 `thumbnail_url`을 우선 사용하고, `next.config.ts`에 `assets.tcgdex.net`, `lh3.googleusercontent.com` remote pattern과 이미지 크기 후보를 추가.
+- 2026-05-26: Headless UI 과제용 `packages/ui`와 Docusaurus `apps/docs`를 workspace에 추가. Storybook은 기존 shadcn 카탈로그와 새 headless 컴포넌트 검증을 함께 수집한다.

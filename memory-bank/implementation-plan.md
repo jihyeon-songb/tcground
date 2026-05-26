@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-05-23 (외부 이미지 최적화)
+> 마지막 갱신: 2026-05-26 (Headless UI workspace)
 
 ## 현재 기준 PRD
 
@@ -11,6 +11,7 @@
 - `memory-bank/prd/search-results.md`
 - `memory-bank/prd/category.md`
 - `memory-bank/prd/product-detail.md`
+- `memory-bank/prd/headless-ui.md`
 
 ## 단계별 계획
 
@@ -257,6 +258,23 @@
 - [x] `pnpm test --run`
 - [x] `pnpm build`
 
+### 6. Headless UI 라이브러리 + Docusaurus 문서화
+
+- 영향 파일: `packages/ui/**`, `apps/docs/**`, `.storybook/main.ts`, `pnpm-workspace.yaml`, `package.json`, `pnpm-lock.yaml`, `memory-bank/prd/headless-ui.md`, `memory-bank/architecture.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: 기존 TCGround 앱은 유지하고, 과제 산출물은 workspace 내부의 React headless UI 패키지와 Docusaurus 문서 사이트로 분리한다. Radix/shadcn 코드는 참고 대상으로만 두고 런타임 래퍼로 사용하지 않는다.
+- [x] `memory-bank/prd/headless-ui.md` 생성과 제품 전체 PRD의 별도 과제 방향 기록.
+- [x] `pnpm-workspace.yaml`에 `apps/*`, `packages/*` workspace 추가.
+- [x] `packages/ui`에 Theme tokens, Button, Dialog, Dropdown Menu, Tabs, Toggle 공개 API 구현.
+- [x] Button `asChild`, disabled, variant/size와 Dialog focus trap/Escape/focus restore 구현.
+- [x] Dropdown Menu, Tabs, Toggle의 주요 ARIA 속성과 키보드 조작 구현.
+- [x] `packages/ui/src/**/*.test.tsx`에 접근성/상태 동작 테스트 추가.
+- [x] Storybook에 Headless UI 컴포넌트 스토리 추가.
+- [x] `apps/docs` Docusaurus 3.9.2 문서 사이트 추가.
+- [x] 소개, 설치, 테마, 접근성, 컴포넌트 사용법, Radix 분석, 라이브러리 비교, 캐시 전략 문서 작성.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build:ui`, `pnpm build-storybook`, `pnpm build:docs` 검증.
+- [ ] 고급 Dropdown typeahead/nested menu와 Tabs activation mode 검토. (후속)
+- [ ] npm publish용 package metadata, README, changeset 또는 release workflow 검토. (후속)
+
 ## 다음 작업
 
-포켓몬 카탈로그 seed와 `/categories/pokemon`, `/cards/[cardId]` DB 전환, TCGdex 기반 이미지 enrichment를 완료했다. TCGdex 한국어 endpoint는 seed secret rare 이미지를 제공하지 않아, SV/SV2a/SV3/SV8a 8장은 TCGdex 일본어 equivalent set/localId 이미지로 보강했고, CP6 20th Anniversary `KR-001`, `KR-002`는 placeholder를 유지한다. 다음 작업은 eBay Buy API/Marketplace Insights production access와 API License Agreement 준수 범위를 확인한 뒤 adapter 계약을 확정하는 것이다. 승인 전에는 eBay 페이지 scraping adapter를 만들지 않고, 국내 source는 수동 import source로 유지한다. `confidence_score < 0.8`, damaged/played, `clean_raw` 표본 3개 미만 행은 snapshot 집계에서 보류한다.
+Headless UI 과제 1차 산출물로 `packages/ui`와 `apps/docs`를 추가했다. 다음 작업은 고급 Dropdown/Tabs 상호작용(typeahead, nested menu, activation mode)과 npm publish 준비를 검토하는 것이다. 기존 TCGround 가격 추적 작업의 다음 단계는 eBay Buy API/Marketplace Insights production access와 API License Agreement 준수 범위를 확인한 뒤 adapter 계약을 확정하는 것이다.
