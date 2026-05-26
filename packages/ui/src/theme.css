@@ -1,0 +1,165 @@
+:root {
+  --pokemon-primary: #1f8f4d;
+  --pokemon-primary-foreground: #ffffff;
+  --pokemon-secondary: #b7e45a;
+  --pokemon-secondary-foreground: #17321f;
+  --pokemon-surface: #ffffff;
+  --pokemon-surface-foreground: #17211b;
+  --pokemon-border: #cbd8ce;
+  --pokemon-muted: #eef6ed;
+  --pokemon-disabled: #d9e1db;
+  --pokemon-disabled-foreground: #68756c;
+  --pokemon-focus-ring: #f2c94c;
+  --pokemon-radius: 0.5rem;
+  --pokemon-shadow: 0 18px 45px rgb(20 36 24 / 18%);
+}
+
+.pui-button {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--pokemon-radius);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 650;
+  gap: 0.5rem;
+  justify-content: center;
+  line-height: 1;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  text-decoration: none;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    opacity 120ms ease;
+  user-select: none;
+}
+
+.pui-button:focus-visible,
+.pui-dialog-content:focus-visible,
+.pui-dropdown-trigger:focus-visible,
+.pui-dropdown-item:focus-visible,
+.pui-tabs-trigger:focus-visible,
+.pui-toggle:focus-visible {
+  outline: 3px solid var(--pokemon-focus-ring);
+  outline-offset: 2px;
+}
+
+.pui-button[data-variant='primary'] {
+  background: var(--pokemon-primary);
+  color: var(--pokemon-primary-foreground);
+}
+
+.pui-button[data-variant='secondary'] {
+  background: var(--pokemon-secondary);
+  color: var(--pokemon-secondary-foreground);
+}
+
+.pui-button[data-variant='ghost'] {
+  background: transparent;
+  color: var(--pokemon-surface-foreground);
+}
+
+.pui-button[data-size='sm'] {
+  min-height: 2rem;
+  padding: 0 0.75rem;
+}
+
+.pui-button[data-size='lg'] {
+  min-height: 3rem;
+  padding: 0 1.25rem;
+}
+
+.pui-button:disabled,
+.pui-button[aria-disabled='true'] {
+  background: var(--pokemon-disabled);
+  color: var(--pokemon-disabled-foreground);
+  cursor: not-allowed;
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.pui-dialog-overlay {
+  background: rgb(10 16 12 / 54%);
+  inset: 0;
+  position: fixed;
+  z-index: 50;
+}
+
+.pui-dialog-content {
+  background: var(--pokemon-surface);
+  border: 1px solid var(--pokemon-border);
+  border-radius: var(--pokemon-radius);
+  box-shadow: var(--pokemon-shadow);
+  color: var(--pokemon-surface-foreground);
+  left: 50%;
+  max-height: min(42rem, calc(100vh - 2rem));
+  max-width: min(32rem, calc(100vw - 2rem));
+  overflow: auto;
+  padding: 1.25rem;
+  position: fixed;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  z-index: 51;
+}
+
+.pui-dropdown-content {
+  background: var(--pokemon-surface);
+  border: 1px solid var(--pokemon-border);
+  border-radius: var(--pokemon-radius);
+  box-shadow: var(--pokemon-shadow);
+  color: var(--pokemon-surface-foreground);
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.375rem;
+  min-width: 12rem;
+  padding: 0.375rem;
+  position: absolute;
+  z-index: 40;
+}
+
+.pui-dropdown-item {
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--pokemon-radius) - 0.125rem);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+}
+
+.pui-dropdown-item[data-highlighted='true'] {
+  background: var(--pokemon-muted);
+}
+
+.pui-dropdown-item:disabled {
+  color: var(--pokemon-disabled-foreground);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.pui-tabs-list {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.pui-tabs-trigger,
+.pui-toggle {
+  background: transparent;
+  border: 1px solid var(--pokemon-border);
+  border-radius: var(--pokemon-radius);
+  color: var(--pokemon-surface-foreground);
+  cursor: pointer;
+  font: inherit;
+  padding: 0.625rem 0.875rem;
+}
+
+.pui-tabs-trigger[aria-selected='true'],
+.pui-toggle[aria-pressed='true'] {
+  background: var(--pokemon-primary);
+  border-color: var(--pokemon-primary);
+  color: var(--pokemon-primary-foreground);
+}

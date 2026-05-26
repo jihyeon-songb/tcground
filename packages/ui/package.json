@@ -1,0 +1,33 @@
+{
+  "name": "@tcground/headless-ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Accessibility-first headless React components with Pokemon theme tokens.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./theme.css": "./src/theme.css"
+  },
+  "files": [
+    "dist",
+    "src/theme.css"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18.2.0 <20.0.0",
+    "react-dom": ">=18.2.0 <20.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  }
+}
