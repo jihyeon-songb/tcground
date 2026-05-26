@@ -1,7 +1,33 @@
 # TROUBLE SHOOTING
 
 > PRD에 없던 엣지 케이스, 예외 상황, source 리스크 기록.
-> 마지막 갱신: 2026-05-23 (외부 이미지 전송량)
+> 마지막 갱신: 2026-05-26 (Vercel 모노레포 install scope)
+
+## Vercel 모노레포 install scope
+
+### 문제
+
+2026-05-26 pnpm workspace 모노레포로 전환하면서 root에 Next 앱, `packages/ui`(Headless UI), `apps/docs`(Docusaurus 3.9.2)가 함께 들어왔다. Vercel은 root `package.json`을 자동 감지해 Next 앱을 빌드하지만, 별도 설정이 없으면 `pnpm install`이 워크스페이스 전체를 hydrate한다. 결과적으로 Next 배포와 무관한 `apps/docs`의 Docusaurus deps(수백 개)까지 매 빌드마다 설치되어 빌드 시간이 늘고, `apps/docs`의 postinstall 또는 peer 충돌이 발생하면 Next 앱 배포까지 함께 실패할 수 있다.
+
+### 처리
+
+- root에 `vercel.json`을 추가해 install scope를 명시했다.
+
+  ```json
+  {
+    "installCommand": "pnpm install --filter=tcg-round..."
+  }
+  ```
+
+- `--filter=tcg-round...` (점 3개)는 root 패키지(`tcg-round`)와 *그 의존성 그래프*만 설치한다. 현재 Next 앱은 `@tcground/headless-ui`를 import하지 않지만, 추후 Next가 워크스페이스 패키지를 import하면 `packages/ui`는 자동으로 포함된다.
+- `apps/docs`는 Next 앱의 의존성 그래프에 포함되지 않으므로 Vercel install에서 제외된다.
+
+### 재발 방지
+
+- 새 워크스페이스 패키지를 추가할 때 Next 앱(`tcg-round`)이 그 패키지를 import하지 않는다면, Vercel 빌드 install에서 자연스럽게 제외된다. 추가 설정 없음.
+- 새 패키지가 Next 앱에서 import되어야 한다면 root `package.json`의 `dependencies`에 `"<패키지명>": "workspace:*"` 형태로 명시한다. 그래야 `--filter=tcg-round...`가 워크스페이스 그래프를 따라 포함시킨다.
+- `.vercelignore`로 디렉터리 자체를 숨기는 방식은 추후 Next가 워크스페이스 패키지를 import하기 시작하면 파일 부재로 빌드가 깨지므로 사용하지 않는다.
+- Vercel Node 버전은 `apps/docs`가 Docusaurus 3.9.2를 Node 22 기준으로 고정한 것과 별개로, root Next 앱 기준으로 본다. docs 사이트는 Vercel과 다른 호스팅 경로(예: GitHub Pages 또는 별도 Vercel 프로젝트)로 분리 배포한다.
 
 ## 배포 외부 이미지 전송량
 
