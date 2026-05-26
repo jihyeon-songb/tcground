@@ -1,0 +1,122 @@
+---
+title: Toggle
+description: on/off 두 상태를 가진 단일 button primitive.
+---
+
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {
+  ControlledExample,
+  DefaultExample,
+  DefaultPressedExample,
+  DisabledExample,
+} from '@site/src/components/examples/toggle';
+
+# Toggle
+
+on/off 두 상태를 가진 단일 button 컴포넌트입니다. Switch 가 아닌 "툴바 버튼" (예: 굵게, 기울임) 형태의 토글 동작에 적합합니다. 상태는 `aria-pressed` 로 노출되어 보조 기기가 인식합니다.
+
+<ComponentPreview
+  code={`<Toggle>굵게</Toggle>`}
+>
+  <DefaultExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/headless-ui
+```
+
+```ts
+import '@tcground/headless-ui/theme.css';
+```
+
+## 사용법
+
+기본은 uncontrolled 입니다. 상태를 부모가 직접 관리하려면 `pressed` + `onPressedChange` 를 함께 사용합니다.
+
+```tsx
+import { Toggle } from '@tcground/headless-ui';
+
+export function Example() {
+  return <Toggle defaultPressed>굵게</Toggle>;
+}
+```
+
+## 예제
+
+### 기본 + 초기값
+
+`defaultPressed` 로 초기 on 상태를 지정합니다. 컴포넌트가 내부적으로 상태를 관리합니다.
+
+<ComponentPreview
+  code={`<Toggle defaultPressed>굵게</Toggle>
+<Toggle>기울임</Toggle>
+<Toggle>밑줄</Toggle>`}
+>
+  <DefaultPressedExample />
+</ComponentPreview>
+
+### Controlled
+
+상위 상태와 동기화하려면 `pressed` 와 `onPressedChange` 를 함께 사용합니다.
+
+<ComponentPreview
+  code={`const [pressed, setPressed] = useState(false);
+
+<Toggle pressed={pressed} onPressedChange={setPressed}>
+  알림
+</Toggle>`}
+>
+  <ControlledExample />
+</ComponentPreview>
+
+### Disabled
+
+native `<button>` 의 `disabled` 속성을 그대로 사용합니다. 클릭과 키보드 활성화가 모두 차단됩니다.
+
+<ComponentPreview
+  code={`<Toggle disabled>비활성 (off)</Toggle>
+<Toggle defaultPressed disabled>비활성 (on)</Toggle>`}
+>
+  <DisabledExample />
+</ComponentPreview>
+
+## API Reference
+
+`Toggle` 은 native `<button>` 의 모든 props 를 받아 그대로 전달합니다. 아래 표는 헤드리스 라이브러리가 추가로 정의한 prop 만 정리합니다.
+
+<PropsTable
+  rows={[
+    {
+      name: 'defaultPressed',
+      type: 'boolean',
+      default: 'false',
+      description: 'uncontrolled 모드의 초기 pressed 상태.',
+    },
+    {
+      name: 'pressed',
+      type: 'boolean',
+      description: 'controlled pressed 상태. onPressedChange 와 함께 사용합니다.',
+    },
+    {
+      name: 'onPressedChange',
+      type: '(pressed: boolean) => void',
+      description: 'pressed 가 바뀔 때 호출됩니다. controlled / uncontrolled 모두에서 호출됩니다.',
+    },
+    {
+      name: 'disabled',
+      type: 'boolean',
+      default: 'false',
+      description: 'native button disabled. click / keyboard 활성화가 차단됩니다.',
+    },
+  ]}
+/>
+
+## 접근성
+
+- 상태는 `aria-pressed="true|false"` 로 노출됩니다.
+- native `<button>` 이라 `Space` / `Enter` 키로 활성화되고, Tab 키로 focus 됩니다.
+- controlled 사용 시 `pressed` 와 `onPressedChange` 를 짝지어 사용해야 보조 기기와 화면 상태가 어긋나지 않습니다.
+- 단순 on/off (예: 알림 활성/비활성) 의미가 더 강하다면 Toggle 대신 native `<input type="checkbox" role="switch">` 또는 별도 Switch 컴포넌트를 고려하세요.

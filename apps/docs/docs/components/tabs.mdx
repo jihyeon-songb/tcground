@@ -1,0 +1,176 @@
+---
+title: Tabs
+description: 좌우 방향키 이동과 ARIA 역할을 포함한 탭 컴포넌트.
+---
+
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {BasicExample, ControlledExample} from '@site/src/components/examples/tabs';
+
+# Tabs
+
+여러 개의 관련된 패널 중 하나만 표시하는 컴포넌트입니다.
+List 안의 Trigger 가 활성 패널을 결정하며, 좌우 방향키로 trigger 사이를 이동합니다.
+
+<ComponentPreview
+  code={`<Tabs.Root defaultValue="usage">
+  <Tabs.List aria-label="문서 섹션">
+    <Tabs.Trigger value="usage">사용법</Tabs.Trigger>
+    <Tabs.Trigger value="props">Props</Tabs.Trigger>
+    <Tabs.Trigger value="a11y">접근성</Tabs.Trigger>
+  </Tabs.List>
+  <Tabs.Panel value="usage">사용법 패널</Tabs.Panel>
+  <Tabs.Panel value="props">Props 패널</Tabs.Panel>
+  <Tabs.Panel value="a11y">접근성 패널</Tabs.Panel>
+</Tabs.Root>`}
+>
+  <BasicExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/headless-ui
+```
+
+```ts
+import '@tcground/headless-ui/theme.css';
+```
+
+## 사용법
+
+`Tabs.Root` 의 `defaultValue` 와 각 `Trigger` / `Panel` 의 `value` 가 짝을 이뤄야 합니다. 매칭되지 않으면 어떤 패널도 표시되지 않습니다.
+
+```tsx
+import { Tabs } from '@tcground/headless-ui';
+
+export function Example() {
+  return (
+    <Tabs.Root defaultValue="a">
+      <Tabs.List aria-label="섹션">
+        <Tabs.Trigger value="a">A</Tabs.Trigger>
+        <Tabs.Trigger value="b">B</Tabs.Trigger>
+      </Tabs.List>
+      <Tabs.Panel value="a">A 내용</Tabs.Panel>
+      <Tabs.Panel value="b">B 내용</Tabs.Panel>
+    </Tabs.Root>
+  );
+}
+```
+
+`Tabs.List` 에 `aria-label` 을 주어 보조 기기가 tablist 의 목적을 식별할 수 있게 하는 것이 권장됩니다.
+
+## 예제
+
+### 기본 (uncontrolled)
+
+`defaultValue` 만 주면 컴포넌트가 내부적으로 활성 탭을 관리합니다. 좌우 방향키로 trigger 사이를 이동할 수 있습니다.
+
+<ComponentPreview
+  code={`<Tabs.Root defaultValue="usage">
+  <Tabs.List aria-label="문서 섹션">
+    <Tabs.Trigger value="usage">사용법</Tabs.Trigger>
+    <Tabs.Trigger value="props">Props</Tabs.Trigger>
+    <Tabs.Trigger value="a11y">접근성</Tabs.Trigger>
+  </Tabs.List>
+  <Tabs.Panel value="usage">사용법 패널</Tabs.Panel>
+  <Tabs.Panel value="props">Props 패널</Tabs.Panel>
+  <Tabs.Panel value="a11y">접근성 패널</Tabs.Panel>
+</Tabs.Root>`}
+>
+  <BasicExample />
+</ComponentPreview>
+
+### Controlled — 외부에서 활성 탭 관리
+
+`value` + `onValueChange` 로 상위 컴포넌트가 직접 활성 탭을 제어합니다. URL 쿼리, 글로벌 상태 등과 통합할 때 사용합니다.
+
+<ComponentPreview
+  code={`const [value, setValue] = useState('overview');
+
+<Tabs.Root value={value} onValueChange={setValue} defaultValue="overview">
+  <Tabs.List aria-label="섹션">
+    <Tabs.Trigger value="overview">개요</Tabs.Trigger>
+    <Tabs.Trigger value="details">상세</Tabs.Trigger>
+    <Tabs.Trigger value="history">이력</Tabs.Trigger>
+  </Tabs.List>
+  <Tabs.Panel value="overview">overview 패널</Tabs.Panel>
+  <Tabs.Panel value="details">details 패널</Tabs.Panel>
+  <Tabs.Panel value="history">history 패널</Tabs.Panel>
+</Tabs.Root>`}
+>
+  <ControlledExample />
+</ComponentPreview>
+
+## API Reference
+
+### Tabs.Root
+
+<PropsTable
+  rows={[
+    {
+      name: 'defaultValue',
+      type: 'string',
+      description: 'uncontrolled 모드의 초기 활성 탭 value. 필수.',
+    },
+    {
+      name: 'value',
+      type: 'string',
+      description: 'controlled 활성 탭 value. onValueChange 와 함께 사용합니다.',
+    },
+    {
+      name: 'onValueChange',
+      type: '(value: string) => void',
+      description: '활성 탭이 바뀔 때 호출됩니다.',
+    },
+  ]}
+/>
+
+native `<div>` 의 props 를 추가로 받습니다.
+
+### Tabs.List
+
+native `<div>` 의 props 를 받습니다. 컴포넌트가 추가하는 것:
+
+- `role="tablist"` 자동 적용
+- 좌우 방향키 처리: `ArrowRight` / `ArrowLeft` 로 다음 / 이전 trigger 로 focus + activate
+
+`aria-label` 또는 `aria-labelledby` 를 명시해 tablist 의 목적을 알리는 것이 권장됩니다.
+
+### Tabs.Trigger
+
+<PropsTable
+  rows={[
+    {
+      name: 'value',
+      type: 'string',
+      description: '이 trigger 와 짝지을 panel 의 value. 필수.',
+    },
+  ]}
+/>
+
+native `<button>` 의 props 를 받습니다. `role="tab"`, `aria-selected`, `aria-controls`, `tabIndex` (활성: 0, 비활성: -1) 가 자동 적용됩니다.
+
+### Tabs.Panel
+
+<PropsTable
+  rows={[
+    {
+      name: 'value',
+      type: 'string',
+      description: '이 panel 과 짝지을 trigger 의 value. 필수.',
+    },
+  ]}
+/>
+
+native `<div>` 의 props 를 받습니다. `role="tabpanel"`, `aria-labelledby`, `tabIndex={0}` 이 자동 적용됩니다. 비활성 패널은 `hidden` 으로 처리되고 자식이 unmount 됩니다.
+
+## 접근성
+
+- List 는 `role="tablist"` 를 가집니다. `aria-label` 또는 `aria-labelledby` 를 함께 지정하는 것이 권장됩니다.
+- Trigger 는 `role="tab"`, `aria-selected`, `aria-controls` 를 가집니다.
+- Panel 은 `role="tabpanel"`, `aria-labelledby` 를 가집니다.
+- 키보드 지원:
+  - `Tab` 으로 tablist 에 진입하면 활성 trigger 에 focus 가 들어갑니다 (roving tabindex).
+  - 좌우 방향키 (`ArrowLeft` / `ArrowRight`) 로 trigger 사이를 이동하면 자동으로 해당 탭이 활성화됩니다.
+- 비활성 패널의 자식은 unmount 되어 보조 기기 트리에서 제거됩니다.

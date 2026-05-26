@@ -1,0 +1,152 @@
+---
+title: Button
+description: 사용자의 액션을 트리거하는 기본 인터랙티브 요소.
+---
+
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {
+  AsChildExample,
+  DefaultExample,
+  DisabledExample,
+  SizesExample,
+  VariantsExample,
+} from '@site/src/components/examples/button';
+
+# Button
+
+폼 제출, 다이얼로그 열기, 라우팅처럼 사용자의 액션을 트리거하는 기본 인터랙티브 요소입니다.
+기본은 native `<button>`을 렌더링하고, 링크나 라우터 컴포넌트에 동작을 위임해야 할 때만 `asChild`를 사용합니다.
+
+<ComponentPreview
+  code={`import { Button } from '@tcground/headless-ui';
+
+export function ButtonExample() {
+  return <Button>Button</Button>;
+}`}
+>
+  <DefaultExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/headless-ui
+```
+
+테마 토큰(`--pokemon-primary`, `--pokemon-focus-ring` 등)을 활성화하려면 글로벌 CSS 진입점에서 한 번만 import 합니다.
+
+```ts
+import '@tcground/headless-ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import { Button } from '@tcground/headless-ui';
+
+export function Example() {
+  return <Button onClick={() => console.log('clicked')}>저장</Button>;
+}
+```
+
+`type` prop 의 기본값은 `'button'` 이라, form 내부에서 의도치 않은 submit이 발생하지 않습니다.
+실제로 submit이 필요하면 `type="submit"` 을 명시합니다.
+
+## 예제
+
+### Variants
+
+`variant` 로 강조 정도를 조절합니다. `primary` 가 기본 액션, `secondary` 는 보조 액션, `ghost` 는 시각적 무게를 최소화하고 싶을 때 사용합니다.
+
+<ComponentPreview
+  code={`<Button variant="primary">Primary</Button>
+<Button variant="secondary">Secondary</Button>
+<Button variant="ghost">Ghost</Button>`}
+>
+  <VariantsExample />
+</ComponentPreview>
+
+### Sizes
+
+`size` 로 높이와 좌우 패딩을 조정합니다. 기본값은 `md` 입니다.
+
+<ComponentPreview
+  code={`<Button size="sm">Small</Button>
+<Button size="md">Medium</Button>
+<Button size="lg">Large</Button>`}
+>
+  <SizesExample />
+</ComponentPreview>
+
+### Disabled
+
+`disabled` prop은 native `<button>`에서는 DOM `disabled` 속성으로, `asChild` 위임 시에는 `aria-disabled="true"` + `tabIndex={-1}` 로 표현됩니다. 두 경우 모두 `onClick` 호출이 차단됩니다.
+
+<ComponentPreview
+  code={`<Button disabled>Primary</Button>
+<Button disabled variant="secondary">Secondary</Button>
+<Button disabled variant="ghost">Ghost</Button>`}
+>
+  <DisabledExample />
+</ComponentPreview>
+
+### asChild — 동작을 다른 요소에 위임
+
+링크나 라우터 컴포넌트로 동작을 넘기고 싶을 때 `asChild` 를 사용합니다. Button 은 단일 React 요소를 자식으로 받아 자신의 props 와 ref 를 그 요소에 머지합니다.
+
+<ComponentPreview
+  code={`<Button asChild variant="secondary">
+  <a href="https://headlessui.com/" rel="noreferrer" target="_blank">
+    링크로 이동
+  </a>
+</Button>`}
+>
+  <AsChildExample />
+</ComponentPreview>
+
+## API Reference
+
+`Button` 은 native `<button>` 의 모든 props 를 받아 그대로 전달합니다. 아래 표는 헤드리스 라이브러리가 추가로 정의한 prop 만 정리합니다.
+
+<PropsTable
+  rows={[
+    {
+      name: 'variant',
+      type: "'primary' | 'secondary' | 'ghost'",
+      default: "'primary'",
+      description: '시각적 강조 정도. data-variant 속성으로 스타일에 노출됩니다.',
+    },
+    {
+      name: 'size',
+      type: "'sm' | 'md' | 'lg'",
+      default: "'md'",
+      description: '높이와 좌우 패딩. data-size 속성으로 노출됩니다.',
+    },
+    {
+      name: 'asChild',
+      type: 'boolean',
+      default: 'false',
+      description: 'true 이면 자식 요소를 그대로 렌더하고 button props/ref 를 머지합니다. 자식은 반드시 단일 React 요소여야 합니다.',
+    },
+    {
+      name: 'disabled',
+      type: 'boolean',
+      default: 'false',
+      description: 'native 모드에서는 disabled 속성을, asChild 모드에서는 aria-disabled 와 tabIndex=-1 을 적용하고 onClick 을 차단합니다.',
+    },
+    {
+      name: 'type',
+      type: "'button' | 'submit' | 'reset'",
+      default: "'button'",
+      description: 'form 안에서의 의도치 않은 submit 을 막기 위해 기본값을 button 으로 둡니다.',
+    },
+  ]}
+/>
+
+## 접근성
+
+- 기본 `type="button"` 으로 form 내부의 의도치 않은 submit 을 방지합니다.
+- `disabled` 상태는 native 모드에서는 DOM `disabled` 로, `asChild` 모드에서는 `aria-disabled="true"` + `tabIndex={-1}` 로 표현됩니다.
+- focus 링은 `--pokemon-focus-ring` 토큰을 사용하며, `:focus-visible` 에서만 노출됩니다.
+- `asChild` 로 위임할 때 자식 요소의 기존 `onClick`, `ref`, `tabIndex` 는 손실 없이 머지됩니다.
