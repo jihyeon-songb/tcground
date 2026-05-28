@@ -2,7 +2,7 @@
 
 > 기술 스택·디렉터리 구조·수정 범위·Next.js/UI 가이드.
 > 명명·코딩 스타일·테스트·커밋 룰은 `CONVENTIONS.md`.
-> 마지막 갱신: 2026-05-27 (TCG Button integration)
+> 마지막 갱신: 2026-05-28 (`tcground` app consumes published `@tcground/ui`)
 
 ## 1. 스택
 
@@ -10,7 +10,7 @@
 - 모노레포 workspace: 기존 Next 앱 + `packages/ui` 공통 UI 라이브러리 + `apps/docs` Docusaurus 문서 사이트
 - Tailwind CSS v4 + `prettier-plugin-tailwindcss`
 - shadcn/ui (Radix 기반) + lucide-react + class-variance-authority + tailwind-merge + clsx + cmdk
-- `packages/ui`: `@tcground/ui` 패키지. 기존 앱의 `components/ui/*` shadcn 기반 공통 UI 컴포넌트를 분리한 React 18/19 peer range UI 라이브러리.
+- `packages/ui`: `@tcground/ui` 패키지. 기존 앱의 `components/ui/*` shadcn 기반 공통 UI 컴포넌트를 분리한 React 18/19 peer range UI 라이브러리. npm 공개 배포를 위해 `private: false`, public `publishConfig`, README, package metadata를 갖추며, `@tcground/ui/theme.css`는 빌드 후 `dist/theme.css`를 export한다. 루트 `tcground` 앱은 npm registry에 배포된 `@tcground/ui` semver 버전을 소비하고, `apps/docs`는 문서/개발 검증을 위해 workspace 패키지를 소비한다.
 - `apps/docs`: Docusaurus 3.9.2 classic preset. 최신 Docusaurus next 문서는 Node 24를 요구하므로 현재 Node 22 환경에서는 3.9.2를 고정한다.
 - Supabase JS + Supabase SSR (Auth/서버 클라이언트)
 - Vitest 4 + Testing Library + jsdom
@@ -55,7 +55,7 @@ apps/docs/           # Docusaurus 제출/배포용 문서 사이트
 
 핵심 위치:
 
-- 절대 import 별칭: `@/*` → 프로젝트 루트. `@tcground/ui` → `packages/ui/src`.
+- 절대 import 별칭: `@/*` → 프로젝트 루트. 루트 앱의 `@tcground/ui`는 npm 배포본을 가리키며, `apps/docs` 개발 서버/빌드는 Docusaurus resolve plugin과 workspace dependency로 `packages/ui/src`를 참조한다.
 - 공통 UI 부품: `packages/ui/src/components/ui/*` (`@tcground/ui`). 도메인 컴포넌트는 `components/<domain>/<sub-domain>/*`로 기능 단위로 묶는다.
 - 기존 `components/ui/*`는 `packages/ui/src/components/ui/*`로 이동했다. 앱 도메인 컴포넌트는 필요 시 `@tcground/ui`를 소비한다.
 - TCGround 도메인 컴포넌트: `components/tcg/<auth|layout|search>/*`. 새 도메인이 생기면 같은 레벨에 폴더를 추가한다. 같은 하위 폴더 안에서는 상대 import, 다른 하위 폴더는 `@/components/tcg/<sub>/...` 절대 경로를 사용한다.
@@ -174,7 +174,17 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 카탈로그 범위: `packages/ui/src/components/ui/*` shadcn 기반 공통 UI 컴포넌트 24개와 co-located stories. `components/tcg/*` 도메인 컴포넌트 스토리와 Storybook MCP 도입은 별도 후속 작업이다.
 - 스크립트: `pnpm storybook`은 dev 서버, `pnpm build-storybook`은 정적 빌드를 `storybook-static/`에 생성한다. 결과물 디렉터리는 `.gitignore`로 제외한다.
 
-## 9. 변경 이력
+## 9. UI 패키지 배포
+
+- 배포 대상 패키지: `packages/ui` (`@tcground/ui`).
+- 공개 import 계약: `import { Button } from '@tcground/ui'`, `import '@tcground/ui/theme.css'`.
+- 루트 `tcground` 앱 dependency는 배포본 검증을 위해 `@tcground/ui: ^0.1.0` 같은 npm semver range를 사용한다. `workspace:*`는 UI package 자체 문서/개발 검증이 필요한 `apps/docs`에만 유지한다.
+- `pnpm build:ui`는 TypeScript 산출물과 `dist/theme.css`를 생성한다.
+- `apps/docs`는 `@tcground/ui/theme.css` export가 `dist`를 바라보므로 `prebuild`/`prestart`에서 `@tcground/ui`를 먼저 빌드한다.
+- 배포 전 검증: `pnpm build:ui`, `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm --filter @tcground/ui pack --dry-run`.
+- 실제 npm 배포는 `tcground` npm scope 또는 organization 권한을 확인한 뒤 `packages/ui`에서 `npm publish --access public`로 실행한다.
+
+## 10. 변경 이력
 
 - 2026-05-06: 초기 ARCHITECTURE 정리.
 - 2026-05-08: Stitch 기반 전역 CSS 토큰과 `tcg-*` component utility 사용 기준 추가.
@@ -198,3 +208,5 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 2026-05-26: Headless UI 과제용 `packages/ui`와 Docusaurus `apps/docs`를 workspace에 추가. Storybook은 기존 shadcn 카탈로그와 새 headless 컴포넌트 검증을 함께 수집한다.
 - 2026-05-27: UI 라이브러리 방향을 기존 앱 `components/ui/*`의 패키지화로 전환. `components/ui`를 제거하고 `packages/ui`를 `@tcground/ui`로 재정의했으며, Storybook은 `packages/ui` stories만 수집한다.
 - 2026-05-27: 앱 action button의 기준을 `@tcground/ui` Button으로 통일하고, TCG primary CTA 토큰과 반복 size(`search`, `auth`, `cta`, `tab`, `pill`) 사용 규칙을 추가.
+- 2026-05-28: `@tcground/ui` npm 공개 배포 준비 기준 추가. package metadata, public publish 설정, `dist/theme.css` export, README, pack dry-run 검증을 배포 전 필수 항목으로 둔다.
+- 2026-05-28: 루트 `tcground` 앱 dependency를 npm 배포본 `@tcground/ui@0.1.0` 소비 기준으로 전환하고, `apps/docs`만 workspace package를 유지하는 기준 추가.

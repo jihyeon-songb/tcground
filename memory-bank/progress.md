@@ -1,7 +1,7 @@
 # PROGRESS
 
 > 작업 진행 상황과 의사결정 로그.
-> 마지막 갱신: 2026-05-28 (Dropdown Menu preview interaction fix)
+> 마지막 갱신: 2026-05-28 (`tcground` app consumes published `@tcground/ui`)
 
 ## 현재 작업
 
@@ -9,6 +9,8 @@
 
 ## 완료 로그
 
+- 2026-05-28: 루트 `tcground` 앱이 npm registry에 배포된 `@tcground/ui@0.1.0`를 실제 소비하도록 전환했다. 루트 `package.json`의 dependency를 `workspace:*`에서 `^0.1.0`으로 바꾸고 `pnpm install`로 `pnpm-lock.yaml`을 registry tarball 기준으로 갱신했다. `apps/docs`는 UI 패키지 문서/개발 검증용이므로 `workspace:*`를 유지한다. `node_modules/@tcground/ui`가 `.pnpm/@tcground+ui@0.1.0...`를 가리키는 것을 확인했고, `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`(63/63), `pnpm build`를 통과했다.
+- 2026-05-28: `@tcground/ui` npm 공개 배포 준비를 완료했다. `packages/ui/package.json`을 `private: false`, public `publishConfig`, GitHub repository/bugs/homepage metadata, MIT license, `dist/theme.css` export 기준으로 정리했고, `prepack`에서 build가 실행되도록 했다. build는 stale `dist`와 `.tsbuildinfo`를 먼저 지운 뒤 TypeScript 산출물과 `dist/theme.css`를 생성한다. `packages/ui/README.md`에는 설치, `@tcground/ui/theme.css` import, 기본 Button 사용법, local 검증, publish 절차를 추가했다. `apps/docs`는 `@tcground/ui/theme.css`가 `dist`를 바라보므로 `prebuild`/`prestart`에서 UI 패키지를 먼저 빌드하게 했다. `pnpm build:ui`, `pnpm --filter @tcground/ui pack --dry-run`, `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`(63/63), `pnpm build:docs`를 통과했다. `pack --dry-run` tarball에는 현재 `dist/components/ui/*`, `dist/index.*`, `dist/utils.*`, `dist/theme.css`, `package.json`, `README.md`만 포함되는 것을 확인했다.
 - 2026-05-28: Dropdown Menu 문서 preview가 클릭해도 메뉴가 보이지 않는 문제를 수정했다. `DropdownMenuTrigger asChild`가 `Button`을 trigger로 사용할 때 Radix Popper가 trigger 위치를 측정하려면 Button이 ref를 DOM까지 전달해야 하는데, 기존 Button은 ref forwarding이 없어 menu content가 `translate(0, -200%)` 측정용 위치에 머물렀다. `Button`을 `React.forwardRef` 기반으로 바꿔 Radix `asChild` 조합을 안정화했고, Dropdown Menu 첫 preview는 강제 `defaultOpen` 대신 실제 클릭으로 열리는 예시로 정리했다. `http://localhost:3001/components/dropdown-menu`에서 첫 trigger 클릭 후 content wrapper가 trigger 아래 `translate(594.5px, 500.5px)` 위치로 배치되고 `aria-expanded="true"`가 되는 것을 확인했다. `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`(63/63), `pnpm build:ui`, `pnpm build:docs`, `pnpm build-storybook`을 통과했다.
 - 2026-05-28: Button 이후 문서 컴포넌트의 Docusaurus preview fallback을 정리했다. `packages/ui/src/theme.css`에 현재 `data-slot` 마크업 기준 Dialog, Dropdown Menu, Tabs, Switch fallback 스타일을 추가해 Tailwind 생성 없이도 문서 preview에서 기본 스타일이 보이도록 했다. Dialog 문서는 `DialogContent`가 overlay와 close button을 포함하는 현재 구현 기준으로 정리했고, Dropdown Menu/Tabs 문서는 예전 namespace 예시(`*.Root`, `Tabs.Panel`)를 실제 named export API(`DropdownMenuTrigger`, `TabsContent` 등)로 교체했다. Switch 문서에는 styled UI library 기준 설명을 추가했다. `pnpm build:docs`, `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm build:ui`, `pnpm build-storybook`을 통과했고, `http://localhost:3001` 문서 HTML에서 Dialog/Dropdown Menu/Tabs/Switch의 새 예시와 설명이 반영된 것을 확인했다.
 - 2026-05-27: Docusaurus API Reference 표가 본문 폭을 넘어 오른쪽 TOC 영역까지 침범하는 문제를 수정했다. `PropsTable`에 column group을 추가하고, docs CSS에서 표를 `table-layout: fixed`와 본문 폭 기준으로 고정했다. 긴 union type code는 `overflow-wrap: anywhere`로 줄바꿈되게 하고, 모바일에서는 표 컨테이너 내부 가로 스크롤로 처리한다. `pnpm build:docs`, `pnpm lint`, `pnpm exec tsc --noEmit`을 통과했다.
@@ -57,6 +59,9 @@
 
 ## 의사결정 로그
 
+- 2026-05-28: npm 배포 준비에서는 기존 패키지 이름 `@tcground/ui`를 유지한다. 이유는 앱, Docusaurus, Storybook이 이미 같은 import 계약을 사용하고 있고, 이번 작업의 목표가 구조 변경이 아니라 배포 가능 상태 정리이기 때문이다. 실제 `npm publish`는 `tcground` npm scope 또는 organization 권한이 필요하므로 코드에서 자동 실행하지 않고 수동 단계로 남긴다.
+- 2026-05-28: `@tcground/ui/theme.css`는 `src/theme.css`가 아니라 build 산출물인 `dist/theme.css`를 export한다. 이유는 npm tarball의 공개 계약을 `dist` 중심으로 단순화하고, 소비자가 package source 경로에 의존하지 않게 하기 위해서다. 이 변경으로 docs는 UI package build 결과가 필요하므로 `apps/docs`의 `prebuild`/`prestart`에서 `@tcground/ui`를 먼저 빌드한다.
+- 2026-05-28: 루트 `tcground` 앱은 배포본 사용 검증을 위해 `@tcground/ui`를 npm semver range로 소비하고, `apps/docs`는 workspace dependency를 유지한다. 이유는 제품 앱에서 실제 외부 설치 계약을 검증하면서도 문서 사이트는 로컬 UI 패키지의 최신 개발 상태를 즉시 반영해야 하기 때문이다.
 - 2026-05-27: Button의 "테마별 color"는 별도 `tone` prop이나 TCG 종목별 scope를 추가하지 않고, 기존 TCG semantic token과 light/dark token contract로 해결한다. 이유는 앱이 이미 `app/globals.css`에서 `--primary`, `--ring`, `--tcg-red`, `--tcg-red-dark`를 관리하고 있어 `@tcground/ui` Button이 같은 계약을 읽게 만드는 것이 앱 소비 전환과 문서화 모두에서 가장 작은 변경이기 때문이다.
 - 2026-05-27: UI 라이브러리 과제의 방향을 “새로운 headless primitive를 별도 구현”에서 “기존 TCGround 앱의 `components/ui/*` 공통 UI 컴포넌트를 패키지화”로 변경한다. 이유는 사용자가 원하는 산출물이 기존 프로젝트 화면을 만들던 내부 UI 부품의 재사용 가능한 라이브러리화이기 때문이다. 따라서 `packages/ui`는 `@tcground/ui` 성격의 스타일드 UI 패키지로 재정의하고, 기존 `components/tcg/*` 도메인 컴포넌트는 앱 전용으로 유지한다. Storybook은 앱 도메인 컴포넌트가 아니라 `packages/ui` 라이브러리 컴포넌트의 상태 확인 도구로 좁힌다.
 - 2026-05-26: 멘토 과제는 기존 TCGround 앱을 폐기하지 않고 모노레포 안의 별도 산출물로 진행한다. 이유는 현재 PRD와 구현이 TCG 가격 추적 서비스로 이미 축적돼 있고, Headless UI 과제는 `packages/ui`와 `apps/docs`로 분리할 때 기존 앱과 충돌 없이 npm 패키지/문서 사이트 형태를 보여줄 수 있기 때문이다.

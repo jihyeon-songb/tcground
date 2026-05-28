@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-05-28 (Dropdown Menu preview interaction fix)
+> 마지막 갱신: 2026-05-28 (`tcground` app consumes published `@tcground/ui`)
 
 ## 현재 기준 PRD
 
@@ -319,6 +319,25 @@
 - [x] `http://localhost:3001/components/dropdown-menu`에서 첫 trigger 클릭 시 menu content가 trigger 아래에 배치되는지 확인.
 - [x] `pnpm build:docs`, `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build:ui`, `pnpm build-storybook` 검증.
 
+### 6.6 `@tcground/ui` npm 공개 배포 준비
+
+- 영향 파일: `packages/ui/package.json`, `packages/ui/README.md`, `memory-bank/prd/headless-ui.md`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: 기존 컴포넌트 API와 앱 소비 경로는 유지하고, `@tcground/ui`를 npm에 공개 배포할 수 있도록 package metadata, publish 설정, 배포 파일 목록, theme CSS export, README 사용법을 정리한다. 실제 `npm publish`는 npm organization 권한과 로그인 상태가 필요한 수동 단계로 남긴다.
+- [x] `packages/ui/package.json`에서 npm 공개 배포용 metadata, `publishConfig`, `files`, `exports`, `prepack` 설정 정리.
+- [x] build 시작 시 stale `dist`를 정리하고, build 결과에 `theme.css`가 포함되도록 CSS 복사 단계를 추가한 뒤 `@tcground/ui/theme.css` export를 배포 산출물 기준으로 전환.
+- [x] `packages/ui/README.md`에 설치, 스타일 import, 기본 사용법, peer dependency, 배포 전 검증 명령을 문서화.
+- [x] `pnpm build:ui`, `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm --filter @tcground/ui pack --dry-run` 검증.
+
+### 6.7 TCGround 앱의 npm 배포본 소비 전환
+
+- 영향 파일: `package.json`, `pnpm-lock.yaml`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: npm registry에 공개된 `@tcground/ui@0.1.0`를 `tcground` 루트 앱에서 실제 설치 대상으로 쓰도록 dependency protocol만 `workspace:*`에서 semver range로 전환한다. `apps/docs`는 로컬 UI 패키지 문서/검증 사이트이므로 `workspace:*`를 유지한다.
+- [x] npm registry에서 `@tcground/ui` 최신 버전 확인.
+- [x] 루트 앱 dependency를 `@tcground/ui: ^0.1.0`으로 변경.
+- [x] `pnpm install`로 lockfile을 npm 배포본 기준으로 갱신.
+- [x] `node_modules/@tcground/ui`가 workspace symlink가 아니라 `.pnpm/@tcground+ui@0.1.0...` registry 설치본을 가리키는지 확인.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
+
 ## 다음 작업
 
-`@tcground/ui` Button의 앱 소비 전환, 기본 스타일 polish, Docusaurus Button/Dialog/Dropdown Menu/Tabs/Switch preview fallback fix, Dropdown Menu interaction fix, API Reference table layout fix는 완료했다. 다음 작업은 Docusaurus 문서의 나머지 서술 polish 또는 제출용 README/배포 안내 정리다. 기존 TCGround 가격 추적 작업의 다음 단계는 eBay Buy API/Marketplace Insights production access와 API License Agreement 준수 범위를 확인한 뒤 adapter 계약을 확정하는 것이다.
+`@tcground/ui` Button의 앱 소비 전환, 기본 스타일 polish, Docusaurus Button/Dialog/Dropdown Menu/Tabs/Switch preview fallback fix, Dropdown Menu interaction fix, API Reference table layout fix, npm 공개 배포 준비, 루트 앱의 npm 배포본 소비 전환은 완료했다. 기존 TCGround 가격 추적 작업의 다음 단계는 eBay Buy API/Marketplace Insights production access와 API License Agreement 준수 범위를 확인한 뒤 adapter 계약을 확정하는 것이다.
