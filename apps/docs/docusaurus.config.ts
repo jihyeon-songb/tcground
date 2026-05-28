@@ -2,12 +2,12 @@ import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'Pokemon Headless UI',
-  tagline: 'Accessibility-first React primitives with Pokemon theme tokens',
+  title: 'TCGround UI',
+  tagline: 'Reusable React UI components extracted from TCGround',
   url: 'https://example.com',
   baseUrl: '/',
   organizationName: 'tcground',
-  projectName: 'pokemon-headless-ui',
+  projectName: 'tcground-ui',
   onBrokenLinks: 'throw',
   markdown: {
     hooks: {
@@ -18,7 +18,7 @@ const config: Config = {
     defaultLocale: 'ko',
     locales: ['ko'],
   },
-  plugins: ['./plugins/headless-ui-resolve.ts'],
+  plugins: ['./plugins/ui-library-resolve.ts'],
   presets: [
     [
       'classic',
@@ -36,7 +36,7 @@ const config: Config = {
   ],
   themeConfig: {
     navbar: {
-      title: 'Pokemon Headless UI',
+      title: 'TCGround UI',
       items: [
         { to: '/', label: '소개', position: 'left' },
         { to: '/components/button', label: '컴포넌트', position: 'left' },
@@ -54,7 +54,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Pokemon Headless UI.`,
+      copyright: `Copyright © ${new Date().getFullYear()} TCGround UI.`,
     },
     prism: {
       additionalLanguages: ['tsx', 'bash'],

@@ -1,5 +1,5 @@
-import {Button} from '@tcground/headless-ui';
+import { Button } from '@tcground/ui';
 
 export default function DefaultExample() {
-  return <Button>Button</Button>;
+  return <Button>Save changes</Button>;
 }

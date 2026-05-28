@@ -8,12 +8,14 @@ title: 테마 커스터마이징
 
 ```css
 :root {
-  --pokemon-primary: #1f8f4d;
-  --pokemon-primary-foreground: #ffffff;
-  --pokemon-secondary: #b7e45a;
-  --pokemon-secondary-foreground: #17321f;
-  --pokemon-focus-ring: #f2c94c;
-  --pokemon-radius: 0.5rem;
+  --tcg-red: #bb001a;
+  --tcg-red-dark: #930012;
+  --primary: var(--tcg-red);
+  --primary-foreground: #ffffff;
+  --secondary: #e2e3e0;
+  --secondary-foreground: #1a1c1b;
+  --ring: var(--tcg-red);
+  --radius: 1rem;
 }
 ```
 
@@ -22,12 +24,14 @@ title: 테마 커스터마이징
 ```tsx
 <div
   style={{
-    '--pokemon-primary': '#2f6fff',
-    '--pokemon-secondary': '#ffd84d',
+    '--tcg-red': '#0079b6',
+    '--tcg-red-dark': '#005f90',
+    '--primary': 'var(--tcg-red)',
+    '--secondary': '#dcfce7',
   }}
 >
-  <Button>Water theme</Button>
-  <Button variant="secondary">Electric theme</Button>
+  <Button>Blue primary</Button>
+  <Button variant="secondary">Green secondary</Button>
 </div>
 ```
 

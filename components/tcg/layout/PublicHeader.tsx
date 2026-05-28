@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { Button } from '@tcground/ui';
 import { getAuthEntryHref } from '@/lib/auth/redirect';
 import { createClient } from '@/lib/supabase/server';
 import { HomeSearchForm } from '@/components/tcg/search/HomeSearchForm';
@@ -77,12 +78,12 @@ export async function PublicHeader({ currentPath, search = false }: PublicHeader
       <div className='flex items-center gap-4'>
         {isAuthenticated ? (
           <form action={logout}>
-            <button
+            <Button
               type='submit'
-              className='rounded-lg bg-[#bb001a] px-6 py-2 text-sm leading-none font-semibold whitespace-nowrap text-white shadow-sm transition-colors hover:bg-[#930012] focus-visible:ring-2 focus-visible:ring-[#bb001a] focus-visible:ring-offset-2 focus-visible:outline-none'
+              className='px-6'
             >
               로그아웃
-            </button>
+            </Button>
           </form>
         ) : (
           <>
@@ -92,12 +93,9 @@ export async function PublicHeader({ currentPath, search = false }: PublicHeader
             >
               로그인
             </Link>
-            <Link
-              className='rounded-lg bg-[#bb001a] px-6 py-2 text-sm leading-none font-semibold whitespace-nowrap text-white shadow-sm transition-colors hover:bg-[#930012]'
-              href={getAuthEntryHref('/signup', currentPath)}
-            >
-              가입하기
-            </Link>
+            <Button asChild className='px-6'>
+              <Link href={getAuthEntryHref('/signup', currentPath)}>가입하기</Link>
+            </Button>
           </>
         )}
       </div>

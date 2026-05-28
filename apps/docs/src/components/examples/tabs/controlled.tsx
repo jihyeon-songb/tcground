@@ -1,24 +1,24 @@
-import {Tabs} from '@tcground/headless-ui';
-import {useState} from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tcground/ui';
+import { useState } from 'react';
 
 export default function ControlledExample() {
   const [value, setValue] = useState('overview');
 
   return (
-    <div style={{display: 'grid', gap: '0.5rem', minWidth: '20rem'}}>
-      <span style={{color: 'var(--pokemon-disabled-foreground)', fontSize: '0.875rem'}}>
+    <div style={{ display: 'grid', gap: '0.5rem', minWidth: '20rem' }}>
+      <span style={{ color: 'var(--muted-foreground)', fontSize: '0.875rem' }}>
         현재 탭: <code>{value}</code>
       </span>
-      <Tabs.Root onValueChange={setValue} value={value} defaultValue="overview">
-        <Tabs.List aria-label="섹션">
-          <Tabs.Trigger value="overview">개요</Tabs.Trigger>
-          <Tabs.Trigger value="details">상세</Tabs.Trigger>
-          <Tabs.Trigger value="history">이력</Tabs.Trigger>
-        </Tabs.List>
-        <Tabs.Panel value="overview">overview 패널</Tabs.Panel>
-        <Tabs.Panel value="details">details 패널</Tabs.Panel>
-        <Tabs.Panel value="history">history 패널</Tabs.Panel>
-      </Tabs.Root>
+      <Tabs onValueChange={setValue} value={value} defaultValue='overview'>
+        <TabsList aria-label='섹션'>
+          <TabsTrigger value='overview'>개요</TabsTrigger>
+          <TabsTrigger value='details'>상세</TabsTrigger>
+          <TabsTrigger value='history'>이력</TabsTrigger>
+        </TabsList>
+        <TabsContent value='overview'>overview 패널</TabsContent>
+        <TabsContent value='details'>details 패널</TabsContent>
+        <TabsContent value='history'>history 패널</TabsContent>
+      </Tabs>
     </div>
   );
 }

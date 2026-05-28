@@ -15,6 +15,12 @@ export default function PropsTable({rows}: PropsTableProps) {
   return (
     <div className="props-table">
       <table>
+        <colgroup>
+          <col className="props-table__prop-column" />
+          <col className="props-table__type-column" />
+          <col className="props-table__default-column" />
+          <col className="props-table__description-column" />
+        </colgroup>
         <thead>
           <tr>
             <th>Prop</th>

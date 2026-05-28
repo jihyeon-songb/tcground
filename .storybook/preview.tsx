@@ -1,6 +1,6 @@
 import type { Preview } from '@storybook/nextjs-vite';
 import * as React from 'react';
-import { TooltipProvider } from '../components/ui/tooltip';
+import { TooltipProvider } from '@tcground/ui';
 import '../app/globals.css';
 
 const preview: Preview = {

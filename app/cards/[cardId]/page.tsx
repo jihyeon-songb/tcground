@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Button } from '@tcground/ui';
 import { notFound } from 'next/navigation';
 import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
 import { getCardDetailBySlug, type CatalogCardDetail } from '@/lib/tcg-catalog';
@@ -150,24 +151,26 @@ export function CardDetailContent({ card }: { card: CatalogCardDetail }) {
           </dl>
 
           <div className='mt-2 flex flex-wrap gap-4'>
-            <button
+            <Button
               type='button'
-              className='flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[#bb001a] px-8 py-4 text-lg leading-none font-bold whitespace-nowrap text-white shadow-sm transition-transform duration-200 hover:scale-[1.02] hover:bg-[#930012] focus-visible:ring-2 focus-visible:ring-[#bb001a] focus-visible:ring-offset-2 focus-visible:outline-none'
+              size='cta'
+              className='hover:scale-[1.02]'
             >
               <span className='material-symbols-outlined text-[20px] leading-none' aria-hidden>
                 {/*add_circle*/}
               </span>
               관심 카드 추가
-            </button>
-            <button
+            </Button>
+            <Button
               type='button'
-              className='flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-[#e6e8ea] bg-white px-8 py-4 text-lg leading-none font-bold whitespace-nowrap text-[#191c1e] transition-colors duration-200 hover:bg-[#f2f4f6] focus-visible:ring-2 focus-visible:ring-[#bb001a] focus-visible:ring-offset-2 focus-visible:outline-none'
+              variant='outline'
+              size='cta'
             >
               <span className='material-symbols-outlined text-[20px] leading-none' aria-hidden>
                 {/*notifications*/}
               </span>
               가격 알림 설정
-            </button>
+            </Button>
           </div>
 
           <section
@@ -189,19 +192,21 @@ export function CardDetailContent({ card }: { card: CatalogCardDetail }) {
                 {CHART_PERIODS.map((period) => {
                   const isActive = period.value === ACTIVE_CHART_PERIOD;
                   return (
-                    <button
+                    <Button
                       key={period.value}
                       type='button'
+                      variant={isActive ? 'outline' : 'ghost'}
+                      size='tab'
                       role='tab'
                       aria-selected={isActive}
-                      className={`rounded-full px-3 py-1.5 text-sm leading-none font-semibold transition-colors ${
+                      className={
                         isActive
-                          ? 'bg-white text-[#191c1e] shadow-sm'
-                          : 'text-[#535f73] hover:text-[#191c1e]'
-                      }`}
+                          ? 'bg-white text-[#191c1e]'
+                          : 'text-[#535f73] hover:bg-transparent hover:text-[#191c1e]'
+                      }
                     >
                       {period.label}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>

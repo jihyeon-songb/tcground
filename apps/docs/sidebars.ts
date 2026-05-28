@@ -15,7 +15,7 @@ const sidebars: SidebarsConfig = {
         'components/dialog',
         'components/dropdown-menu',
         'components/tabs',
-        'components/toggle',
+        'components/switch',
       ],
     },
   ],

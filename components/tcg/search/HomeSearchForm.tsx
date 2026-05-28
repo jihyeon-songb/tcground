@@ -1,6 +1,8 @@
 'use client';
 
 import { FormEvent, useState } from 'react';
+import { Button } from '@tcground/ui';
+import { XIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface HomeSearchFormProps {
@@ -61,24 +63,28 @@ export function HomeSearchForm({
         onChange={(event) => setQuery(event.target.value)}
       />
       {showClearButton && trimmedQuery.length > 0 && (
-        <button
+        <Button
           type='button'
+          variant='ghost'
+          size='icon-sm'
           aria-label='검색어 지우기'
           onClick={() => setQuery('')}
-          className='absolute top-1/2 right-4 -translate-y-1/2 text-[#535f73] transition-colors hover:text-[#bb001a]'
+          className='absolute top-1/2 right-3 -translate-y-1/2 rounded-full text-[#535f73] hover:bg-transparent hover:text-[#bb001a]'
         >
-        </button>
+          <XIcon aria-hidden='true' className='h-4 w-4' />
+        </Button>
       )}
-      <button
+      <Button
         type='submit'
+        size='search'
         className={
           showSubmitButton
-            ? 'absolute top-1/2 right-1.5 -translate-y-1/2 rounded-full bg-[#bb001a] px-5 py-3 text-sm leading-none font-semibold whitespace-nowrap text-white shadow-sm transition-colors hover:bg-[#930012] focus-visible:ring-2 focus-visible:ring-[#bb001a] focus-visible:ring-offset-2 focus-visible:outline-none sm:right-2 sm:px-8'
+            ? 'absolute top-1/2 right-1.5 -translate-y-1/2 sm:right-2'
             : 'sr-only'
         }
       >
         검색
-      </button>
+      </Button>
     </form>
   );
 }

@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-05-26 (Headless UI workspace)
+> 마지막 갱신: 2026-05-28 (Dropdown Menu preview interaction fix)
 
 ## 현재 기준 PRD
 
@@ -258,23 +258,67 @@
 - [x] `pnpm test --run`
 - [x] `pnpm build`
 
-### 6. Headless UI 라이브러리 + Docusaurus 문서화
+### 6. TCGround UI 라이브러리 + Docusaurus 문서화
 
-- 영향 파일: `packages/ui/**`, `apps/docs/**`, `.storybook/main.ts`, `pnpm-workspace.yaml`, `package.json`, `pnpm-lock.yaml`, `memory-bank/prd/headless-ui.md`, `memory-bank/architecture.md`, `memory-bank/progress.md`.
-- 최소 변경 범위: 기존 TCGround 앱은 유지하고, 과제 산출물은 workspace 내부의 React headless UI 패키지와 Docusaurus 문서 사이트로 분리한다. Radix/shadcn 코드는 참고 대상으로만 두고 런타임 래퍼로 사용하지 않는다.
-- [x] `memory-bank/prd/headless-ui.md` 생성과 제품 전체 PRD의 별도 과제 방향 기록.
-- [x] `pnpm-workspace.yaml`에 `apps/*`, `packages/*` workspace 추가.
-- [x] `packages/ui`에 Theme tokens, Button, Dialog, Dropdown Menu, Tabs, Toggle 공개 API 구현.
-- [x] Button `asChild`, disabled, variant/size와 Dialog focus trap/Escape/focus restore 구현.
-- [x] Dropdown Menu, Tabs, Toggle의 주요 ARIA 속성과 키보드 조작 구현.
-- [x] `packages/ui/src/**/*.test.tsx`에 접근성/상태 동작 테스트 추가.
-- [x] Storybook에 Headless UI 컴포넌트 스토리 추가.
-- [x] `apps/docs` Docusaurus 3.9.2 문서 사이트 추가.
-- [x] 소개, 설치, 테마, 접근성, 컴포넌트 사용법, Radix 분석, 라이브러리 비교, 캐시 전략 문서 작성.
+- 영향 파일: `packages/ui/**`, `components/ui/**`, `apps/docs/**`, `.storybook/**`, `pnpm-workspace.yaml`, `package.json`, `pnpm-lock.yaml`, `tsconfig.json`, `memory-bank/prd/headless-ui.md`, `memory-bank/architecture.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: 기존 TCGround 앱은 유지하고, `components/ui/*` shadcn 기반 공통 UI 컴포넌트만 `packages/ui` 패키지로 분리한다. `components/tcg/*`, `app/*`, `lib/tcg-*`는 앱 도메인/라우트 코드로 유지한다. 기존 headless primitive 직접 구현은 이번 방향에서 제외하고, Storybook은 `packages/ui` 라이브러리 컴포넌트 확인 도구로 좁힌다.
+- [x] 기존 Headless UI 과제 1차 산출물 생성. (방향 전환으로 재작업)
+- [x] 패키지 이름과 import 계약을 `@tcground/ui`로 정리.
+- [x] `components/ui/*` 컴포넌트와 stories를 `packages/ui`로 이동하고 내부 import를 패키지 경계에 맞게 수정한 뒤, 기존 `components/ui` 중복 디렉터리 제거.
+- [x] `packages/ui`가 필요한 UI 런타임 의존성(`radix-ui`, `cmdk`, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`)을 직접 선언.
+- [x] 기존 앱이 필요한 공통 UI를 `@tcground/ui`에서 import하도록 전환.
+- [x] Storybook stories 수집 범위를 `packages/ui` 중심으로 정리.
+- [x] Docusaurus 문서를 새 패키지 이름과 styled UI 라이브러리 방향에 맞게 갱신.
 - [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build:ui`, `pnpm build-storybook`, `pnpm build:docs` 검증.
-- [ ] 고급 Dropdown typeahead/nested menu와 Tabs activation mode 검토. (후속)
-- [ ] npm publish용 package metadata, README, changeset 또는 release workflow 검토. (후속)
+
+### 6.1 TCG 앱 Button 소비 전환
+
+- 영향 파일: `packages/ui/src/components/ui/button.tsx`, `packages/ui/src/components/ui/button.stories.tsx`, `components/tcg/search/HomeSearchForm.tsx`, `components/tcg/layout/PublicHeader.tsx`, `components/tcg/auth/LoginForm.tsx`, `components/tcg/auth/SignupForm.tsx`, `app/login/page.tsx`, `app/cards/[cardId]/page.tsx`, `app/globals.css`, `apps/docs/docs/components/button.mdx`, `apps/docs/docs/theming.md`, `packages/ui/src/theme.css`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: `@tcground/ui` Button의 기존 variant API는 유지하고, TCG CTA 색상/크기 토큰과 앱 반복 size를 추가한다. 앱의 native action button은 `Button`으로 전환하되 검색 submit, 인증 submit, Link 라우팅, 차트 tab ARIA 동작은 유지한다.
+- [x] Button default/outline/secondary/ghost/destructive/link 스타일을 TCG 토큰 기반으로 재정의.
+- [x] Button size에 `search`, `auth`, `cta`, `tab`, `pill` 추가.
+- [x] native button 기본 `type='button'` 동작과 explicit submit 동작 테스트 추가.
+- [x] 검색/헤더/인증/상품 상세 action button을 `@tcground/ui` Button으로 전환.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build:ui`, `pnpm build-storybook`, `pnpm build:docs`, `pnpm build` 검증.
+
+### 6.2 Button 기본 스타일 polish
+
+- 영향 파일: `packages/ui/src/components/ui/button.tsx`, `packages/ui/src/components/ui/button.stories.tsx`, `apps/docs/docs/components/button.mdx`, `apps/docs/src/components/examples/button/default.tsx`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: Button API와 앱 특수 size는 유지하고, 설치 직후 `<Button>Save changes</Button>`만으로도 완성도 있게 보이는 clean solid 기본 스타일로 정리한다.
+- [x] `default`, `sm`, `lg` size를 외부 소비자가 쓰기 좋은 compact baseline으로 조정.
+- [x] 기본 variant와 `outline`/`secondary`/`ghost`/`destructive`/`link` 상태 스타일을 단순한 solid/flat 톤으로 정리.
+- [x] Storybook 기본 args와 Docusaurus Basic example을 `Save changes` 예시로 갱신.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build:ui`, `pnpm build-storybook`, `pnpm build:docs`, `pnpm build` 검증.
+
+### 6.3 Docusaurus Button preview style fix
+
+- 영향 파일: `packages/ui/src/theme.css`, `apps/docs/src/css/custom.css`, `apps/docs/src/components/examples/{dialog,dropdown-menu,switch,tabs}/controlled.tsx`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: Button 문서 예시 MDX는 유지하고, Docusaurus에서 Tailwind 없이도 `@tcground/ui` 컴포넌트가 보이도록 package theme fallback과 docs token 참조만 보정한다.
+- [x] `packages/ui/src/theme.css`에 현재 Button 마크업인 `[data-slot='button']` 대상 variant/size/focus/disabled fallback 추가.
+- [x] Docusaurus dark theme에서도 같은 token contract를 쓰도록 `[data-theme='dark']` token 추가.
+- [x] docs CSS와 controlled 예시의 오래된 `--pokemon-*` 토큰을 현재 `--card`, `--border`, `--radius`, `--muted-foreground` 기준으로 교체.
+- [x] `pnpm build:docs`, `pnpm build:ui`, `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build-storybook` 검증.
+
+### 6.4 Docusaurus API Reference table layout fix
+
+- 영향 파일: `apps/docs/src/components/PropsTable.tsx`, `apps/docs/src/css/custom.css`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: API Reference 표가 본문 영역을 넘어 TOC와 겹치지 않도록 PropsTable 레이아웃과 긴 code wrapping만 조정한다.
+- [x] `PropsTable`에 column group을 추가해 Prop/Type/Default/Description 폭 기준을 명시.
+- [x] docs CSS에서 표를 `table-layout: fixed`와 `max-width: 100%` 컨테이너 기준으로 고정.
+- [x] 긴 union type code는 줄바꿈하고, 모바일 폭에서는 표 컨테이너 내부 가로 스크롤로 처리.
+- [x] `pnpm build:docs`, `pnpm lint`, `pnpm exec tsc --noEmit` 검증.
+
+### 6.5 Docusaurus component preview fallback 정리
+
+- 영향 파일: `packages/ui/src/theme.css`, `packages/ui/src/components/ui/button.tsx`, `apps/docs/docs/components/{dialog,dropdown-menu,tabs,switch}.mdx`, `apps/docs/src/components/examples/dropdown-menu/basic.tsx`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: Button과 같은 방식으로 Docusaurus 문서 미리보기에서 Tailwind 생성 없이도 주요 문서 컴포넌트 기본 스타일이 보이도록 `data-slot` fallback을 보강하고, 문서 예시를 현재 `@tcground/ui` named export API 기준으로 맞춘다.
+- [x] `DialogContent`가 overlay와 close button을 포함하는 현재 구현 기준으로 MDX 예시와 API 설명 정리.
+- [x] Dropdown Menu, Tabs, Switch 문서 예시를 실제 named export API 기준으로 정리.
+- [x] `[data-slot='dialog-*']`, `[data-slot='dropdown-menu-*']`, `[data-slot='tabs-*']`, `[data-slot='switch*']` fallback 스타일 추가.
+- [x] `Button`을 ref-forwarding 컴포넌트로 바꿔 `DropdownMenuTrigger asChild`가 Radix Popper anchor를 측정할 수 있게 수정.
+- [x] `http://localhost:3001/components/dropdown-menu`에서 첫 trigger 클릭 시 menu content가 trigger 아래에 배치되는지 확인.
+- [x] `pnpm build:docs`, `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build:ui`, `pnpm build-storybook` 검증.
 
 ## 다음 작업
 
-Headless UI 과제 1차 산출물로 `packages/ui`와 `apps/docs`를 추가했다. 다음 작업은 고급 Dropdown/Tabs 상호작용(typeahead, nested menu, activation mode)과 npm publish 준비를 검토하는 것이다. 기존 TCGround 가격 추적 작업의 다음 단계는 eBay Buy API/Marketplace Insights production access와 API License Agreement 준수 범위를 확인한 뒤 adapter 계약을 확정하는 것이다.
+`@tcground/ui` Button의 앱 소비 전환, 기본 스타일 polish, Docusaurus Button/Dialog/Dropdown Menu/Tabs/Switch preview fallback fix, Dropdown Menu interaction fix, API Reference table layout fix는 완료했다. 다음 작업은 Docusaurus 문서의 나머지 서술 polish 또는 제출용 README/배포 안내 정리다. 기존 TCGround 가격 추적 작업의 다음 단계는 eBay Buy API/Marketplace Insights production access와 API License Agreement 준수 범위를 확인한 뒤 adapter 계약을 확정하는 것이다.

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Button } from '@tcground/ui';
 import { CheckCircle2, LockKeyhole, Mail, UserPlus } from 'lucide-react';
 import { useActionState } from 'react';
 import { signup } from '@/app/signup/_actions/signup';
@@ -142,14 +143,15 @@ export function SignupForm({ nextPath }: SignupFormProps) {
         ) : null}
       </div>
 
-      <button
+      <Button
         type='submit'
         disabled={isPending}
-        className='mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#bb001a] text-base font-semibold text-white shadow-sm transition-colors hover:bg-[#930012] focus-visible:ring-2 focus-visible:ring-[#bb001a] focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-[#a6adb7]'
+        size='auth'
+        className='mt-6'
       >
         <UserPlus aria-hidden='true' className='h-4 w-4' />
         {isPending ? '가입 요청 중...' : '회원가입'}
-      </button>
+      </Button>
     </form>
   );
 }

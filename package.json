@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:docs": "pnpm --filter @tcground/docs build",
-    "build:ui": "pnpm --filter @tcground/headless-ui build",
+    "build:ui": "pnpm --filter @tcground/ui build",
     "start": "next start",
     "test": "vitest",
     "lint": "eslint",
@@ -17,6 +17,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@tcground/ui": "workspace:*",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.0",
     "class-variance-authority": "^0.7.1",

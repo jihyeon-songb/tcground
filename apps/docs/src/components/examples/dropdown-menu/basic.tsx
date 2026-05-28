@@ -1,16 +1,32 @@
-import {DropdownMenu} from '@tcground/headless-ui';
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from '@tcground/ui';
 
 export default function BasicExample() {
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger className="pui-button" data-variant="primary" data-size="md">
-        메뉴 열기
-      </DropdownMenu.Trigger>
-      <DropdownMenu.Content>
-        <DropdownMenu.Item>상세 보기</DropdownMenu.Item>
-        <DropdownMenu.Item>덱에 추가</DropdownMenu.Item>
-        <DropdownMenu.Item>관심 카드에 저장</DropdownMenu.Item>
-      </DropdownMenu.Content>
-    </DropdownMenu.Root>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant='outline'>옵션 열기</Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuLabel>카드 작업</DropdownMenuLabel>
+        <DropdownMenuItem>
+          상세 보기 <DropdownMenuShortcut>Enter</DropdownMenuShortcut>
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          덱에 추가 <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
+        </DropdownMenuItem>
+        <DropdownMenuItem>관심 카드에 저장</DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant='destructive'>관심 목록에서 제거</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

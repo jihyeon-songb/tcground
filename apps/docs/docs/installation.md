@@ -14,8 +14,8 @@ pnpm build:ui
 앱이나 문서에서 CSS 토큰을 먼저 불러옵니다.
 
 ```tsx
-import '@tcground/headless-ui/theme.css';
-import { Button } from '@tcground/headless-ui';
+import '@tcground/ui/theme.css';
+import { Button } from '@tcground/ui';
 
 export function Example() {
   return <Button>시작하기</Button>;

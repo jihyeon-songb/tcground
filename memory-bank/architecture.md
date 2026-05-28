@@ -2,15 +2,15 @@
 
 > 기술 스택·디렉터리 구조·수정 범위·Next.js/UI 가이드.
 > 명명·코딩 스타일·테스트·커밋 룰은 `CONVENTIONS.md`.
-> 마지막 갱신: 2026-05-26 (Headless UI workspace)
+> 마지막 갱신: 2026-05-27 (TCG Button integration)
 
 ## 1. 스택
 
 - Next.js 16 (App Router) · React 19 · TypeScript 5 (strict)
-- 모노레포 workspace: 기존 Next 앱 + `packages/ui` Headless UI 라이브러리 + `apps/docs` Docusaurus 문서 사이트
+- 모노레포 workspace: 기존 Next 앱 + `packages/ui` 공통 UI 라이브러리 + `apps/docs` Docusaurus 문서 사이트
 - Tailwind CSS v4 + `prettier-plugin-tailwindcss`
 - shadcn/ui (Radix 기반) + lucide-react + class-variance-authority + tailwind-merge + clsx + cmdk
-- `packages/ui`: React 18/19 peer range, TypeScript build, CSS 변수 기반 Pokemon theme tokens
+- `packages/ui`: `@tcground/ui` 패키지. 기존 앱의 `components/ui/*` shadcn 기반 공통 UI 컴포넌트를 분리한 React 18/19 peer range UI 라이브러리.
 - `apps/docs`: Docusaurus 3.9.2 classic preset. 최신 Docusaurus next 문서는 Node 24를 요구하므로 현재 Node 22 환경에서는 3.9.2를 고정한다.
 - Supabase JS + Supabase SSR (Auth/서버 클라이언트)
 - Vitest 4 + Testing Library + jsdom
@@ -41,7 +41,6 @@ app/                 # Next.js App Router (페이지·layout·route handler)
   globals.css        # Tailwind 엔트리 + CSS 변수 / 디자인 토큰
 proxy.ts             # Supabase SSR 세션 쿠키 갱신
 components/
-  ui/                # shadcn/ui 생성 컴포넌트 (직접 수정 지양)
   tcg/               # TCGround 도메인 컴포넌트 (기능 도메인별 하위 폴더)
     auth/            # 로그인/회원가입/로그아웃 폼·서버 액션
     layout/          # 공개 페이지 공통 헤더 등 레이아웃 컴포넌트
@@ -49,14 +48,16 @@ components/
 lib/                 # 도메인 정적 데이터·유틸·Supabase 클라이언트
 public/              # 정적 자산
 docs/                # 본 문서들
-packages/ui/         # 접근성 중심 Headless UI 컴포넌트 라이브러리
+packages/ui/         # `@tcground/ui` 공통 UI 컴포넌트 라이브러리
+  src/components/ui/ # 기존 앱에서 분리한 shadcn 기반 공통 UI 컴포넌트와 stories
 apps/docs/           # Docusaurus 제출/배포용 문서 사이트
 ```
 
 핵심 위치:
 
-- 절대 import 별칭: `@/*` → 프로젝트 루트 (예: `@/components/ui/button`).
-- 공통 UI 부품: `components/ui/*` (shadcn). 도메인 컴포넌트는 `components/<domain>/<sub-domain>/*`로 기능 단위로 묶는다.
+- 절대 import 별칭: `@/*` → 프로젝트 루트. `@tcground/ui` → `packages/ui/src`.
+- 공통 UI 부품: `packages/ui/src/components/ui/*` (`@tcground/ui`). 도메인 컴포넌트는 `components/<domain>/<sub-domain>/*`로 기능 단위로 묶는다.
+- 기존 `components/ui/*`는 `packages/ui/src/components/ui/*`로 이동했다. 앱 도메인 컴포넌트는 필요 시 `@tcground/ui`를 소비한다.
 - TCGround 도메인 컴포넌트: `components/tcg/<auth|layout|search>/*`. 새 도메인이 생기면 같은 레벨에 폴더를 추가한다. 같은 하위 폴더 안에서는 상대 import, 다른 하위 폴더는 `@/components/tcg/<sub>/...` 절대 경로를 사용한다.
 - 공개 페이지 공통 헤더: `components/tcg/layout/PublicHeader.tsx`. 서버 컴포넌트에서 Supabase Auth `getClaims()`로 인증 상태를 확인하고, 페이지별 검색창 옵션과 현재 내부 경로(`next`)만 props로 받는다.
 - 로그인 인증 동작: `app/login/_actions/login.ts` 서버 액션, `app/login/_lib/login-utils.ts` route 전용 유틸, `components/tcg/auth/LoginForm.tsx` 클라이언트 폼을 기준으로 한다.
@@ -113,7 +114,8 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 **수정 허용**
 
 - `app/**` — App Router 페이지·레이아웃·route handler
-- `components/**` (단, `components/ui/**` 제외) — 도메인 컴포넌트
+- `components/**` — 도메인 컴포넌트
+- `packages/ui/**` — 공통 UI 라이브러리 컴포넌트, stories, 패키지 export
 - `lib/**`, `hooks/**`, `types/**` — 유틸·훅·타입 (없으면 생성 가능)
 - `public/**` — 정적 자산
 - `docs/**` — 본 문서 (작업 완료 후 갱신)
@@ -121,7 +123,7 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 
 **수정 시 주의 (덮어쓰기 위험)**
 
-- `components/ui/**` — shadcn CLI로 생성된 코드. 직접 수정하면 `npx shadcn add`로 다시 추가할 때 충돌 가능. 토큰·색상 같은 디자인 변경은 `app/globals.css`·CSS 변수에서 우선 시도.
+- `components.json`의 shadcn alias는 `packages/ui/src/components/ui`와 `packages/ui/src/utils`를 가리킨다. shadcn CLI로 공통 UI를 추가할 때는 패키지 경계와 export 갱신 여부를 함께 확인한다.
 
 **수정 금지**
 
@@ -142,6 +144,7 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 
 - Tailwind는 CSS 변수와 `app/globals.css` 토큰을 우선 사용. shadcn 컴포넌트와 일관성 유지.
 - Stitch `TCGround Price Tracker` 디자인 시스템의 Manrope, warm-cream surface, Pinterest Red CTA, flat editorial 카드 규칙을 `app/globals.css`의 전역 CSS 변수와 `tcg-*` component utility로 관리한다.
+- 앱의 action button은 native `<button>`에 직접 스타일을 쓰지 않고 `@tcground/ui`의 `Button`을 사용한다. `Button`의 기본 variant는 TCG primary CTA(`--tcg-red`/`--tcg-red-dark`)이며 반복 패턴은 `search`, `auth`, `cta`, `tab`, `pill` size로 표현한다.
 - 사용자가 특정 Stitch 화면 1:1 구현을 요청한 경우, 해당 Stitch 화면의 실제 HTML 구조·문구·이미지·색상 값을 우선 기준으로 삼고 PRD P0 기능은 그 화면 안에서 가능한 범위로 유지한다.
 - 페이지 레이아웃은 `.tcg-page`, `.tcg-shell`, `.tcg-section`을 기본 골격으로 삼고, 카드/검색/칩/가격 표시 같은 반복 패턴은 `.tcg-card-surface`, `.tcg-search-shell`, `.tcg-chip-*`, `.tcg-price`를 우선 사용한다.
 - 모바일 → 데스크톱 반응형.
@@ -166,9 +169,9 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 ## 8. Storybook
 
 - Framework: `@storybook/nextjs-vite` (Vite 기반 Next.js 프레임워크). Vitest 4와 같은 React 플러그인을 공유한다.
-- 설정: `.storybook/main.ts`에서 `components/**/*.stories.@(ts|tsx|mdx)`와 `packages/ui/src/**/*.stories.@(ts|tsx|mdx)` 패턴으로 스토리를 수집하고, `@storybook/addon-docs`, `@storybook/addon-a11y`를 활성화한다.
-- Preview: `.storybook/preview.tsx`에서 `app/globals.css`(Tailwind v4 + tcg 토큰)를 import하고 모든 스토리를 `TooltipProvider`로 감싼다.
-- 카탈로그 범위: `components/ui/*` shadcn 컴포넌트 24개와 `packages/ui` headless 컴포넌트 스토리를 co-location한다. `components/tcg/*` 도메인 컴포넌트 스토리와 Storybook MCP 도입은 별도 후속 작업이다.
+- 설정: `.storybook/main.ts`에서 `packages/ui/src/**/*.stories.@(ts|tsx|mdx)` 패턴으로 `@tcground/ui` 라이브러리 스토리만 수집하고, `@storybook/addon-docs`, `@storybook/addon-a11y`를 활성화한다.
+- Preview: `.storybook/preview.tsx`에서 `app/globals.css`(Tailwind v4 + tcg 토큰)를 import하고 모든 스토리를 `@tcground/ui`의 `TooltipProvider`로 감싼다.
+- 카탈로그 범위: `packages/ui/src/components/ui/*` shadcn 기반 공통 UI 컴포넌트 24개와 co-located stories. `components/tcg/*` 도메인 컴포넌트 스토리와 Storybook MCP 도입은 별도 후속 작업이다.
 - 스크립트: `pnpm storybook`은 dev 서버, `pnpm build-storybook`은 정적 빌드를 `storybook-static/`에 생성한다. 결과물 디렉터리는 `.gitignore`로 제외한다.
 
 ## 9. 변경 이력
@@ -193,3 +196,5 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 2026-05-22: Storybook 10(`@storybook/nextjs-vite`) UI 카탈로그 도입. `.storybook/` 설정과 `components/ui/*.stories.tsx`(24개) 추가, `pnpm storybook`/`pnpm build-storybook` 스크립트 등록.
 - 2026-05-23: 외부 카드/카테고리 이미지를 직접 `<img>`로 로드하지 않고 `next/image` 최적화 경로로 렌더링하도록 변경. 목록 이미지는 `thumbnail_url`을 우선 사용하고, `next.config.ts`에 `assets.tcgdex.net`, `lh3.googleusercontent.com` remote pattern과 이미지 크기 후보를 추가.
 - 2026-05-26: Headless UI 과제용 `packages/ui`와 Docusaurus `apps/docs`를 workspace에 추가. Storybook은 기존 shadcn 카탈로그와 새 headless 컴포넌트 검증을 함께 수집한다.
+- 2026-05-27: UI 라이브러리 방향을 기존 앱 `components/ui/*`의 패키지화로 전환. `components/ui`를 제거하고 `packages/ui`를 `@tcground/ui`로 재정의했으며, Storybook은 `packages/ui` stories만 수집한다.
+- 2026-05-27: 앱 action button의 기준을 `@tcground/ui` Button으로 통일하고, TCG primary CTA 토큰과 반복 size(`search`, `auth`, `cta`, `tab`, `pill`) 사용 규칙을 추가.

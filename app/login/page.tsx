@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Button } from '@tcground/ui';
 import { redirect } from 'next/navigation';
 import { LoginForm } from '@/components/tcg/auth/LoginForm';
 import { getAuthEntryHref } from '@/lib/auth/redirect';
@@ -62,13 +63,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <span className='h-px flex-1 bg-[#e0e3e5]' aria-hidden='true' />
           </div>
 
-          <button
+          <Button
             type='button'
-            className='inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#e0e3e5] bg-white text-base font-semibold text-[#191c1e] transition-colors hover:bg-[#f2f4f6] focus-visible:ring-2 focus-visible:ring-[#bb001a] focus-visible:ring-offset-2 focus-visible:outline-none'
+            variant='outline'
+            size='auth'
           >
             <GoogleIcon className='h-4 w-4' />
             Google로 계속하기
-          </button>
+          </Button>
         </section>
 
         <p className='mt-6 text-center text-base leading-[1.5] text-[#535f73]'>
