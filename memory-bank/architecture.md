@@ -11,7 +11,7 @@
 - Tailwind CSS v4 + `prettier-plugin-tailwindcss`
 - shadcn/ui (Radix 기반) + lucide-react + class-variance-authority + tailwind-merge + clsx + cmdk
 - `packages/ui`: `@tcground/ui` 패키지. 기존 앱의 `components/ui/*` shadcn 기반 공통 UI 컴포넌트를 분리한 React 18/19 peer range UI 라이브러리. npm 공개 배포를 위해 `private: false`, public `publishConfig`, README, package metadata를 갖추며, `@tcground/ui/theme.css`는 빌드 후 `dist/theme.css`를 export한다. 루트 `tcground` 앱은 npm registry에 배포된 `@tcground/ui` semver 버전을 소비하고, `apps/docs`는 문서/개발 검증을 위해 workspace 패키지를 소비한다.
-- `apps/docs`: Docusaurus 3.9.2 classic preset. 최신 Docusaurus next 문서는 Node 24를 요구하므로 현재 Node 22 환경에서는 3.9.2를 고정한다.
+- `apps/docs`: Docusaurus 3.9.2 classic preset. 최신 Docusaurus next 문서는 Node 24를 요구하므로 현재 Node 22 환경에서는 3.9.2를 고정한다. 컴포넌트 문서는 `apps/docs/docs/components/*.mdx`, preview 예제는 `apps/docs/src/components/examples/<component>/*`에 둔다.
 - Supabase JS + Supabase SSR (Auth/서버 클라이언트)
 - Vitest 4 + Testing Library + jsdom
 - ESLint 9 (`next/core-web-vitals` + `next/typescript`)
@@ -51,6 +51,8 @@ docs/                # 본 문서들
 packages/ui/         # `@tcground/ui` 공통 UI 컴포넌트 라이브러리
   src/components/ui/ # 기존 앱에서 분리한 shadcn 기반 공통 UI 컴포넌트와 stories
 apps/docs/           # Docusaurus 제출/배포용 문서 사이트
+  docs/components/   # `@tcground/ui` 컴포넌트별 MDX 문서
+  src/components/examples/ # 문서 preview용 컴포넌트별 예제
 ```
 
 핵심 위치:
@@ -210,3 +212,4 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 2026-05-27: 앱 action button의 기준을 `@tcground/ui` Button으로 통일하고, TCG primary CTA 토큰과 반복 size(`search`, `auth`, `cta`, `tab`, `pill`) 사용 규칙을 추가.
 - 2026-05-28: `@tcground/ui` npm 공개 배포 준비 기준 추가. package metadata, public publish 설정, `dist/theme.css` export, README, pack dry-run 검증을 배포 전 필수 항목으로 둔다.
 - 2026-05-28: 루트 `tcground` 앱 dependency를 npm 배포본 `@tcground/ui@0.1.0` 소비 기준으로 전환하고, `apps/docs`만 workspace package를 유지하는 기준 추가.
+- 2026-05-28: Docusaurus 컴포넌트 문서와 preview 예제 위치(`apps/docs/docs/components/*.mdx`, `apps/docs/src/components/examples/<component>/*`) 기준 추가.

@@ -1,0 +1,185 @@
+---
+title: Select
+description: 제한된 목록에서 하나의 값을 고르는 select 컴포넌트.
+---
+
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {
+  BasicExample,
+  ControlledExample,
+  SmallExample,
+} from '@site/src/components/examples/select';
+
+# Select
+
+제한된 옵션 목록에서 하나의 값을 고르는 컴포넌트입니다.
+Radix Select primitive 기반이며, trigger, content, group, item, separator를 조합해 사용합니다.
+
+<ComponentPreview
+  code={`<Select>
+  <SelectTrigger>
+    <SelectValue placeholder="카테고리 선택" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="pokemon">포켓몬</SelectItem>
+    <SelectItem value="magic">매직: 더 개더링</SelectItem>
+  </SelectContent>
+</Select>`}
+>
+  <BasicExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@tcground/ui';
+
+export function Example() {
+  return (
+    <Select>
+      <SelectTrigger>
+        <SelectValue placeholder='카테고리 선택' />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value='pokemon'>포켓몬</SelectItem>
+        <SelectItem value='magic'>매직: 더 개더링</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
+```
+
+## 예제
+
+### 기본
+
+<ComponentPreview
+  code={`<Select>
+  <SelectTrigger>
+    <SelectValue placeholder="카테고리 선택" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectGroup>
+      <SelectLabel>TCG</SelectLabel>
+      <SelectItem value="pokemon">포켓몬</SelectItem>
+      <SelectItem value="magic">매직: 더 개더링</SelectItem>
+    </SelectGroup>
+  </SelectContent>
+</Select>`}
+>
+  <BasicExample />
+</ComponentPreview>
+
+### Small trigger
+
+<ComponentPreview
+  code={`<Select>
+  <SelectTrigger size="sm">
+    <SelectValue placeholder="정렬" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="recent">최신순</SelectItem>
+    <SelectItem value="price-asc">가격 낮은순</SelectItem>
+    <SelectItem value="price-desc">가격 높은순</SelectItem>
+  </SelectContent>
+</Select>`}
+>
+  <SmallExample />
+</ComponentPreview>
+
+### Controlled
+
+<ComponentPreview
+  code={`const [value, setValue] = useState('recent');
+
+<Select value={value} onValueChange={setValue}>
+  <SelectTrigger>
+    <SelectValue />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="recent">최신순</SelectItem>
+    <SelectItem value="price-asc">가격 낮은순</SelectItem>
+  </SelectContent>
+</Select>`}
+>
+  <ControlledExample />
+</ComponentPreview>
+
+## API Reference
+
+### Select
+
+<PropsTable
+  rows={[
+    {
+      name: 'defaultValue',
+      type: 'string',
+      description: 'uncontrolled 모드의 초기 선택값.',
+    },
+    {
+      name: 'value',
+      type: 'string',
+      description: 'controlled 선택값. onValueChange와 함께 사용합니다.',
+    },
+    {
+      name: 'onValueChange',
+      type: '(value: string) => void',
+      description: '선택값이 바뀔 때 호출됩니다.',
+    },
+    {
+      name: 'disabled',
+      type: 'boolean',
+      default: 'false',
+      description: 'trigger와 항목 선택을 비활성화합니다.',
+    },
+  ]}
+/>
+
+### SelectTrigger
+
+<PropsTable
+  rows={[
+    {
+      name: 'size',
+      type: "'sm' | 'default'",
+      default: "'default'",
+      description: 'trigger 높이와 radius를 조정합니다.',
+    },
+  ]}
+/>
+
+### SelectItem
+
+<PropsTable
+  rows={[
+    {
+      name: 'value',
+      type: 'string',
+      description: '선택지를 식별하는 값. 같은 Select 안에서 고유해야 합니다.',
+    },
+    {
+      name: 'disabled',
+      type: 'boolean',
+      default: 'false',
+      description: '개별 항목 선택을 비활성화합니다.',
+    },
+  ]}
+/>
+
+## 접근성
+
+- trigger는 현재 선택값과 expanded 상태를 보조 기기에 전달합니다.
+- `ArrowDown` / `ArrowUp`으로 항목을 이동하고, `Enter` 또는 `Space`로 선택합니다.
+- `SelectValue`의 placeholder는 값이 없을 때만 표시됩니다.
+- 옵션이 많으면 `SelectGroup`, `SelectLabel`, `SelectSeparator`로 구획을 나눕니다.

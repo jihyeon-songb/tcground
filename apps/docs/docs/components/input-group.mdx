@@ -1,0 +1,144 @@
+---
+title: Input Group
+description: 입력창과 아이콘, 텍스트, 버튼을 한 control처럼 묶는 컴포넌트.
+---
+
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {
+  PriceExample,
+  SearchExample,
+  SuffixButtonExample,
+} from '@site/src/components/examples/input-group';
+
+# Input Group
+
+입력창 양쪽에 아이콘, 단위 텍스트, action button을 붙여 하나의 form control처럼 보이게 하는 컴포넌트 묶음입니다.
+`InputGroup`은 focus ring과 invalid 상태를 group 단위로 표시하고, 내부 control은 `InputGroupInput` 또는 `InputGroupTextarea`를 사용합니다.
+
+<ComponentPreview
+  code={`<InputGroup>
+  <InputGroupAddon>⌕</InputGroupAddon>
+  <InputGroupInput placeholder="카드 검색" />
+</InputGroup>`}
+>
+  <SearchExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@tcground/ui';
+
+export function Example() {
+  return (
+    <InputGroup>
+      <InputGroupAddon>⌕</InputGroupAddon>
+      <InputGroupInput placeholder='카드 검색' />
+    </InputGroup>
+  );
+}
+```
+
+## 예제
+
+### 검색 입력
+
+<ComponentPreview
+  code={`<InputGroup>
+  <InputGroupAddon>⌕</InputGroupAddon>
+  <InputGroupInput placeholder="카드 검색" />
+</InputGroup>`}
+>
+  <SearchExample />
+</ComponentPreview>
+
+### 끝 버튼
+
+<ComponentPreview
+  code={`<InputGroup>
+  <InputGroupAddon>@</InputGroupAddon>
+  <InputGroupInput placeholder="이메일 주소" />
+  <InputGroupAddon align="inline-end">
+    <InputGroupButton variant="default">등록</InputGroupButton>
+  </InputGroupAddon>
+</InputGroup>`}
+>
+  <SuffixButtonExample />
+</ComponentPreview>
+
+### 단위 텍스트
+
+<ComponentPreview
+  code={`<InputGroup>
+  <InputGroupAddon>
+    <InputGroupText>₩</InputGroupText>
+  </InputGroupAddon>
+  <InputGroupInput inputMode="numeric" placeholder="0" />
+</InputGroup>`}
+>
+  <PriceExample />
+</ComponentPreview>
+
+## API Reference
+
+### InputGroup
+
+`InputGroup`은 native `<div>` props를 받으며 `role="group"`을 적용합니다.
+
+### InputGroupAddon
+
+<PropsTable
+  rows={[
+    {
+      name: 'align',
+      type: "'inline-start' | 'inline-end' | 'block-start' | 'block-end'",
+      default: "'inline-start'",
+      description: 'addon을 입력창의 앞/뒤 또는 위/아래에 배치합니다.',
+    },
+  ]}
+/>
+
+### InputGroupButton
+
+`Button` props를 기반으로 하며, 기본 `type`은 `button`, 기본 `variant`는 `ghost`, 기본 `size`는 `xs`입니다.
+
+<PropsTable
+  rows={[
+    {
+      name: 'size',
+      type: "'xs' | 'sm' | 'icon-xs' | 'icon-sm'",
+      default: "'xs'",
+      description: 'input group 안에서 쓰는 작은 버튼 크기.',
+    },
+    {
+      name: 'variant',
+      type: 'Button variant',
+      default: "'ghost'",
+      description: 'Button의 variant를 그대로 사용합니다.',
+    },
+  ]}
+/>
+
+### InputGroupInput / InputGroupTextarea / InputGroupText
+
+- `InputGroupInput`은 `Input` props를 기반으로 합니다.
+- `InputGroupTextarea`는 `Textarea` props를 기반으로 합니다.
+- `InputGroupText`는 단위, prefix, suffix 같은 보조 텍스트를 렌더합니다.
+
+## 접근성
+
+- group 전체가 하나의 control처럼 보이더라도 실제 입력 이름은 내부 input/textarea에 라벨로 제공합니다.
+- icon만 있는 addon은 장식이면 `aria-hidden`, 의미가 있으면 보조 텍스트나 `aria-label`을 제공합니다.
+- action button은 `InputGroupButton`을 사용하고, form 제출이 필요할 때만 `type="submit"`을 명시합니다.
+- invalid 상태는 내부 control에 `aria-invalid`를 적용해 group border/focus ring과 보조 기기 상태를 함께 맞춥니다.

@@ -1,0 +1,108 @@
+---
+title: Textarea
+description: 여러 줄 텍스트를 입력받는 form control.
+---
+
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {
+  DefaultExample,
+  DisabledExample,
+  WithLabelExample,
+} from '@site/src/components/examples/textarea';
+
+# Textarea
+
+여러 줄 메모나 설명을 입력받는 form control입니다.
+`Textarea`는 native `<textarea>` props를 그대로 받으며, `Input`과 같은 token 기반 border, focus, disabled, invalid 상태를 사용합니다.
+
+<ComponentPreview code={`<Textarea placeholder="보유 카드 상태나 메모를 입력하세요" />`}>
+  <DefaultExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import { Label, Textarea } from '@tcground/ui';
+
+export function Example() {
+  return (
+    <div>
+      <Label htmlFor='card-note'>카드 메모</Label>
+      <Textarea id='card-note' placeholder='상태와 보관 위치를 기록하세요' />
+    </div>
+  );
+}
+```
+
+## 예제
+
+### 기본
+
+<ComponentPreview code={`<Textarea placeholder="보유 카드 상태나 메모를 입력하세요" />`}>
+  <DefaultExample />
+</ComponentPreview>
+
+### Label 연결
+
+<ComponentPreview
+  code={`<Label htmlFor="card-note">카드 메모</Label>
+<Textarea id="card-note" placeholder="매입가, 상태, 보관 위치를 기록하세요" />`}
+>
+  <WithLabelExample />
+</ComponentPreview>
+
+### Disabled
+
+<ComponentPreview code={`<Textarea disabled defaultValue="읽기 전용 메모입니다." />`}>
+  <DisabledExample />
+</ComponentPreview>
+
+## API Reference
+
+`Textarea`는 native `<textarea>` props를 그대로 전달합니다.
+
+<PropsTable
+  rows={[
+    {
+      name: 'disabled',
+      type: 'boolean',
+      default: 'false',
+      description: '입력과 focus를 비활성화하고 disabled 스타일을 적용합니다.',
+    },
+    {
+      name: 'aria-invalid',
+      type: 'boolean',
+      default: 'false',
+      description:
+        '검증 실패 상태를 보조 기기에 전달하고 destructive focus/border 스타일을 적용합니다.',
+    },
+    {
+      name: 'rows',
+      type: 'number',
+      description: '초기 표시 줄 수. 기본 min-height는 컴포넌트 스타일에서 제공합니다.',
+    },
+    {
+      name: 'className',
+      type: 'string',
+      description: '기본 스타일 위에 추가할 className.',
+    },
+  ]}
+/>
+
+## 접근성
+
+- `Label`의 `htmlFor`와 `Textarea`의 `id`를 연결합니다.
+- 긴 설명이나 에러 문구는 `aria-describedby`로 연결할 수 있습니다.
+- placeholder는 라벨을 대체하지 않습니다.
+- `disabled`는 입력, focus, form 제출 값을 모두 비활성화합니다.

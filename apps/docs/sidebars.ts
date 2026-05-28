@@ -12,6 +12,13 @@ const sidebars: SidebarsConfig = {
       label: '컴포넌트',
       items: [
         'components/button',
+        'components/input',
+        'components/textarea',
+        'components/label',
+        'components/checkbox',
+        'components/radio-group',
+        'components/select',
+        'components/input-group',
         'components/dialog',
         'components/dropdown-menu',
         'components/tabs',

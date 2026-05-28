@@ -1,0 +1,126 @@
+---
+title: Checkbox
+description: 여러 선택지 중 독립적인 on/off 값을 입력받는 체크박스.
+---
+
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {
+  ControlledExample,
+  DisabledExample,
+  WithLabelExample,
+} from '@site/src/components/examples/checkbox';
+
+# Checkbox
+
+독립적인 boolean 값을 입력받는 체크박스입니다.
+Radix Checkbox primitive 위에 TCGround 스타일을 얹었고, checked, disabled, invalid 상태를 token으로 표현합니다.
+
+<ComponentPreview
+  code={`<Label>
+  <Checkbox defaultChecked /> 가격 알림 받기
+</Label>`}
+>
+  <WithLabelExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import { Checkbox, Label } from '@tcground/ui';
+
+export function Example() {
+  return (
+    <Label>
+      <Checkbox defaultChecked /> 가격 알림 받기
+    </Label>
+  );
+}
+```
+
+## 예제
+
+### Label과 함께 사용
+
+<ComponentPreview
+  code={`<Label>
+  <Checkbox defaultChecked /> 가격 알림 받기
+</Label>`}
+>
+  <WithLabelExample />
+</ComponentPreview>
+
+### Controlled
+
+상위 상태와 동기화하려면 `checked`와 `onCheckedChange`를 함께 사용합니다.
+
+<ComponentPreview
+  code={`const [checked, setChecked] = useState(false);
+
+<Checkbox checked={checked} onCheckedChange={(value) => setChecked(value === true)} />`}
+>
+  <ControlledExample />
+</ComponentPreview>
+
+### Disabled
+
+<ComponentPreview
+  code={`<Checkbox disabled />
+<Checkbox defaultChecked disabled />`}
+>
+  <DisabledExample />
+</ComponentPreview>
+
+## API Reference
+
+`Checkbox`는 Radix Checkbox Root props를 기반으로 합니다.
+
+<PropsTable
+  rows={[
+    {
+      name: 'defaultChecked',
+      type: 'boolean | "indeterminate"',
+      default: 'false',
+      description: 'uncontrolled 모드의 초기 checked 상태.',
+    },
+    {
+      name: 'checked',
+      type: 'boolean | "indeterminate"',
+      description: 'controlled checked 상태. onCheckedChange와 함께 사용합니다.',
+    },
+    {
+      name: 'onCheckedChange',
+      type: '(checked: boolean | "indeterminate") => void',
+      description: 'checked 상태가 바뀔 때 호출됩니다.',
+    },
+    {
+      name: 'disabled',
+      type: 'boolean',
+      default: 'false',
+      description: '클릭과 키보드 활성화를 차단합니다.',
+    },
+    {
+      name: 'aria-invalid',
+      type: 'boolean',
+      default: 'false',
+      description: '검증 실패 상태를 보조 기기에 전달하고 destructive 스타일을 적용합니다.',
+    },
+  ]}
+/>
+
+## 접근성
+
+- label 텍스트와 함께 사용해 클릭 영역과 이름을 제공합니다.
+- `Space` 키로 checked 상태를 토글할 수 있습니다.
+- controlled 사용 시 `checked`와 `onCheckedChange`를 짝지어 화면과 상태가 어긋나지 않게 합니다.
+- 필수 약관처럼 반드시 체크해야 하는 항목은 서버 검증도 함께 수행합니다.

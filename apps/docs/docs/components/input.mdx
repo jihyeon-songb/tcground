@@ -1,0 +1,115 @@
+---
+title: Input
+description: 짧은 텍스트 값을 입력받는 기본 form control.
+---
+
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {
+  DefaultExample,
+  InvalidExample,
+  WithLabelExample,
+} from '@site/src/components/examples/input';
+
+# Input
+
+짧은 텍스트, 이메일, 비밀번호, 숫자, 검색어처럼 한 줄 값을 입력받는 기본 form control입니다.
+`Input`은 native `<input>` props를 그대로 받으며, TCGround token 기반 border, focus ring, disabled, invalid 상태 스타일을 포함합니다.
+
+<ComponentPreview code={`<Input placeholder="카드 이름을 입력하세요" />`}>
+  <DefaultExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import { Input, Label } from '@tcground/ui';
+
+export function Example() {
+  return (
+    <div>
+      <Label htmlFor='card-name'>카드 이름</Label>
+      <Input id='card-name' placeholder='Charizard ex' />
+    </div>
+  );
+}
+```
+
+입력값 설명은 `Label`과 `htmlFor`/`id`로 연결합니다. 에러 상태는 `aria-invalid`를 사용하고, 에러 문구는 별도 텍스트로 제공합니다.
+
+## 예제
+
+### 기본
+
+<ComponentPreview code={`<Input placeholder="카드 이름을 입력하세요" />`}>
+  <DefaultExample />
+</ComponentPreview>
+
+### Label 연결
+
+<ComponentPreview
+  code={`<Label htmlFor="card-name">카드 이름</Label>
+<Input id="card-name" placeholder="Charizard ex" />`}
+>
+  <WithLabelExample />
+</ComponentPreview>
+
+### Invalid
+
+<ComponentPreview
+  code={`<Label htmlFor="email-invalid">이메일</Label>
+<Input id="email-invalid" type="email" defaultValue="invalid" aria-invalid />
+<p>올바른 이메일 형식으로 입력하세요.</p>`}
+>
+  <InvalidExample />
+</ComponentPreview>
+
+## API Reference
+
+`Input`은 native `<input>` props를 그대로 전달합니다.
+
+<PropsTable
+  rows={[
+    {
+      name: 'type',
+      type: 'React.HTMLInputTypeAttribute',
+      default: "'text'",
+      description: '입력 타입. text, email, password, search, number 등을 사용할 수 있습니다.',
+    },
+    {
+      name: 'disabled',
+      type: 'boolean',
+      default: 'false',
+      description: '입력과 focus를 비활성화하고 disabled 스타일을 적용합니다.',
+    },
+    {
+      name: 'aria-invalid',
+      type: 'boolean',
+      default: 'false',
+      description:
+        '검증 실패 상태를 보조 기기에 전달하고 destructive focus/border 스타일을 적용합니다.',
+    },
+    {
+      name: 'className',
+      type: 'string',
+      description: '기본 스타일 위에 추가할 className.',
+    },
+  ]}
+/>
+
+## 접근성
+
+- `Label`의 `htmlFor`와 `Input`의 `id`를 연결합니다.
+- 검증 실패는 `aria-invalid`로 표시하고, 에러 문구를 입력창 가까이에 배치합니다.
+- placeholder는 라벨을 대체하지 않습니다.
+- `disabled`는 입력, focus, form 제출 값을 모두 비활성화합니다.

@@ -251,6 +251,17 @@
 - [x] `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
 - [x] `next start -p 3002` 기준 `/`, `/cards`, `/categories/pokemon`, `/cards/kr-004-charizard-ex-151` 응답과 `/_next/image` URL 렌더 확인.
 
+### 4.14 Docusaurus UI 컴포넌트 문서 확장
+
+- 영향 파일: `apps/docs/docs/components/**`, `apps/docs/src/components/examples/**`, `apps/docs/sidebars.ts`, `packages/ui/src/theme.css`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: `@tcground/ui`가 export하는 24개 공통 UI 컴포넌트 중 이미 문서화된 `button`, `dialog`, `dropdown-menu`, `tabs`, `switch`를 제외한 19개 컴포넌트의 Docusaurus 문서를 추가한다. 기존 MDX 구조(개요, 설치, 사용법, 예제, API Reference, 접근성)와 `ComponentPreview`/`PropsTable` 패턴을 유지한다. 문서 preview가 Tailwind 생성에 의존하지 않도록 필요한 `theme.css` fallback만 최소 보강한다.
+- [x] PR1: 폼/입력 계열 문서 작성 — `input`, `textarea`, `label`, `checkbox`, `radio-group`, `select`, `input-group`.
+- [ ] PR2: 피드백/표시 계열 문서 작성 — `alert`, `badge`, `card`, `avatar`, `separator`, `skeleton`, `table`.
+- [ ] PR3: 오버레이/복합 인터랙션 문서 작성 — `alert-dialog`, `popover`, `sheet`, `tooltip`, `command`.
+- [x] PR1 컴포넌트별 example 파일과 `index.ts` export 추가.
+- [x] PR1 기준 `apps/docs/sidebars.ts` 컴포넌트 목록을 실제 문서 목록과 동기화.
+- [x] PR1 기준 `pnpm build:docs`, `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
+
 ### 5. 품질 게이트이
 
 - [x] `pnpm lint`

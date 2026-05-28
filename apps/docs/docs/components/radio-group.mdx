@@ -1,0 +1,149 @@
+---
+title: Radio Group
+description: 여러 선택지 중 하나의 값을 고르는 라디오 그룹.
+---
+
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {
+  ControlledExample,
+  DefaultExample,
+  DisabledExample,
+} from '@site/src/components/examples/radio-group';
+
+# Radio Group
+
+상호 배타적인 선택지 중 하나의 값을 고르는 form control입니다.
+`RadioGroup`은 그룹 상태와 키보드 이동을 관리하고, `RadioGroupItem`은 각 선택지를 렌더합니다.
+
+<ComponentPreview
+  code={`<RadioGroup defaultValue="kr">
+  <Label><RadioGroupItem value="kr" /> 한국판</Label>
+  <Label><RadioGroupItem value="jp" /> 일본판</Label>
+  <Label><RadioGroupItem value="en" /> 영문판</Label>
+</RadioGroup>`}
+>
+  <DefaultExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import { Label, RadioGroup, RadioGroupItem } from '@tcground/ui';
+
+export function Example() {
+  return (
+    <RadioGroup defaultValue='kr'>
+      <Label>
+        <RadioGroupItem value='kr' /> 한국판
+      </Label>
+      <Label>
+        <RadioGroupItem value='jp' /> 일본판
+      </Label>
+    </RadioGroup>
+  );
+}
+```
+
+## 예제
+
+### 기본
+
+<ComponentPreview
+  code={`<RadioGroup defaultValue="kr">
+  <Label><RadioGroupItem value="kr" /> 한국판</Label>
+  <Label><RadioGroupItem value="jp" /> 일본판</Label>
+  <Label><RadioGroupItem value="en" /> 영문판</Label>
+</RadioGroup>`}
+>
+  <DefaultExample />
+</ComponentPreview>
+
+### Controlled
+
+<ComponentPreview
+  code={`const [value, setValue] = useState('price-desc');
+
+<RadioGroup value={value} onValueChange={setValue}>
+  <Label><RadioGroupItem value="price-desc" /> 가격 높은순</Label>
+  <Label><RadioGroupItem value="price-asc" /> 가격 낮은순</Label>
+</RadioGroup>`}
+>
+  <ControlledExample />
+</ComponentPreview>
+
+### Disabled
+
+<ComponentPreview
+  code={`<RadioGroup defaultValue="a" disabled>
+  <Label><RadioGroupItem value="a" /> 옵션 A</Label>
+  <Label><RadioGroupItem value="b" /> 옵션 B</Label>
+</RadioGroup>`}
+>
+  <DisabledExample />
+</ComponentPreview>
+
+## API Reference
+
+### RadioGroup
+
+<PropsTable
+  rows={[
+    {
+      name: 'defaultValue',
+      type: 'string',
+      description: 'uncontrolled 모드의 초기 선택값.',
+    },
+    {
+      name: 'value',
+      type: 'string',
+      description: 'controlled 선택값. onValueChange와 함께 사용합니다.',
+    },
+    {
+      name: 'onValueChange',
+      type: '(value: string) => void',
+      description: '선택값이 바뀔 때 호출됩니다.',
+    },
+    {
+      name: 'disabled',
+      type: 'boolean',
+      default: 'false',
+      description: '그룹 전체 선택을 비활성화합니다.',
+    },
+  ]}
+/>
+
+### RadioGroupItem
+
+<PropsTable
+  rows={[
+    {
+      name: 'value',
+      type: 'string',
+      description: '선택지를 식별하는 값. 같은 RadioGroup 안에서 고유해야 합니다.',
+    },
+    {
+      name: 'disabled',
+      type: 'boolean',
+      default: 'false',
+      description: '개별 선택지를 비활성화합니다.',
+    },
+  ]}
+/>
+
+## 접근성
+
+- 각 `RadioGroupItem`에는 보이는 라벨을 제공합니다.
+- 방향키로 그룹 안의 선택지를 이동하고, `Space` 키로 선택할 수 있습니다.
+- 한 그룹 안에서는 하나의 값만 선택됩니다.
+- controlled 사용 시 `value`와 `onValueChange`를 함께 사용합니다.
