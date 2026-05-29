@@ -1,13 +1,17 @@
 # PROGRESS
 
 > 작업 진행 상황과 의사결정 로그.
-> 마지막 갱신: 2026-05-28 (`tcground` app consumes published `@tcground/ui`)
+> 마지막 갱신: 2026-05-29 (`@tcground/ui` Button/Tabs/Dialog direct primitives)
 
 ## 현재 작업
 
-- 없음.
+- 없음. (배포 후 Vercel Cron으로 약 7일간 Browse asking series 누적 확인이 후속 과제)
 
 ## 완료 로그
+
+- 2026-05-29: Radix UI 같은 직접 구현 접근성 primitive 라이브러리 방향에 맞춰 `@tcground/ui`의 대표 컴포넌트 3개(Button, Tabs, Dialog)를 Radix primitive 의존 없이 자체 구현으로 전환했다. `packages/ui/src/components/ui/primitive.tsx`를 추가해 ref/event/`asChild` prop 병합을 공유하고, Button은 Radix `Slot` 없이 `asChild` disabled semantics(`aria-disabled`, `tabIndex=-1`, click 차단)를 보장한다. Tabs는 자체 context로 `role=tablist/tab/tabpanel`, `aria-selected`, `aria-controls`, roving tabindex, 방향키/Home/End 이동을 구현했다. Dialog는 자체 portal, body sibling `aria-hidden`, `role=dialog`, title/description 연결, focus trap, Escape/overlay close, focus restore를 구현했다. Button/Tabs/Dialog 테스트를 추가·갱신하고 Dialog/Tabs 문서와 `headless-ui` PRD, architecture를 직접 primitive 기준으로 갱신했다. `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`(98/98), `pnpm build:ui`, `pnpm build:docs`를 통과했다. Docusaurus update check는 `/Users/songjihyeon/.config` 권한 때문에 경고를 냈지만 정적 빌드는 성공했다.
+
+- 2026-05-29: eBay 가격 수집 어댑터 계약과 카드 상세 일주일 가격 추적 차트(`implementation-plan.md` 4.15)를 구현했다. 개인 개발자는 eBay Marketplace Insights(sold)가 Limited Release라 사실상 승인이 어려운 점을 확인하고, 일별 시계열은 개인도 가능한 Browse API(판매중 호가) 일일 수집으로 누적하고 수동 CSV sold 실거래가를 차트 참조점으로 오버레이하는 방향으로 결정했다. `lib/pricing/`에 source-agnostic 계약(`price-source.types.ts`), 집계(`aggregate.ts`), CSV import(`csv-import.ts`), eBay OAuth/Browse/Marketplace Insights scaffold(`ebay/`), 일일 수집 오케스트레이션(`collect-prices.ts`)을 추가하고, service-role 쓰기 클라이언트(`lib/supabase/admin.ts`)와 Vercel Cron route(`app/api/cron/collect-prices/route.ts`, `CRON_SECRET` 검증), `vercel.json` cron을 붙였다. Marketplace Insights 어댑터는 매핑/scaffold만 두고 `EbayAccessNotGrantedError`로 막았다. 카드 상세(`app/cards/[cardId]/page.tsx`)의 정적 SVG 차트를 `card_price_snapshots` 시계열(asking 추세선 + sold 오버레이 + 빈 상태)로 교체하고 통화별 표시(`formatPrice`)로 바꿨다. 데이터 최소화 정책(seller/user 미저장)과 env 키(`.env.example`)를 정리했다. 네트워크 의존은 모두 모킹했고 `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`(92/92), `pnpm build`를 통과했다.
 
 - 2026-05-29: `memory-bank/implementation-plan.md` 4.14 PR3 범위인 Docusaurus 오버레이/복합 인터랙션 컴포넌트 5개(`alert-dialog`, `popover`, `sheet`, `tooltip`, `command`) 문서를 작성했다. 각 컴포넌트별 MDX와 preview example, example `index.ts` export를 추가하고 `apps/docs/sidebars.ts`에 등록했으며, Tailwind 생성 없이 preview가 보이도록 `packages/ui/src/theme.css`에 AlertDialog/Popover/Sheet/Tooltip/Command의 `data-slot` fallback 스타일을 보강했다. `pnpm build:docs`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`(63/63), `pnpm build`를 통과했다. `http://127.0.0.1:3013/components/alert-dialog/`와 `/components/command/`에서 새 사이드바 항목, preview 렌더, Alert Dialog open 동작을 확인했다. Docusaurus update check는 `/Users/songjihyeon/.config` 권한 때문에 경고를 냈지만 정적 빌드는 성공했다.
 - 2026-05-28: `memory-bank/implementation-plan.md` 4.14 PR2 범위인 Docusaurus 피드백/표시 컴포넌트 7개(`alert`, `badge`, `card`, `avatar`, `separator`, `skeleton`, `table`) 문서를 작성했다. 각 컴포넌트별 MDX와 preview example, example `index.ts` export를 추가하고 `apps/docs/sidebars.ts`에 등록했으며, Tailwind 생성 없이 preview가 보이도록 `packages/ui/src/theme.css`에 해당 `data-slot` fallback 스타일을 보강했다. `pnpm build:docs`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`(63/63), `pnpm build`를 통과했고, `apps/docs/build` 산출물에서 새 문서 라우트와 사이드바 항목 생성을 확인했다. 인앱 브라우저와 Playwright 브라우저 세션은 현재 환경의 브라우저 점유 상태 때문에 직접 화면 캡처까지 진행하지 못했다.
@@ -62,6 +66,7 @@
 
 ## 의사결정 로그
 
+- 2026-05-29: `@tcground/ui`의 직접 구현 전환은 전체 컴포넌트 일괄 재작성 대신 Button, Tabs, Dialog부터 진행한다. 이유는 이 셋이 `asChild` prop 병합, roving focus, modal focus trap이라는 접근성 primitive의 핵심 패턴을 대표하면서도, Select/Menu/Popover까지 한 번에 재작성하는 것보다 회귀 범위를 작게 통제할 수 있기 때문이다. 나머지 Radix 기반 wrapper는 후속 단계에서 컴포넌트별로 직접 구현 여부를 판단한다.
 - 2026-05-28: npm 배포 준비에서는 기존 패키지 이름 `@tcground/ui`를 유지한다. 이유는 앱, Docusaurus, Storybook이 이미 같은 import 계약을 사용하고 있고, 이번 작업의 목표가 구조 변경이 아니라 배포 가능 상태 정리이기 때문이다. 실제 `npm publish`는 `tcground` npm scope 또는 organization 권한이 필요하므로 코드에서 자동 실행하지 않고 수동 단계로 남긴다.
 - 2026-05-28: `@tcground/ui/theme.css`는 `src/theme.css`가 아니라 build 산출물인 `dist/theme.css`를 export한다. 이유는 npm tarball의 공개 계약을 `dist` 중심으로 단순화하고, 소비자가 package source 경로에 의존하지 않게 하기 위해서다. 이 변경으로 docs는 UI package build 결과가 필요하므로 `apps/docs`의 `prebuild`/`prestart`에서 `@tcground/ui`를 먼저 빌드한다.
 - 2026-05-28: 루트 `tcground` 앱은 배포본 사용 검증을 위해 `@tcground/ui`를 npm semver range로 소비하고, `apps/docs`는 workspace dependency를 유지한다. 이유는 제품 앱에서 실제 외부 설치 계약을 검증하면서도 문서 사이트는 로컬 UI 패키지의 최신 개발 상태를 즉시 반영해야 하기 때문이다.

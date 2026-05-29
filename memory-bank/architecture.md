@@ -2,15 +2,15 @@
 
 > 기술 스택·디렉터리 구조·수정 범위·Next.js/UI 가이드.
 > 명명·코딩 스타일·테스트·커밋 룰은 `CONVENTIONS.md`.
-> 마지막 갱신: 2026-05-28 (`tcground` app consumes published `@tcground/ui`)
+> 마지막 갱신: 2026-05-29 (`@tcground/ui` Button/Tabs/Dialog direct primitives)
 
 ## 1. 스택
 
 - Next.js 16 (App Router) · React 19 · TypeScript 5 (strict)
 - 모노레포 workspace: 기존 Next 앱 + `packages/ui` 공통 UI 라이브러리 + `apps/docs` Docusaurus 문서 사이트
 - Tailwind CSS v4 + `prettier-plugin-tailwindcss`
-- shadcn/ui (Radix 기반) + lucide-react + class-variance-authority + tailwind-merge + clsx + cmdk
-- `packages/ui`: `@tcground/ui` 패키지. 기존 앱의 `components/ui/*` shadcn 기반 공통 UI 컴포넌트를 분리한 React 18/19 peer range UI 라이브러리. npm 공개 배포를 위해 `private: false`, public `publishConfig`, README, package metadata를 갖추며, `@tcground/ui/theme.css`는 빌드 후 `dist/theme.css`를 export한다. 루트 `tcground` 앱은 npm registry에 배포된 `@tcground/ui` semver 버전을 소비하고, `apps/docs`는 문서/개발 검증을 위해 workspace 패키지를 소비한다.
+- shadcn/ui 계열 컴포넌트 + lucide-react + class-variance-authority + tailwind-merge + clsx + cmdk. `@tcground/ui`의 Button, Tabs, Dialog는 Radix primitive 의존 없이 직접 구현한 접근성 primitive이며, 나머지 오버레이/폼 primitive는 아직 Radix 기반 wrapper를 유지한다.
+- `packages/ui`: `@tcground/ui` 패키지. 기존 앱의 `components/ui/*` 공통 UI 컴포넌트를 분리한 React 18/19 peer range UI 라이브러리. npm 공개 배포를 위해 `private: false`, public `publishConfig`, README, package metadata를 갖추며, `@tcground/ui/theme.css`는 빌드 후 `dist/theme.css`를 export한다. 루트 `tcground` 앱은 npm registry에 배포된 `@tcground/ui` semver 버전을 소비하고, `apps/docs`는 문서/개발 검증을 위해 workspace 패키지를 소비한다.
 - `apps/docs`: Docusaurus 3.9.2 classic preset. 최신 Docusaurus next 문서는 Node 24를 요구하므로 현재 Node 22 환경에서는 3.9.2를 고정한다. 컴포넌트 문서는 `apps/docs/docs/components/*.mdx`, preview 예제는 `apps/docs/src/components/examples/<component>/*`에 둔다.
 - Supabase JS + Supabase SSR (Auth/서버 클라이언트)
 - Vitest 4 + Testing Library + jsdom
@@ -60,6 +60,7 @@ apps/docs/           # Docusaurus 제출/배포용 문서 사이트
 - 절대 import 별칭: `@/*` → 프로젝트 루트. 루트 앱의 `@tcground/ui`는 npm 배포본을 가리키며, `apps/docs` 개발 서버/빌드는 Docusaurus resolve plugin과 workspace dependency로 `packages/ui/src`를 참조한다.
 - 공통 UI 부품: `packages/ui/src/components/ui/*` (`@tcground/ui`). 도메인 컴포넌트는 `components/<domain>/<sub-domain>/*`로 기능 단위로 묶는다.
 - 기존 `components/ui/*`는 `packages/ui/src/components/ui/*`로 이동했다. 앱 도메인 컴포넌트는 필요 시 `@tcground/ui`를 소비한다.
+- `packages/ui/src/components/ui/primitive.tsx`는 직접 구현 primitive에서 공유하는 ref 병합, event handler 병합, `asChild` slot 병합 헬퍼를 제공한다. Button은 이 헬퍼로 Radix `Slot` 의존 없이 `asChild`와 disabled semantics를 처리한다. Tabs는 자체 context로 tablist/tab/tabpanel ARIA, roving tabindex, 방향키 이동을 관리한다. Dialog는 자체 portal, body sibling `aria-hidden`, focus trap, Escape/overlay close, focus restore를 관리한다.
 - TCGround 도메인 컴포넌트: `components/tcg/<auth|layout|search>/*`. 새 도메인이 생기면 같은 레벨에 폴더를 추가한다. 같은 하위 폴더 안에서는 상대 import, 다른 하위 폴더는 `@/components/tcg/<sub>/...` 절대 경로를 사용한다.
 - 공개 페이지 공통 헤더: `components/tcg/layout/PublicHeader.tsx`. 서버 컴포넌트에서 Supabase Auth `getClaims()`로 인증 상태를 확인하고, 페이지별 검색창 옵션과 현재 내부 경로(`next`)만 props로 받는다.
 - 로그인 인증 동작: `app/login/_actions/login.ts` 서버 액션, `app/login/_lib/login-utils.ts` route 전용 유틸, `components/tcg/auth/LoginForm.tsx` 클라이언트 폼을 기준으로 한다.
@@ -73,6 +74,10 @@ apps/docs/           # Docusaurus 제출/배포용 문서 사이트
 - 현재 정적 카드/카테고리 데이터: `lib/tcg-data.ts`. 홈, `/categories`, `/cards` 목록의 페이지 간 링크와 가격 표시의 기준 데이터로 사용한다.
 - 포켓몬 카탈로그 서버 조회: `lib/tcg-catalog.ts`. Supabase 공개 카탈로그 테이블(`tcg_games`, `card_sets`, `cards`, `card_printings`, `card_categories`, `card_category_links`)에서 `/categories/pokemon`과 `/cards/[cardId]` view model을 만든다. 가격 snapshot이 없을 때는 DB에 가짜 가격을 쓰지 않고 UI view model에서 deterministic 표시값만 만든다. 목록/홈/인기 카드 이미지는 전송량을 줄이기 위해 `cards.thumbnail_url`을 우선하고, 없을 때 `card_printings.image_url`, `cards.image_url` 순서로 fallback한다. 상세 페이지는 `card_printings.image_url`을 우선하고 `cards.image_url`로 fallback한다.
 - Supabase 클라이언트 유틸은 shadcn Supabase Next.js 컴포넌트가 생성하는 파일을 기준으로 사용하고, 세션 쿠키 갱신은 루트 `proxy.ts`에서 `lib/supabase/middleware.ts`를 호출해 처리한다.
+- 가격 수집 모듈: `lib/pricing/`. source-agnostic 어댑터 계약(`price-source.types.ts`), 관측치→snapshot 집계(`aggregate.ts`), 수동 CSV import(`csv-import.ts`), eBay 어댑터(`ebay/`)를 둔다. 일일 수집은 `app/api/cron/collect-prices/route.ts`(Vercel Cron, `CRON_SECRET` 검증)가 `lib/pricing/collect-prices.ts`를 호출하고, RLS deny-all인 `price_observations`/`card_price_snapshots`/`price_collection_runs` 쓰기는 service-role 클라이언트(`lib/supabase/admin.ts`)로만 한다. 로컬 검증/수동 sold import는 `scripts/collect-prices.ts`.
+- eBay 가격 source 현실 제약: 실거래가(sold)는 Marketplace Insights API(`buy.marketplace.insights`)로만 얻고 이는 Limited Release라 개인 개발자 승인이 어렵다. `marketplace-insights-adapter.ts`는 매핑/scaffold만 두고 `EBAY_MARKETPLACE_INSIGHTS_ENABLED=true`가 아니면 `EbayAccessNotGrantedError`를 던진다. 일별 시계열은 개인도 쓸 수 있는 Browse API(`browse-adapter.ts`, 판매중 호가) 일일 수집으로 누적하고, 수동 CSV sold 실거래가는 차트 참조점으로 오버레이한다. 카드 상세 차트(`app/cards/[cardId]/page.tsx`)는 `card_price_snapshots`를 읽어 그리며 시장/통화는 섞지 않는다.
+- 데이터 최소화: eBay/CSV 관측치는 가격·일자·상태·등급·item id/url·축소 `raw_payload`만 저장하고 seller/buyer 식별 정보와 원문 전체 payload는 저장하지 않는다.
+- 가격 수집 env(server-only): `SUPABASE_SERVICE_ROLE_KEY`, `EBAY_ENV`, `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_MARKETPLACE_INSIGHTS_ENABLED`, `CRON_SECRET`. placeholder는 `.env.example` 참고.
 - 디자인 토큰·전역 CSS: `app/globals.css`.
 - 외부 이미지는 `next.config.ts`의 `images.remotePatterns`에 허용한 `assets.tcgdex.net`, `lh3.googleusercontent.com`만 `next/image` 최적화 경로로 렌더링한다. 새 외부 이미지 출처를 추가하면 `remotePatterns`와 이미지 fallback 우선순위를 함께 갱신한다.
 - 향후 추가 예정 디렉터리: `hooks/`, `types/`.

@@ -84,11 +84,24 @@
 
 - 영향 파일: `lib/**`, `app/**` 또는 후속 수집 작업 위치, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`.
 - 최소 변경 범위: 1차 자동 adapter source는 `ebay_sold`로 결정하되, eBay Marketplace Insights API가 restricted/limited release이므로 production adapter 구현은 eBay Buy API/Marketplace Insights production access와 API License Agreement 준수 조건을 확인한 뒤 진행한다. 승인 전에는 eBay 페이지 scraping adapter를 만들지 않고, 수동 검증 CSV와 sandbox/API 계약 설계만 허용한다.
-- [ ] eBay Developer 계정, Buy API production access, Marketplace Insights access 가능 여부 확인.
-- [ ] API License Agreement 기준 데이터 저장/표시/집계 범위를 검토하고, raw eBay content와 공개 snapshot 표시 계약을 분리한다.
-- [ ] `ebay_sold` adapter 입력 계약 확정: keyword/category/date window/condition filters, card_printing 매칭 필드, 단일 카드 판정 규칙.
-- [ ] `lastSoldDate`, `lastSoldPrice`, `totalSoldQuantity`, condition, item/itemSales ID, item URL, seller/user 관련 필드 저장 최소화 정책 확정.
-- [ ] 승인 후 `price_observations` import adapter와 collection run logging 구현.
+- [x] eBay Developer 계정, Buy API production access, Marketplace Insights access 가능 여부 확인. → 개발자 계정은 생성, Browse API는 사용 가능. Marketplace Insights(sold)는 Limited Release로 개인/취미 프로젝트 승인이 어려워 사실상 닫힘으로 결론.
+- [x] API License Agreement 기준 데이터 저장/표시/집계 범위를 검토하고, raw eBay content와 공개 snapshot 표시 계약을 분리한다. → 데이터 최소화 정책(저장/미저장 필드)과 `card_price_snapshots` 공개 표시 분리를 `architecture.md`에 문서화.
+- [x] `ebay_sold` adapter 입력 계약 확정: keyword/category/date window/condition filters, card_printing 매칭 필드, 단일 카드 판정 규칙. → `lib/pricing/price-source.types.ts` 계약과 `marketplace-insights-adapter.ts`/`csv-import.ts` 매핑·단일 카드 규칙으로 구현.
+- [x] `lastSoldDate`, `lastSoldPrice`, `totalSoldQuantity`, condition, item/itemSales ID, item URL, seller/user 관련 필드 저장 최소화 정책 확정. → 가격·일자·상태·등급·item id/url·축소 raw_payload만 저장하고 seller/user 식별 정보는 저장하지 않도록 확정·구현.
+- [ ] 승인 후 `price_observations` import adapter와 collection run logging 구현. → Browse 기반 collection run logging은 구현(`collect-prices.ts`/cron). Marketplace Insights import adapter는 승인 전까지 scaffold(`EbayAccessNotGrantedError`)로 보류.
+
+### 4.15 eBay 가격 수집 + 일주일 가격 추적 차트
+
+- 영향 파일: `lib/pricing/**`, `lib/supabase/admin.ts`, `lib/tcg-catalog.ts`, `lib/tcg-data.ts`, `app/api/cron/collect-prices/route.ts`, `app/cards/[cardId]/page.tsx`, `scripts/collect-prices.ts`, `vercel.json`, `.env.example`, `.gitignore`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: 개인 개발자 제약상 sold API가 막혀 있으므로, 일별 시계열은 Browse API(판매중 호가) 일일 수집으로 누적하고 수동 CSV sold 실거래가를 차트 참조점으로 오버레이한다. 카드 상세의 정적 SVG 차트를 `card_price_snapshots` 실데이터 기반으로 교체한다. 시장/통화는 섞지 않는다.
+- [x] source-agnostic 어댑터 계약(`price-source.types.ts`)과 관측치→snapshot 집계(`aggregate.ts`, median 보정·신뢰도 임계값) 구현 + 단위 테스트.
+- [x] 수동 CSV import 파서(`csv-import.ts`, exclude_reason·단일 카드 규칙·printing 해소) + 단위 테스트.
+- [x] eBay OAuth(`ebay-oauth.ts`, client-credentials·토큰 캐시), Browse 어댑터(`browse-adapter.ts`), Marketplace Insights scaffold(`marketplace-insights-adapter.ts`) + fixture/단위 테스트.
+- [x] service-role 쓰기 클라이언트(`admin.ts`)와 일일 수집 오케스트레이션(`collect-prices.ts`) + Vercel Cron route(`CRON_SECRET` 검증) + `vercel.json` cron.
+- [x] 카드 상세 차트를 snapshot 시계열(asking 추세선 + sold 오버레이 + 빈 상태)로 교체, 통화별 표시.
+- [x] `.env.example`/`.gitignore` env 키 추가, `architecture.md`·`implementation-plan.md`·`progress.md` 갱신.
+- [x] `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
+- [ ] (배포 후) Vercel Cron 일 1회 가동으로 약 7일간 일별 asking series 누적 확인. Browse는 backfill 불가.
 
 ### 4. UI 구현
 
@@ -258,6 +271,7 @@
 - [x] PR1: 폼/입력 계열 문서 작성 — `input`, `textarea`, `label`, `checkbox`, `radio-group`, `select`, `input-group`.
 - [x] PR2: 피드백/표시 계열 문서 작성 — `alert`, `badge`, `card`, `avatar`, `separator`, `skeleton`, `table`.
 - [x] PR3: 오버레이/복합 인터랙션 문서 작성 — `alert-dialog`, `popover`, `sheet`, `tooltip`, `command`.
+
   - 영향 파일: `apps/docs/docs/components/{alert-dialog,popover,sheet,tooltip,command}.mdx`, `apps/docs/src/components/examples/{alert-dialog,popover,sheet,tooltip,command}/**`, `apps/docs/sidebars.ts`, `packages/ui/src/theme.css`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
   - 최소 변경 범위: 기존 문서 패턴과 `@tcground/ui` export API를 유지하며, Tailwind class 생성 없이 Docusaurus preview가 보이도록 PR3 대상의 `data-slot` fallback 스타일만 보강한다.
 - [x] PR1 컴포넌트별 example 파일과 `index.ts` export 추가.
@@ -271,6 +285,17 @@
 - [x] PR1 기준 `pnpm build:docs`, `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
 - [x] PR2 기준 `pnpm build:docs`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
 - [x] PR3 기준 `pnpm build:docs`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
+
+### 4.16 핵심 UI primitive 직접 구현 전환
+
+- 영향 파일: `packages/ui/src/components/ui/button.tsx`, `packages/ui/src/components/ui/primitive.tsx`, `packages/ui/src/components/ui/button.test.tsx`, `packages/ui/src/components/ui/tabs.tsx`, `packages/ui/src/components/ui/tabs.test.tsx`, `packages/ui/src/components/ui/dialog.tsx`, `packages/ui/src/components/ui/dialog.test.tsx`, `apps/docs/docs/components/tabs.mdx`, `apps/docs/docs/components/dialog.mdx`, `memory-bank/architecture.md`, `memory-bank/prd/headless-ui.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: Radix UI 같은 접근성 primitive 라이브러리를 지향하기 위해 대표 컴포넌트인 Button, Tabs, Dialog를 Radix primitive 의존 없이 직접 구현한다. 나머지 Radix 기반 컴포넌트는 이번 범위에서 유지한다. Button은 자체 `asChild` prop 병합과 disabled semantics를 보장하고, Tabs는 tablist/tab/tabpanel ARIA와 roving tabindex/방향키 이동을 직접 구현하며, Dialog는 portal, trigger/content 관계, focus trap, Escape/overlay close, focus restore를 직접 구현한다.
+- [x] Button의 Radix `Slot` 의존 제거와 `asChild` disabled 처리 구현.
+- [x] Tabs의 Radix primitive 의존 제거와 ARIA/keyboard/focus 상태 직접 구현.
+- [x] Dialog의 Radix primitive 의존 제거와 portal/focus trap/dismiss/focus restore 직접 구현.
+- [x] Button, Tabs, Dialog 단위 테스트 추가 또는 갱신.
+- [x] 관련 Docusaurus 문서의 Radix 기반 설명을 직접 primitive 설명으로 갱신.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build:ui`, `pnpm build:docs` 검증.
 
 ### 5. 품질 게이트이
 
@@ -361,4 +386,4 @@
 
 ## 다음 작업
 
-`@tcground/ui` Button의 앱 소비 전환, 기본 스타일 polish, Docusaurus Button/Dialog/Dropdown Menu/Tabs/Switch preview fallback fix, Dropdown Menu interaction fix, API Reference table layout fix, npm 공개 배포 준비, 루트 앱의 npm 배포본 소비 전환, Docusaurus 컴포넌트 문서 4.14 PR1~PR3은 완료했다. 기존 TCGround 가격 추적 작업의 다음 단계는 eBay Buy API/Marketplace Insights production access와 API License Agreement 준수 범위를 확인한 뒤 adapter 계약을 확정하는 것이다.
+`@tcground/ui` UI 라이브러리/Docusaurus 문서 작업과 eBay 가격 수집 어댑터 계약·일주일 가격 추적 차트(4.15)는 완료했다. 다음 단계는 (1) 배포 후 Vercel Cron을 가동해 약 7일간 Browse asking series가 누적되는지 확인하고, (2) 카드 상세의 "관심 카드 추가"/"가격 알림" placeholder 버튼을 `favorite_cards` 기반 실제 기능으로 구현하는 것이다. Marketplace Insights(sold) 자동 수집은 개인 승인이 어려워 보류하며, 수동 CSV import로 sold 실거래가를 보강한다.
