@@ -78,6 +78,8 @@ function makeCard({
       changeTone: 'up',
       lastUpdatedAt: '2026년 5월 22일',
       sourceLabel: '카탈로그 대표값',
+      currency: 'KRW',
+      sampleCount: 0,
     },
   };
 }

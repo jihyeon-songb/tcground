@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildPriceHistory,
   createDeterministicPriceDisplay,
+  derivePriceDisplayFromHistory,
   mapCardDetailRow,
   mapPokemonCategoryPageData,
   selectFeaturedPokemonCards,
@@ -238,6 +240,8 @@ function makeSimpleCard(slug: string, imageUrl: string | null): PokemonCatalogCa
       changeTone: 'up',
       lastUpdatedAt: '2026년 5월 22일',
       sourceLabel: '카탈로그 대표값',
+      currency: 'KRW',
+      sampleCount: 0,
     },
   };
 }
@@ -348,3 +352,97 @@ function createDetailRow({
     ],
   };
 }
+
+describe('price history view models', () => {
+  function snapshotRow(overrides: Record<string, unknown> = {}) {
+    return {
+      snapshot_date: '2026-05-28',
+      market: 'NA',
+      currency: 'USD',
+      variant: 'raw',
+      source_name: 'ebay_browse',
+      avg_price: 160,
+      min_price: 140,
+      max_price: 200,
+      sample_count: 3,
+      ...overrides,
+    };
+  }
+
+  it('splits asking trend from sold overlay points', () => {
+    const history = buildPriceHistory([
+      snapshotRow({ snapshot_date: '2026-05-29', avg_price: 168 }),
+      snapshotRow({ snapshot_date: '2026-05-28', avg_price: 160 }),
+      snapshotRow({ source_name: 'aggregate', snapshot_date: '2026-01-30', avg_price: 139.99 }),
+    ]);
+
+    expect(history.hasData).toBe(true);
+    expect(history.askingSeries).toHaveLength(2);
+    expect(history.askingSeries[0].date).toBe('2026-05-28');
+    expect(history.soldPoints).toHaveLength(1);
+    expect(history.currency).toBe('USD');
+  });
+
+  it('excludes graded and variant-mismatched sales from the sold overlay', () => {
+    const history = buildPriceHistory([
+      snapshotRow({ snapshot_date: '2026-05-29', avg_price: 168 }),
+      // comparable: raw, USD, ungraded → kept
+      snapshotRow({ source_name: 'aggregate', snapshot_date: '2026-05-20', avg_price: 150 }),
+      // graded PSA 10 → excluded so it can't distort the raw-price axis
+      snapshotRow({
+        source_name: 'aggregate',
+        snapshot_date: '2026-05-21',
+        avg_price: 1200,
+        grade_company: 'PSA',
+        grade_value: '10',
+      }),
+      // different variant → excluded
+      snapshotRow({
+        source_name: 'aggregate',
+        snapshot_date: '2026-05-22',
+        avg_price: 400,
+        variant: 'reverse_holo',
+      }),
+    ]);
+
+    expect(history.soldPoints).toHaveLength(1);
+    expect(history.soldPoints[0].avgPrice).toBe(150);
+  });
+
+  it('ignores snapshots without an average price', () => {
+    const history = buildPriceHistory([snapshotRow({ avg_price: null })]);
+    expect(history.hasData).toBe(false);
+  });
+
+  it('derives the summary and change rate from the asking series', () => {
+    const history = buildPriceHistory([
+      snapshotRow({ snapshot_date: '2026-05-28', avg_price: 100 }),
+      snapshotRow({ snapshot_date: '2026-05-29', avg_price: 110 }),
+    ]);
+    const price = derivePriceDisplayFromHistory(history);
+
+    expect(price).not.toBeNull();
+    expect(price?.avgPrice).toBe(110);
+    expect(price?.currency).toBe('USD');
+    expect(price?.changeRate).toBeCloseTo(10);
+    expect(price?.changeTone).toBe('up');
+  });
+
+  it('derives the summary from the sold series when there is no asking trend', () => {
+    const history = buildPriceHistory([
+      snapshotRow({ source_name: 'aggregate', snapshot_date: '2026-05-28', avg_price: 100 }),
+      snapshotRow({ source_name: 'aggregate', snapshot_date: '2026-05-29', avg_price: 120 }),
+    ]);
+    const price = derivePriceDisplayFromHistory(history);
+
+    expect(history.askingSeries).toHaveLength(0);
+    expect(price?.avgPrice).toBe(120);
+    expect(price?.changeRate).toBeCloseTo(20);
+    expect(price?.sourceLabel).toContain('실거래가');
+  });
+
+  it('returns null when there are no priced snapshots at all', () => {
+    const history = buildPriceHistory([snapshotRow({ avg_price: null })]);
+    expect(derivePriceDisplayFromHistory(history)).toBeNull();
+  });
+});

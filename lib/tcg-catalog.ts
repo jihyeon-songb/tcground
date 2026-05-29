@@ -63,6 +63,45 @@ export interface PriceDisplay {
   changeTone: ChangeTone;
   lastUpdatedAt: string;
   sourceLabel: string;
+  currency: string;
+  sampleCount: number;
+}
+
+/** A single dated price point for the detail chart. */
+export interface PricePoint {
+  date: string;
+  avgPrice: number;
+  minPrice: number;
+  maxPrice: number;
+  sampleCount: number;
+  currency: string;
+}
+
+/**
+ * Price history for the detail chart. `askingSeries` is the daily eBay Browse
+ * asking trend; `soldPoints` are aggregated sold observations overlaid as
+ * reference points.
+ */
+export interface PriceHistory {
+  askingSeries: PricePoint[];
+  soldPoints: PricePoint[];
+  currency: string | null;
+  hasData: boolean;
+}
+
+interface CardPriceSnapshotRow {
+  snapshot_date: string;
+  market: string;
+  currency: string;
+  variant: string;
+  source_name: string;
+  condition_label?: string | null;
+  avg_price: number | null;
+  min_price: number | null;
+  max_price: number | null;
+  sample_count: number | null;
+  grade_company?: string | null;
+  grade_value?: string | null;
 }
 
 export interface PokemonCatalogCard {
@@ -115,6 +154,7 @@ export interface CatalogCardDetail {
     finish: string;
     sampleId: string;
   };
+  priceHistory: PriceHistory;
   backHref: string;
   backLabel: string;
 }
@@ -328,8 +368,26 @@ export async function getCardDetailBySlug(
   throwIfSupabaseError(error);
 
   if (!data) return null;
-  return mapCardDetailRow(data as unknown as CardDetailRow);
+
+  const detailRow = data as unknown as CardDetailRow;
+  const printing = selectPrimaryPrinting(detailRow);
+  const printingId = printing?.id ?? detailRow.id;
+
+  const { data: snapshotData, error: snapshotError } = await supabase
+    .from('card_price_snapshots')
+    .select(
+      'snapshot_date, market, currency, variant, condition_label, source_name, avg_price, min_price, max_price, sample_count, grade_company, grade_value',
+    )
+    .eq('card_printing_id', printingId)
+    .order('snapshot_date', { ascending: true });
+
+  throwIfSupabaseError(snapshotError);
+
+  return mapCardDetailRow(detailRow, (snapshotData ?? []) as CardPriceSnapshotRow[]);
 }
+
+/** Source name written by the daily eBay Browse asking collection. */
+const ASKING_SOURCE_NAME = 'ebay_browse';
 
 export function mapPokemonCategoryPageData(
   game: TcgGameRow,
@@ -352,7 +410,10 @@ export function mapPokemonCategoryPageData(
   };
 }
 
-export function mapCardDetailRow(row: CardDetailRow): CatalogCardDetail {
+export function mapCardDetailRow(
+  row: CardDetailRow,
+  snapshots: readonly CardPriceSnapshotRow[] = [],
+): CatalogCardDetail {
   const printing = selectPrimaryPrinting(row);
   const sampleId = getSampleId(printing);
   const setLabel =
@@ -360,6 +421,11 @@ export function mapCardDetailRow(row: CardDetailRow): CatalogCardDetail {
   const collectorNumber = printing?.collector_number ?? row.collector_number ?? '번호 미상';
   const rarity = printing?.rarity ?? row.rarity ?? '레어도 미상';
   const gameName = row.tcg_games?.name_ko ?? row.tcg_games?.name ?? 'Pokemon TCG';
+
+  const priceHistory = buildPriceHistory(snapshots);
+  const price =
+    derivePriceDisplayFromHistory(priceHistory) ??
+    createDeterministicPriceDisplay(row.slug, sampleId);
 
   return {
     slug: row.slug,
@@ -371,7 +437,8 @@ export function mapCardDetailRow(row: CardDetailRow): CatalogCardDetail {
     collectorNumber,
     rarity,
     imageUrl: printing?.image_url ?? row.image_url,
-    price: createDeterministicPriceDisplay(row.slug, sampleId),
+    price,
+    priceHistory,
     printing: {
       id: printing?.id ?? row.id,
       language: printing?.language ?? 'ko',
@@ -404,7 +471,169 @@ export function createDeterministicPriceDisplay(slug: string, sampleId: string):
     changeTone: getChangeTone(changeRate),
     lastUpdatedAt: '2026년 5월 22일',
     sourceLabel: '가격 데이터 연결 전까지 카탈로그 대표값을 표시합니다.',
+    currency: 'KRW',
+    sampleCount: 0,
   };
+}
+
+/**
+ * Builds the detail chart history from snapshots. Snapshots mix currencies,
+ * variants, conditions, grades and markets, so we never draw them all as one
+ * line. Instead we pick a single coherent bucket — same currency, variant and
+ * condition, ungraded — and draw that as the trend. The eBay Browse asking
+ * series is preferred; otherwise the richest sold bucket forms the line, with
+ * comparable sold points overlaid only when an asking trend is present.
+ */
+export function buildPriceHistory(snapshots: readonly CardPriceSnapshotRow[]): PriceHistory {
+  const priced = snapshots.filter((snapshot) => snapshot.avg_price !== null);
+  const askingRows = priced.filter((snapshot) => snapshot.source_name === ASKING_SOURCE_NAME);
+  const soldRows = priced.filter(
+    (snapshot) => snapshot.source_name !== ASKING_SOURCE_NAME && isUngraded(snapshot),
+  );
+
+  const askingBucket = pickRichestBucket(askingRows);
+  const askingSeries = askingBucket ? collapseByDate(askingBucket.rows) : [];
+
+  // When an asking trend exists, overlay only sold points from the matching
+  // bucket (same currency/variant/condition). Otherwise the richest sold bucket
+  // becomes the trend line itself so a sold-only history is still a real line.
+  let soldPoints: PricePoint[] = [];
+  if (askingBucket) {
+    soldPoints = collapseByDate(soldRows.filter((row) => bucketKey(row) === askingBucket.key));
+  } else {
+    const soldBucket = pickRichestBucket(soldRows);
+    if (soldBucket) soldPoints = collapseByDate(soldBucket.rows);
+  }
+
+  const currency = askingSeries[0]?.currency ?? soldPoints[0]?.currency ?? null;
+
+  return {
+    askingSeries,
+    soldPoints,
+    currency,
+    hasData: askingSeries.length > 0 || soldPoints.length > 0,
+  };
+}
+
+/**
+ * The series drawn as the detail chart's trend line and used for the price
+ * summary: the asking trend when available, otherwise the coherent sold series.
+ */
+export function getPriceTrendSeries(history: PriceHistory): PricePoint[] {
+  return history.askingSeries.length > 0 ? history.askingSeries : history.soldPoints;
+}
+
+/** True when a snapshot has no grading assigned (raw card). */
+function isUngraded(snapshot: CardPriceSnapshotRow): boolean {
+  return !snapshot.grade_company && !snapshot.grade_value;
+}
+
+/**
+ * Identifies a coherent, comparable bucket: one currency + variant of an
+ * ungraded card. Market and condition are allowed to vary (and same-date rows
+ * are averaged in `collapseByDate`) so the raw-price trend stays continuous
+ * instead of fragmenting into single points. Grading is excluded separately.
+ */
+function bucketKey(snapshot: CardPriceSnapshotRow): string {
+  return [snapshot.currency, snapshot.variant].join('|');
+}
+
+/**
+ * Groups rows by comparable bucket and returns the one with the most rows
+ * (ties broken by the most recent date), or null when there are no rows.
+ */
+function pickRichestBucket(
+  rows: readonly CardPriceSnapshotRow[],
+): { key: string; rows: CardPriceSnapshotRow[] } | null {
+  const buckets = new Map<string, CardPriceSnapshotRow[]>();
+  for (const row of rows) {
+    const key = bucketKey(row);
+    const existing = buckets.get(key);
+    if (existing) existing.push(row);
+    else buckets.set(key, [row]);
+  }
+
+  let best: { key: string; rows: CardPriceSnapshotRow[] } | null = null;
+  for (const [key, bucketRows] of buckets) {
+    if (
+      best === null ||
+      bucketRows.length > best.rows.length ||
+      (bucketRows.length === best.rows.length &&
+        latestDate(bucketRows) > latestDate(best.rows))
+    ) {
+      best = { key, rows: bucketRows };
+    }
+  }
+  return best;
+}
+
+function latestDate(rows: readonly CardPriceSnapshotRow[]): string {
+  return rows.reduce((max, row) => (row.snapshot_date > max ? row.snapshot_date : max), '');
+}
+
+/**
+ * Collapses snapshot rows into one dated point per day (averaging across markets
+ * that share a date), sorted ascending — so the trend never has two points on
+ * the same x position.
+ */
+function collapseByDate(rows: readonly CardPriceSnapshotRow[]): PricePoint[] {
+  const byDate = new Map<string, CardPriceSnapshotRow[]>();
+  for (const row of rows) {
+    const existing = byDate.get(row.snapshot_date);
+    if (existing) existing.push(row);
+    else byDate.set(row.snapshot_date, [row]);
+  }
+
+  const points: PricePoint[] = [];
+  for (const [date, group] of byDate) {
+    const avg =
+      group.reduce((sum, row) => sum + (row.avg_price ?? 0), 0) / group.length;
+    points.push({
+      date,
+      avgPrice: Math.round(avg * 100) / 100,
+      minPrice: Math.min(...group.map((row) => row.min_price ?? row.avg_price ?? 0)),
+      maxPrice: Math.max(...group.map((row) => row.max_price ?? row.avg_price ?? 0)),
+      sampleCount: group.reduce((sum, row) => sum + (row.sample_count ?? 0), 0),
+      currency: group[0].currency,
+    });
+  }
+
+  points.sort((a, b) => a.date.localeCompare(b.date));
+  return points;
+}
+
+/** Derives the price summary from the trend series, or null when there is none. */
+export function derivePriceDisplayFromHistory(history: PriceHistory): PriceDisplay | null {
+  const usingAsking = history.askingSeries.length > 0;
+  const series = getPriceTrendSeries(history);
+  if (series.length === 0) return null;
+
+  const latest = series[series.length - 1];
+  const first = series[0];
+  const changeRate =
+    first.avgPrice > 0
+      ? Number((((latest.avgPrice - first.avgPrice) / first.avgPrice) * 100).toFixed(1))
+      : 0;
+
+  return {
+    avgPrice: latest.avgPrice,
+    minPrice: latest.minPrice,
+    maxPrice: latest.maxPrice,
+    changeRate,
+    changeTone: getChangeTone(changeRate),
+    lastUpdatedAt: formatSnapshotDate(latest.date),
+    sourceLabel: usingAsking
+      ? `eBay 판매중 호가 ${latest.sampleCount}건 기준 (실거래가는 참조점으로 표시)`
+      : `최근 실거래가 집계 ${latest.sampleCount}건 기준`,
+    currency: latest.currency,
+    sampleCount: latest.sampleCount,
+  };
+}
+
+function formatSnapshotDate(date: string): string {
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return date;
+  return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'long' }).format(parsed);
 }
 
 function mapCatalogCardRow(row: PokemonCatalogCardRow): PokemonCatalogCard {

@@ -1,7 +1,8 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CatalogCardDetail } from '@/lib/tcg-catalog';
-import CardDetailPage, { CardDetailContent } from './page';
+import CardDetailPage, { CardDetailContent, buildChartGeometry } from './page';
+import type { PricePoint } from '@/lib/tcg-catalog';
 
 const getCardDetailBySlugMock = vi.hoisted(() => vi.fn());
 const notFoundMock = vi.hoisted(() =>
@@ -36,6 +37,41 @@ describe('CardDetailContent', () => {
     expect(screen.getAllByText('SAR').length).toBeGreaterThan(0);
     expect(screen.getAllByText('201/165').length).toBeGreaterThan(0);
     expect(screen.getByText('BS2023014201')).toBeTruthy();
+  });
+});
+
+describe('buildChartGeometry', () => {
+  function point(date: string, avgPrice: number): PricePoint {
+    return { date, avgPrice, minPrice: avgPrice, maxPrice: avgPrice, sampleCount: 1, currency: 'USD' };
+  }
+
+  it('scales the trend line to fill the chart from the asking series alone', () => {
+    const geometry = buildChartGeometry(
+      [point('2026-05-16', 150), point('2026-05-22', 162), point('2026-05-29', 168)],
+      [],
+    );
+
+    expect(geometry.linePoints[0].x).toBeCloseTo(0);
+    expect(geometry.linePoints[geometry.linePoints.length - 1].x).toBeCloseTo(100);
+    // lowest price sits at the band bottom, highest at the band top
+    expect(Math.max(...geometry.linePoints.map((p) => p.y))).toBeCloseTo(44);
+    expect(Math.min(...geometry.linePoints.map((p) => p.y))).toBeCloseTo(6);
+  });
+
+  it('keeps only overlay points inside the trend window', () => {
+    const geometry = buildChartGeometry(
+      [point('2026-05-16', 150), point('2026-05-29', 168)],
+      [point('2026-01-10', 140), point('2026-05-20', 158)],
+    );
+
+    // the January sale is outside the asking window and is dropped
+    expect(geometry.overlayPoints).toHaveLength(1);
+    expect(geometry.overlayPoints[0].x).toBeGreaterThan(0);
+    expect(geometry.overlayPoints[0].x).toBeLessThan(100);
+  });
+
+  it('reports no data when both series are empty', () => {
+    expect(buildChartGeometry([], []).hasData).toBe(false);
   });
 });
 
@@ -78,6 +114,31 @@ function createCardDetail(): CatalogCardDetail {
       changeTone: 'up',
       lastUpdatedAt: '2026년 5월 22일',
       sourceLabel: '가격 데이터 연결 전까지 카탈로그 대표값을 표시합니다.',
+      currency: 'KRW',
+      sampleCount: 0,
+    },
+    priceHistory: {
+      askingSeries: [
+        {
+          date: '2026-05-28',
+          avgPrice: 162,
+          minPrice: 140,
+          maxPrice: 210,
+          sampleCount: 3,
+          currency: 'USD',
+        },
+        {
+          date: '2026-05-29',
+          avgPrice: 168,
+          minPrice: 150,
+          maxPrice: 205,
+          sampleCount: 4,
+          currency: 'USD',
+        },
+      ],
+      soldPoints: [],
+      currency: 'USD',
+      hasData: true,
     },
     printing: {
       id: 'printing-kr-004',

@@ -1,3 +1,9 @@
 {
-  "installCommand": "pnpm install --filter=tcg-round..."
+  "installCommand": "pnpm install --filter=tcg-round...",
+  "crons": [
+    {
+      "path": "/api/cron/collect-prices",
+      "schedule": "0 0 * * *"
+    }
+  ]
 }

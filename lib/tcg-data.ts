@@ -154,3 +154,13 @@ export function formatKrw(value: number) {
     maximumFractionDigits: 0,
   }).format(value);
 }
+
+/** Formats a price in its own currency. KRW shows no decimals; others show two. */
+export function formatPrice(value: number, currency: string) {
+  if (currency === 'KRW') return formatKrw(value);
+  return new Intl.NumberFormat('ko-KR', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: 2,
+  }).format(value);
+}

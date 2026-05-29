@@ -175,6 +175,8 @@ function createCard(index: number): PokemonCatalogCard {
       changeTone: 'up',
       lastUpdatedAt: '2026년 5월 22일',
       sourceLabel: '가격 데이터 연결 전까지 카탈로그 대표값을 표시합니다.',
+      currency: 'KRW',
+      sampleCount: 0,
     },
   };
 }
