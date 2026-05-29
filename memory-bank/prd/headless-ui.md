@@ -41,6 +41,7 @@
 - 라이브러리 내부 컴포넌트 간 import는 패키지 내부 상대 경로를 사용한다.
 - Radix, cmdk, cva, clsx, tailwind-merge 등 UI 런타임 의존성은 패키지가 직접 선언한다. 단, Button, Tabs, Dialog는 Radix primitive에 의존하지 않고 자체 primitive로 구현한다.
 - 직접 구현 primitive는 기본 ARIA role/state, 키보드 조작, focus 이동/복원, `asChild` prop 병합 동작을 테스트로 검증한다.
+- Button, Tabs, Dialog의 동작·접근성 레이어는 스타일이 없는 별도 패키지 `@tcground/headless`(unstyled 컴포넌트 + `data-*` hook)로 분리하고, `@tcground/ui`는 이를 소비해 cva/Tailwind 스타일만 입히는 styled 레이어로 둔다. `@tcground/ui`의 공개 API는 분리 전후로 동일하게 유지한다.
 - Storybook은 개발/검증용, Docusaurus는 제출/배포용 문서로 역할을 나눈다.
 - Docusaurus는 현재 로컬 Node 22에서 빌드 가능한 3.9.2 버전을 사용한다.
 - npm 공개 배포 전 `@tcground/ui`는 `private: false`, public `publishConfig`, README, package metadata, `dist` 기준 JS/type/CSS export를 갖춘다.
@@ -53,3 +54,5 @@
 - 2026-05-28: npm 공개 배포 전 요구사항과 수동 publish 권한 확인 기준 추가.
 - 2026-05-28: npm 공개 배포 후 루트 앱이 배포본을 소비하는 검증 기준 추가.
 - 2026-05-29: Button, Tabs, Dialog를 Radix 의존 없는 직접 구현 접근성 primitive로 전환하는 요구사항 추가.
+- 2026-05-29: 동작/접근성 레이어를 unstyled 패키지 `@tcground/headless`로 분리하고 `@tcground/ui`를 그 위의 styled 레이어로 전환(2-레이어 구조).
+- 2026-05-29: Button 패턴으로 Label/Separator/Checkbox/Switch/RadioGroup/AlertDialog/Sheet를 `@tcground/headless`로 추가 이전(positioning 엔진이 필요한 Popover/DropdownMenu/Select/Tooltip과 Avatar/Command는 후속 과제로 유지).

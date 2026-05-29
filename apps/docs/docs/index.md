@@ -6,7 +6,7 @@ title: 소개
 # TCGround UI
 
 TCGround UI는 기존 TCGround 앱 화면을 만들던 공통 UI 컴포넌트를 분리한 React 라이브러리입니다.
-shadcn/Radix 기반 컴포넌트와 TCGround 디자인 토큰을 패키지로 묶어 앱, Storybook, 문서가 같은 UI 계약을 사용하게 합니다.
+동작·접근성은 unstyled 패키지 `@tcground/headless`가 담당하고 `@tcground/ui`가 그 위에 TCGround 디자인 토큰으로 스타일을 입히는 2-레이어 구조로, 앱·Storybook·문서가 같은 UI 계약을 사용하게 합니다.
 
 ## 목표
 

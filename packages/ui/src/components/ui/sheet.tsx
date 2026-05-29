@@ -1,34 +1,43 @@
 'use client';
 
 import * as React from 'react';
-import { Dialog as SheetPrimitive } from 'radix-ui';
+import {
+  Sheet as HeadlessSheet,
+  SheetClose as HeadlessSheetClose,
+  SheetContent as HeadlessSheetContent,
+  SheetDescription as HeadlessSheetDescription,
+  SheetOverlay as HeadlessSheetOverlay,
+  SheetPortal as HeadlessSheetPortal,
+  SheetTitle as HeadlessSheetTitle,
+  SheetTrigger as HeadlessSheetTrigger,
+} from '@tcground/headless';
 
 import { cn } from '../../utils';
 import { Button } from './button';
 import { XIcon } from 'lucide-react';
 
-function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
-  return <SheetPrimitive.Root data-slot='sheet' {...props} />;
+function Sheet({ ...props }: React.ComponentProps<typeof HeadlessSheet>) {
+  return <HeadlessSheet {...props} />;
 }
 
-function SheetTrigger({ ...props }: React.ComponentProps<typeof SheetPrimitive.Trigger>) {
-  return <SheetPrimitive.Trigger data-slot='sheet-trigger' {...props} />;
+function SheetTrigger({ ...props }: React.ComponentProps<typeof HeadlessSheetTrigger>) {
+  return <HeadlessSheetTrigger data-slot='sheet-trigger' {...props} />;
 }
 
-function SheetClose({ ...props }: React.ComponentProps<typeof SheetPrimitive.Close>) {
-  return <SheetPrimitive.Close data-slot='sheet-close' {...props} />;
+function SheetClose({ ...props }: React.ComponentProps<typeof HeadlessSheetClose>) {
+  return <HeadlessSheetClose data-slot='sheet-close' {...props} />;
 }
 
-function SheetPortal({ ...props }: React.ComponentProps<typeof SheetPrimitive.Portal>) {
-  return <SheetPrimitive.Portal data-slot='sheet-portal' {...props} />;
+function SheetPortal({ ...props }: React.ComponentProps<typeof HeadlessSheetPortal>) {
+  return <HeadlessSheetPortal {...props} />;
 }
 
 function SheetOverlay({
   className,
   ...props
-}: React.ComponentProps<typeof SheetPrimitive.Overlay>) {
+}: React.ComponentProps<typeof HeadlessSheetOverlay>) {
   return (
-    <SheetPrimitive.Overlay
+    <HeadlessSheetOverlay
       data-slot='sheet-overlay'
       className={cn(
         'data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 fixed inset-0 z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs',
@@ -45,14 +54,14 @@ function SheetContent({
   side = 'right',
   showCloseButton = true,
   ...props
-}: React.ComponentProps<typeof SheetPrimitive.Content> & {
+}: React.ComponentProps<typeof HeadlessSheetContent> & {
   side?: 'top' | 'right' | 'bottom' | 'left';
   showCloseButton?: boolean;
 }) {
   return (
     <SheetPortal>
       <SheetOverlay />
-      <SheetPrimitive.Content
+      <HeadlessSheetContent
         data-slot='sheet-content'
         data-side={side}
         className={cn(
@@ -63,14 +72,14 @@ function SheetContent({
       >
         {children}
         {showCloseButton && (
-          <SheetPrimitive.Close data-slot='sheet-close' asChild>
+          <SheetClose asChild>
             <Button variant='ghost' className='absolute top-3 right-3' size='icon-sm'>
               <XIcon />
               <span className='sr-only'>Close</span>
             </Button>
-          </SheetPrimitive.Close>
+          </SheetClose>
         )}
-      </SheetPrimitive.Content>
+      </HeadlessSheetContent>
     </SheetPortal>
   );
 }
@@ -95,9 +104,9 @@ function SheetFooter({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function SheetTitle({ className, ...props }: React.ComponentProps<typeof SheetPrimitive.Title>) {
+function SheetTitle({ className, ...props }: React.ComponentProps<typeof HeadlessSheetTitle>) {
   return (
-    <SheetPrimitive.Title
+    <HeadlessSheetTitle
       data-slot='sheet-title'
       className={cn('font-heading text-foreground text-base font-medium', className)}
       {...props}
@@ -108,9 +117,9 @@ function SheetTitle({ className, ...props }: React.ComponentProps<typeof SheetPr
 function SheetDescription({
   className,
   ...props
-}: React.ComponentProps<typeof SheetPrimitive.Description>) {
+}: React.ComponentProps<typeof HeadlessSheetDescription>) {
   return (
-    <SheetPrimitive.Description
+    <HeadlessSheetDescription
       data-slot='sheet-description'
       className={cn('text-muted-foreground text-sm', className)}
       {...props}

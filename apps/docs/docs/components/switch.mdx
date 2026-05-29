@@ -15,7 +15,7 @@ import {
 # Switch
 
 on/off 두 상태를 가진 switch 컴포넌트입니다. 알림, 공개 여부, 자동 갱신처럼 상태 자체를 켜고 끄는 설정에 적합합니다.
-Radix Switch primitive 위에 TCGround 스타일을 얹은 styled UI 컴포넌트라 `theme.css`만 불러와도 track, thumb, checked, disabled 상태의 기본 스타일이 포함됩니다.
+switch role, checked 토글, disabled 같은 동작은 unstyled 패키지 `@tcground/headless`가 담당하고, `@tcground/ui`는 그 위에 스타일을 입힌 styled 레이어입니다. `theme.css`만 불러와도 track, thumb, checked, disabled 상태의 기본 스타일이 포함됩니다.
 
 <ComponentPreview code={`<Switch aria-label="알림" />`}>
   <DefaultExample />
@@ -82,7 +82,7 @@ export function Example() {
 
 ## API Reference
 
-`Switch` 는 Radix Switch Root props를 기반으로 합니다. 아래 표는 자주 쓰는 prop만 정리합니다.
+`Switch` 는 `@tcground/headless` Switch props(native button 속성 + 아래 prop)를 기반으로 합니다. 아래 표는 자주 쓰는 prop만 정리합니다.
 
 <PropsTable
   rows={[
@@ -113,6 +113,6 @@ export function Example() {
 
 ## 접근성
 
-- switch role과 checked 상태가 Radix primitive를 통해 노출됩니다.
-- `Space` / `Enter` 키로 활성화되고, Tab 키로 focus 됩니다.
+- switch role과 `aria-checked` 상태가 `@tcground/headless` primitive를 통해 노출됩니다.
+- `Space` 키로 토글되고 Tab 키로 focus 됩니다. `Enter` 는 폼이 의도치 않게 제출되지 않도록 무시합니다.
 - controlled 사용 시 `checked` 와 `onCheckedChange` 를 짝지어 사용해야 보조 기기와 화면 상태가 어긋나지 않습니다.

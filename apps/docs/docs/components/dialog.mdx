@@ -15,8 +15,7 @@ import {
 # Dialog
 
 사용자의 주의를 잡아 단일 결정을 받아내야 할 때 사용하는 모달 컴포넌트입니다.
-`@tcground/ui`가 직접 구현한 접근성 primitive로, `theme.css`만 불러와도 overlay, content, title, description, close button의 기본 스타일이 포함됩니다.
-내부에서 portal, trigger/content ARIA 연결, focus trap, ESC/overlay 닫기, focus 복원을 처리합니다.
+portal, trigger/content ARIA 연결, focus trap, ESC/overlay 닫기, focus 복원 같은 동작은 unstyled 패키지 `@tcground/headless`가 담당하고, `@tcground/ui`는 그 위에 스타일을 입힌 styled 레이어입니다. `theme.css`만 불러와도 overlay, content, title, description, close button의 기본 스타일이 포함됩니다.
 
 <ComponentPreview
   code={`<Dialog>

@@ -1,7 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { Separator as SeparatorPrimitive } from 'radix-ui';
+import {
+  Separator as HeadlessSeparator,
+  type SeparatorProps as HeadlessSeparatorProps,
+} from '@tcground/headless';
 
 import { cn } from '../../utils';
 
@@ -10,9 +13,9 @@ function Separator({
   orientation = 'horizontal',
   decorative = true,
   ...props
-}: React.ComponentProps<typeof SeparatorPrimitive.Root>) {
+}: HeadlessSeparatorProps) {
   return (
-    <SeparatorPrimitive.Root
+    <HeadlessSeparator
       data-slot='separator'
       decorative={decorative}
       orientation={orientation}

@@ -10,8 +10,7 @@ import { BasicExample, ControlledExample } from '@site/src/components/examples/t
 # Tabs
 
 여러 개의 관련된 패널 중 하나만 표시하는 컴포넌트입니다.
-`@tcground/ui`가 직접 구현한 접근성 primitive로, `theme.css`만 불러와도 list, trigger, active, panel의 기본 스타일이 포함됩니다.
-내부에서 tablist/tab/tabpanel ARIA 연결, roving tabindex, 방향키 이동과 활성화를 처리합니다.
+tablist/tab/tabpanel ARIA 연결, roving tabindex, 방향키 이동과 활성화 같은 동작은 unstyled 패키지 `@tcground/headless`가 담당하고, `@tcground/ui`는 그 위에 스타일을 입힌 styled 레이어입니다. `theme.css`만 불러와도 list, trigger, active, panel의 기본 스타일이 포함됩니다.
 
 <ComponentPreview
   code={`<Tabs defaultValue="usage">

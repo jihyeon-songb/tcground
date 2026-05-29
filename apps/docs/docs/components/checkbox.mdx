@@ -14,7 +14,7 @@ import {
 # Checkbox
 
 독립적인 boolean 값을 입력받는 체크박스입니다.
-Radix Checkbox primitive 위에 TCGround 스타일을 얹었고, checked, disabled, invalid 상태를 token으로 표현합니다.
+checkbox role, `aria-checked`(indeterminate 포함), Space 토글 같은 동작은 unstyled 패키지 `@tcground/headless`가 담당하고, `@tcground/ui`는 그 위에 checked, disabled, invalid 상태를 token으로 표현한 styled 레이어입니다.
 
 <ComponentPreview
   code={`<Label>
@@ -83,7 +83,7 @@ export function Example() {
 
 ## API Reference
 
-`Checkbox`는 Radix Checkbox Root props를 기반으로 합니다.
+`Checkbox`는 `@tcground/headless` Checkbox props(native button 속성 + checked/onCheckedChange 등)를 기반으로 합니다.
 
 <PropsTable
   rows={[

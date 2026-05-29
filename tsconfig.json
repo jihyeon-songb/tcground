@@ -21,7 +21,9 @@
     "paths": {
       "@/*": ["./*"],
       "@tcground/ui": ["./packages/ui/src"],
-      "@tcground/ui/*": ["./packages/ui/src/*"]
+      "@tcground/ui/*": ["./packages/ui/src/*"],
+      "@tcground/headless": ["./packages/headless/src"],
+      "@tcground/headless/*": ["./packages/headless/src/*"]
     }
   },
   "include": [

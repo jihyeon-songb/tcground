@@ -1,31 +1,39 @@
 'use client';
 
 import * as React from 'react';
-import { AlertDialog as AlertDialogPrimitive } from 'radix-ui';
+import {
+  AlertDialog as HeadlessAlertDialog,
+  AlertDialogAction as HeadlessAlertDialogAction,
+  AlertDialogCancel as HeadlessAlertDialogCancel,
+  AlertDialogContent as HeadlessAlertDialogContent,
+  AlertDialogDescription as HeadlessAlertDialogDescription,
+  AlertDialogOverlay as HeadlessAlertDialogOverlay,
+  AlertDialogPortal as HeadlessAlertDialogPortal,
+  AlertDialogTitle as HeadlessAlertDialogTitle,
+  AlertDialogTrigger as HeadlessAlertDialogTrigger,
+} from '@tcground/headless';
 
 import { cn } from '../../utils';
 import { Button } from './button';
 
-function AlertDialog({ ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
-  return <AlertDialogPrimitive.Root data-slot='alert-dialog' {...props} />;
+function AlertDialog({ ...props }: React.ComponentProps<typeof HeadlessAlertDialog>) {
+  return <HeadlessAlertDialog {...props} />;
 }
 
-function AlertDialogTrigger({
-  ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Trigger>) {
-  return <AlertDialogPrimitive.Trigger data-slot='alert-dialog-trigger' {...props} />;
+function AlertDialogTrigger({ ...props }: React.ComponentProps<typeof HeadlessAlertDialogTrigger>) {
+  return <HeadlessAlertDialogTrigger data-slot='alert-dialog-trigger' {...props} />;
 }
 
-function AlertDialogPortal({ ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Portal>) {
-  return <AlertDialogPrimitive.Portal data-slot='alert-dialog-portal' {...props} />;
+function AlertDialogPortal({ ...props }: React.ComponentProps<typeof HeadlessAlertDialogPortal>) {
+  return <HeadlessAlertDialogPortal {...props} />;
 }
 
 function AlertDialogOverlay({
   className,
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Overlay>) {
+}: React.ComponentProps<typeof HeadlessAlertDialogOverlay>) {
   return (
-    <AlertDialogPrimitive.Overlay
+    <HeadlessAlertDialogOverlay
       data-slot='alert-dialog-overlay'
       className={cn(
         'data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 fixed inset-0 z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs',
@@ -40,13 +48,13 @@ function AlertDialogContent({
   className,
   size = 'default',
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Content> & {
+}: React.ComponentProps<typeof HeadlessAlertDialogContent> & {
   size?: 'default' | 'sm';
 }) {
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
-      <AlertDialogPrimitive.Content
+      <HeadlessAlertDialogContent
         data-slot='alert-dialog-content'
         data-size={size}
         className={cn(
@@ -101,9 +109,9 @@ function AlertDialogMedia({ className, ...props }: React.ComponentProps<'div'>) 
 function AlertDialogTitle({
   className,
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Title>) {
+}: React.ComponentProps<typeof HeadlessAlertDialogTitle>) {
   return (
-    <AlertDialogPrimitive.Title
+    <HeadlessAlertDialogTitle
       data-slot='alert-dialog-title'
       className={cn(
         'font-heading text-base font-medium sm:group-data-[size=default]/alert-dialog-content:group-has-data-[slot=alert-dialog-media]/alert-dialog-content:col-start-2',
@@ -117,9 +125,9 @@ function AlertDialogTitle({
 function AlertDialogDescription({
   className,
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Description>) {
+}: React.ComponentProps<typeof HeadlessAlertDialogDescription>) {
   return (
-    <AlertDialogPrimitive.Description
+    <HeadlessAlertDialogDescription
       data-slot='alert-dialog-description'
       className={cn(
         'text-muted-foreground *:[a]:hover:text-foreground text-sm text-balance md:text-pretty *:[a]:underline *:[a]:underline-offset-3',
@@ -135,11 +143,11 @@ function AlertDialogAction({
   variant = 'default',
   size = 'default',
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Action> &
+}: React.ComponentProps<typeof HeadlessAlertDialogAction> &
   Pick<React.ComponentProps<typeof Button>, 'variant' | 'size'>) {
   return (
     <Button variant={variant} size={size} asChild>
-      <AlertDialogPrimitive.Action
+      <HeadlessAlertDialogAction
         data-slot='alert-dialog-action'
         className={cn(className)}
         {...props}
@@ -153,11 +161,11 @@ function AlertDialogCancel({
   variant = 'outline',
   size = 'default',
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Cancel> &
+}: React.ComponentProps<typeof HeadlessAlertDialogCancel> &
   Pick<React.ComponentProps<typeof Button>, 'variant' | 'size'>) {
   return (
     <Button variant={variant} size={size} asChild>
-      <AlertDialogPrimitive.Cancel
+      <HeadlessAlertDialogCancel
         data-slot='alert-dialog-cancel'
         className={cn(className)}
         {...props}

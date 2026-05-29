@@ -11,7 +11,7 @@ import { BottomExample, LeftExample, RightExample } from '@site/src/components/e
 # Sheet
 
 페이지 맥락을 유지하면서 필터, 모바일 탐색, 짧은 설정을 표시하는 edge panel입니다.
-Radix Dialog primitive를 기반으로 하므로 modal focus 관리와 ESC 닫기 동작을 제공합니다.
+`@tcground/headless` Dialog primitive를 기반으로 하므로 modal focus 관리와 ESC 닫기 동작을 제공합니다.
 
 <ComponentPreview
   code={`<Sheet>
@@ -197,7 +197,7 @@ export function Example() {
 
 ### SheetTrigger / SheetClose / Header / Footer / Title / Description
 
-대응되는 Radix Dialog primitive 또는 native element props를 그대로 받습니다. `SheetTrigger`와 `SheetClose`는 `asChild`를 지원합니다.
+대응되는 `@tcground/headless` Sheet(Dialog) part 또는 native element props를 그대로 받습니다. `SheetTrigger`와 `SheetClose`는 `asChild`를 지원합니다.
 
 ## 접근성
 
