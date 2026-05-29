@@ -297,6 +297,28 @@
 - [x] 관련 Docusaurus 문서의 Radix 기반 설명을 직접 primitive 설명으로 갱신.
 - [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build:ui`, `pnpm build:docs` 검증.
 
+### 4.17 Headless 레이어 분리 (`@tcground/headless`)
+
+- 영향 파일: `packages/headless/*`(신규 패키지), `packages/ui/src/components/ui/button.tsx`, `packages/ui/src/components/ui/tabs.tsx`, `packages/ui/src/components/ui/dialog.tsx`, `packages/ui/package.json`, `packages/ui/tsconfig.json`, `tsconfig.json`, `vitest.config.mts`, `memory-bank/prd/headless-ui.md`, `memory-bank/implementation-plan.md`.
+- 최소 변경 범위: 4.16에서 직접 구현한 Button/Tabs/Dialog의 동작·접근성 로직을 스타일이 전혀 없는 신규 패키지 `@tcground/headless`(unstyled 컴포넌트 + `data-*` hook, Radix Primitives 방식)로 분리한다. `@tcground/ui`는 이 headless 컴포넌트를 소비해 cva/Tailwind 스타일만 입히는 styled 레이어로 전환한다. 공용 primitive(`PrimitiveSlot`/`composeEventHandlers`/`composeRefs`)는 headless로 이동한다. `@tcground/ui`의 공개 export·props는 변경하지 않아 소비처 영향이 없다.
+- [x] `@tcground/headless` 패키지 부트스트랩(package.json/tsconfig/build, public publishConfig).
+- [x] primitive 헬퍼와 Button/Tabs/Dialog headless 구현 이전(스타일 제거, className 통과, data-attr 계약 보존).
+- [x] `@tcground/ui` Button/Tabs/Dialog를 headless 위 styled 래퍼로 재작성, `@tcground/headless` 의존성 추가.
+- [x] headless 동작/ARIA/키보드/focus/asChild 단위 테스트 추가.
+- [x] resolution 배선: root tsconfig path alias + vitest alias, ui tsconfig `paths` override(node_modules dist 해석).
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `vitest run`, `@tcground/headless`·`@tcground/ui` build 검증.
+- [ ] 배포 시 `@tcground/headless`를 `@tcground/ui`의 런타임 의존성으로 함께 npm 공개 배포(외부 설치 계약 성립 조건).
+
+### 4.18 Headless 컴포넌트 확장 (Label/Separator/Checkbox/Switch/RadioGroup/AlertDialog/Sheet)
+
+- 영향 파일: `packages/headless/src/{label,separator,checkbox,switch,radio-group,alert-dialog,sheet}.tsx`(신규)와 각 `*.test.tsx`, `packages/headless/src/dialog.tsx`, `packages/headless/src/index.ts`, `packages/headless/README.md`, `packages/ui/src/components/ui/{label,separator,badge,checkbox,switch,radio-group,alert-dialog,sheet}.tsx`, `memory-bank/prd/headless-ui.md`, `memory-bank/implementation-plan.md`.
+- 최소 변경 범위: Button 패턴(thin headless primitive + styled wrapper)으로 positioning 엔진이 필요 없는 나머지 Radix 의존 컴포넌트를 `@tcground/headless`로 이전한다. `@tcground/ui`의 공개 export·props와 styled CSS가 읽는 boolean `data-*` 계약(`data-checked`/`data-unchecked`/`data-disabled`/`data-horizontal`/`data-vertical`/`data-open`)을 그대로 유지한다. Floating 오버레이(`popover`/`dropdown-menu`/`select`/`tooltip`)와 `avatar`(이미지 로드 상태)·`command`(cmdk)는 이번 범위에서 제외한다.
+- [x] Label, Separator headless 구현 + ui wrapper 전환, `badge`의 `Slot`을 headless `PrimitiveSlot`로 교체.
+- [x] Checkbox, Switch, RadioGroup headless 구현(ARIA role/`aria-checked`, Space 토글, radio roving 방향키 선택, controlled/uncontrolled) + ui wrapper 전환.
+- [x] `dialog.tsx`를 `role`/`dismissOnOverlayClick` 옵션으로 일반화하고 AlertDialog(`role=alertdialog`, overlay 클릭 미닫힘) / Sheet를 그 위에 구성 + ui wrapper 전환.
+- [x] 신규 headless 단위 테스트 추가, `index.ts` export와 README Components 목록 갱신.
+- [x] `pnpm exec tsc --noEmit`, `pnpm exec vitest run`, `pnpm lint`, `pnpm --filter @tcground/headless build`, `pnpm build:ui`, `pnpm build:docs`, `pnpm build-storybook` 검증.
+
 ### 5. 품질 게이트이
 
 - [x] `pnpm lint`

@@ -14,7 +14,7 @@ import {
 # Label
 
 form control의 이름을 표시하고 클릭 영역을 연결하는 라벨 컴포넌트입니다.
-Radix Label primitive 기반이라 `htmlFor`로 입력 요소와 연결하면 클릭 시 해당 control로 focus가 이동합니다.
+`@tcground/headless` Label primitive 기반이라 `htmlFor`로 입력 요소와 연결하면 클릭 시 해당 control로 focus가 이동합니다.
 
 <ComponentPreview code={`<Label>이메일</Label>`}>
   <DefaultExample />
@@ -77,7 +77,7 @@ export function Example() {
 
 ## API Reference
 
-`Label`은 Radix Label Root props를 기반으로 합니다.
+`Label`은 native `<label>` props를 기반으로 합니다.
 
 <PropsTable
   rows={[

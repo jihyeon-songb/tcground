@@ -15,7 +15,7 @@ import {
 # Alert Dialog
 
 사용자가 실수로 실행하면 안 되는 작업을 한 번 더 확인할 때 사용하는 모달 컴포넌트입니다.
-Radix Alert Dialog primitive 기반이며, destructive action, cancel action, title, description을 명확하게 분리합니다.
+`@tcground/headless` AlertDialog(= `role="alertdialog"` Dialog) 기반이며, destructive action, cancel action, title, description을 명확하게 분리합니다. overlay 클릭으로는 닫히지 않고 ESC와 cancel/action으로만 닫힙니다.
 
 <ComponentPreview
   code={`<AlertDialog>
@@ -231,11 +231,11 @@ export function Example() {
 
 ### AlertDialogTrigger / Header / Footer / Media / Title / Description
 
-대응되는 Radix primitive 또는 native element props를 그대로 받습니다. `AlertDialogTrigger`는 `asChild`를 지원합니다.
+대응되는 `@tcground/headless` AlertDialog part 또는 native element props를 그대로 받습니다. `AlertDialogTrigger`는 `asChild`를 지원합니다.
 
 ## 접근성
 
-- Content는 alert dialog role과 modal semantics를 Radix primitive에서 제공합니다.
+- Content는 alert dialog role과 modal semantics를 `@tcground/headless` primitive에서 제공합니다.
 - Title과 Description을 함께 배치해 사용자가 결정의 결과를 이해할 수 있게 합니다.
 - Cancel action은 항상 명확한 텍스트로 제공하고, destructive action은 시각적으로 구분합니다.
 - ESC 키와 cancel action으로 닫을 수 있으며, 닫힌 뒤 focus는 trigger로 복원됩니다.
