@@ -9,6 +9,7 @@ export default function uiLibraryResolvePlugin(): Plugin {
         resolve: {
           alias: {
             '@tcground/ui': path.resolve(__dirname, '../../../packages/ui/src'),
+            '@tcground/headless': path.resolve(__dirname, '../../../packages/headless/src'),
           },
         },
         module: {

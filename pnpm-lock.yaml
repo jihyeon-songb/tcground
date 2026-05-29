@@ -149,8 +149,30 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  packages/headless:
+    dependencies:
+      react:
+        specifier: '>=18.2.0 <20.0.0'
+        version: 19.2.4
+      react-dom:
+        specifier: '>=18.2.0 <20.0.0'
+        version: 19.2.4(react@19.2.4)
+    devDependencies:
+      '@types/react':
+        specifier: ^19
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.3(@types/react@19.2.14)
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
   packages/ui:
     dependencies:
+      '@tcground/headless':
+        specifier: workspace:^
+        version: link:../headless
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
