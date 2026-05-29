@@ -1,0 +1,65 @@
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import type { FormEvent } from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { Button } from './button';
+
+describe('Button', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('uses type button by default inside forms', () => {
+    const onSubmit = vi.fn((event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+    });
+
+    render(
+      <form onSubmit={onSubmit}>
+        <Button>기본 버튼</Button>
+      </form>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '기본 버튼' }));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('submits forms when type submit is explicit', () => {
+    const onSubmit = vi.fn((event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+    });
+
+    render(
+      <form onSubmit={onSubmit}>
+        <Button type='submit'>제출 버튼</Button>
+      </form>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '제출 버튼' }));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('exposes the button data-slot hook', () => {
+    render(<Button>검색</Button>);
+
+    expect(screen.getByRole('button', { name: '검색' }).getAttribute('data-slot')).toBe('button');
+  });
+
+  it('maps disabled semantics when rendered as a child element', () => {
+    const onClick = vi.fn();
+
+    render(
+      <Button asChild disabled onClick={onClick}>
+        <a href='https://example.com/cards'>카드 보기</a>
+      </Button>,
+    );
+
+    const link = screen.getByRole('link', { name: '카드 보기' });
+    fireEvent.click(link);
+
+    expect(link.getAttribute('aria-disabled')).toBe('true');
+    expect(link.getAttribute('tabindex')).toBe('-1');
+    expect(onClick).not.toHaveBeenCalled();
+  });
+});

@@ -22,6 +22,7 @@ node_modules/
 /apps/docs/build
 /apps/docs/.docusaurus
 /packages/ui/dist
+/packages/headless/dist
 
 # misc
 .DS_Store
