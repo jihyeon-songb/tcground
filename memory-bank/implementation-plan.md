@@ -256,11 +256,21 @@
 - 영향 파일: `apps/docs/docs/components/**`, `apps/docs/src/components/examples/**`, `apps/docs/sidebars.ts`, `packages/ui/src/theme.css`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
 - 최소 변경 범위: `@tcground/ui`가 export하는 24개 공통 UI 컴포넌트 중 이미 문서화된 `button`, `dialog`, `dropdown-menu`, `tabs`, `switch`를 제외한 19개 컴포넌트의 Docusaurus 문서를 추가한다. 기존 MDX 구조(개요, 설치, 사용법, 예제, API Reference, 접근성)와 `ComponentPreview`/`PropsTable` 패턴을 유지한다. 문서 preview가 Tailwind 생성에 의존하지 않도록 필요한 `theme.css` fallback만 최소 보강한다.
 - [x] PR1: 폼/입력 계열 문서 작성 — `input`, `textarea`, `label`, `checkbox`, `radio-group`, `select`, `input-group`.
-- [ ] PR2: 피드백/표시 계열 문서 작성 — `alert`, `badge`, `card`, `avatar`, `separator`, `skeleton`, `table`.
-- [ ] PR3: 오버레이/복합 인터랙션 문서 작성 — `alert-dialog`, `popover`, `sheet`, `tooltip`, `command`.
+- [x] PR2: 피드백/표시 계열 문서 작성 — `alert`, `badge`, `card`, `avatar`, `separator`, `skeleton`, `table`.
+- [x] PR3: 오버레이/복합 인터랙션 문서 작성 — `alert-dialog`, `popover`, `sheet`, `tooltip`, `command`.
+  - 영향 파일: `apps/docs/docs/components/{alert-dialog,popover,sheet,tooltip,command}.mdx`, `apps/docs/src/components/examples/{alert-dialog,popover,sheet,tooltip,command}/**`, `apps/docs/sidebars.ts`, `packages/ui/src/theme.css`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+  - 최소 변경 범위: 기존 문서 패턴과 `@tcground/ui` export API를 유지하며, Tailwind class 생성 없이 Docusaurus preview가 보이도록 PR3 대상의 `data-slot` fallback 스타일만 보강한다.
 - [x] PR1 컴포넌트별 example 파일과 `index.ts` export 추가.
+- [x] PR2 컴포넌트별 example 파일과 `index.ts` export 추가.
+- [x] PR3 컴포넌트별 example 파일과 `index.ts` export 추가.
 - [x] PR1 기준 `apps/docs/sidebars.ts` 컴포넌트 목록을 실제 문서 목록과 동기화.
+- [x] PR2 기준 `apps/docs/sidebars.ts` 컴포넌트 목록을 실제 문서 목록과 동기화.
+- [x] PR3 기준 `apps/docs/sidebars.ts` 컴포넌트 목록을 실제 문서 목록과 동기화.
+- [x] PR2 preview가 Tailwind 생성에 의존하지 않도록 `theme.css` fallback 스타일 보강.
+- [x] PR3 preview가 Tailwind 생성에 의존하지 않도록 `theme.css` fallback 스타일 보강.
 - [x] PR1 기준 `pnpm build:docs`, `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
+- [x] PR2 기준 `pnpm build:docs`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
+- [x] PR3 기준 `pnpm build:docs`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
 
 ### 5. 품질 게이트이
 
@@ -351,4 +361,4 @@
 
 ## 다음 작업
 
-`@tcground/ui` Button의 앱 소비 전환, 기본 스타일 polish, Docusaurus Button/Dialog/Dropdown Menu/Tabs/Switch preview fallback fix, Dropdown Menu interaction fix, API Reference table layout fix, npm 공개 배포 준비, 루트 앱의 npm 배포본 소비 전환은 완료했다. 기존 TCGround 가격 추적 작업의 다음 단계는 eBay Buy API/Marketplace Insights production access와 API License Agreement 준수 범위를 확인한 뒤 adapter 계약을 확정하는 것이다.
+`@tcground/ui` Button의 앱 소비 전환, 기본 스타일 polish, Docusaurus Button/Dialog/Dropdown Menu/Tabs/Switch preview fallback fix, Dropdown Menu interaction fix, API Reference table layout fix, npm 공개 배포 준비, 루트 앱의 npm 배포본 소비 전환, Docusaurus 컴포넌트 문서 4.14 PR1~PR3은 완료했다. 기존 TCGround 가격 추적 작업의 다음 단계는 eBay Buy API/Marketplace Insights production access와 API License Agreement 준수 범위를 확인한 뒤 adapter 계약을 확정하는 것이다.

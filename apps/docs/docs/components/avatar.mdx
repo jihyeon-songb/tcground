@@ -1,0 +1,148 @@
+---
+title: Avatar
+description: 사용자나 엔티티를 원형 이미지, fallback, badge, group으로 표시하는 컴포넌트.
+---
+
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {
+  DefaultExample,
+  FallbackSizesExample,
+  GroupExample,
+  WithBadgeExample,
+} from '@site/src/components/examples/avatar';
+
+# Avatar
+
+사용자나 엔티티를 원형 이미지로 표현하는 컴포넌트입니다.
+이미지가 로드되지 않으면 `AvatarFallback`이 표시되며, 상태 표시용 badge와 겹쳐 보이는 group 구성을 함께 제공합니다.
+
+<ComponentPreview
+  code={`<Avatar>
+  <AvatarImage src="https://i.pravatar.cc/64?img=12" alt="사용자" />
+  <AvatarFallback>JH</AvatarFallback>
+</Avatar>`}
+>
+  <DefaultExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import { Avatar, AvatarFallback, AvatarImage } from '@tcground/ui';
+
+export function Example() {
+  return (
+    <Avatar>
+      <AvatarImage src='https://i.pravatar.cc/64?img=12' alt='사용자' />
+      <AvatarFallback>JH</AvatarFallback>
+    </Avatar>
+  );
+}
+```
+
+## 예제
+
+### 기본
+
+<ComponentPreview
+  code={`<Avatar>
+  <AvatarImage src="https://i.pravatar.cc/64?img=12" alt="사용자" />
+  <AvatarFallback>JH</AvatarFallback>
+</Avatar>`}
+>
+  <DefaultExample />
+</ComponentPreview>
+
+### Fallback and sizes
+
+<ComponentPreview
+  code={`<Avatar size="sm"><AvatarFallback>SM</AvatarFallback></Avatar>
+<Avatar><AvatarFallback>MD</AvatarFallback></Avatar>
+<Avatar size="lg"><AvatarFallback>LG</AvatarFallback></Avatar>`}
+>
+  <FallbackSizesExample />
+</ComponentPreview>
+
+### Badge
+
+<ComponentPreview
+  code={`<Avatar>
+  <AvatarImage src="https://i.pravatar.cc/64?img=5" alt="사용자" />
+  <AvatarFallback>SH</AvatarFallback>
+  <AvatarBadge />
+</Avatar>`}
+>
+  <WithBadgeExample />
+</ComponentPreview>
+
+### Group
+
+<ComponentPreview
+  code={`<AvatarGroup>
+  <Avatar><AvatarFallback>A</AvatarFallback></Avatar>
+  <Avatar><AvatarFallback>B</AvatarFallback></Avatar>
+  <Avatar><AvatarFallback>C</AvatarFallback></Avatar>
+  <AvatarGroupCount>+3</AvatarGroupCount>
+</AvatarGroup>`}
+>
+  <GroupExample />
+</ComponentPreview>
+
+## API Reference
+
+### Avatar
+
+<PropsTable
+  rows={[
+    {
+      name: 'size',
+      type: "'sm' | 'default' | 'lg'",
+      default: "'default'",
+      description: 'Avatar와 group count의 크기를 조정합니다.',
+    },
+    {
+      name: 'className',
+      type: 'string',
+      description: '기본 스타일 위에 추가할 className.',
+    },
+  ]}
+/>
+
+### AvatarImage
+
+<PropsTable
+  rows={[
+    {
+      name: 'src',
+      type: 'string',
+      description: '표시할 이미지 URL.',
+    },
+    {
+      name: 'alt',
+      type: 'string',
+      description: '이미지의 대체 텍스트. 장식용이면 빈 문자열을 사용합니다.',
+    },
+  ]}
+/>
+
+### AvatarFallback / AvatarBadge / AvatarGroup / AvatarGroupCount
+
+각 subcomponent는 대응되는 Radix primitive 또는 native element props를 그대로 받습니다.
+
+## 접근성
+
+- 사용자 사진은 식별 가능한 `alt`를 제공합니다. 주변 텍스트가 이미 사용자를 설명하면 `alt=""`로 중복을 줄입니다.
+- fallback 이니셜은 너무 많은 글자를 넣지 않고 1-2글자 정도로 유지합니다.
+- 상태 badge는 색상만으로 중요한 정보를 전달하지 않습니다. 필요한 경우 별도 텍스트나 tooltip을 함께 제공합니다.
+- group은 겹쳐 보이는 시각 표현일 뿐이므로 실제 참여자 목록이 필요하면 별도 텍스트로 제공합니다.

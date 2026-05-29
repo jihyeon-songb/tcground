@@ -1,0 +1,191 @@
+---
+title: Tooltip
+description: hover 또는 focus 시 짧은 보조 설명을 표시하는 컴포넌트.
+---
+
+import BrowserOnly from '@docusaurus/BrowserOnly';
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {
+  DefaultExample,
+  ShortcutExample,
+  SideExample,
+} from '@site/src/components/examples/tooltip';
+
+# Tooltip
+
+버튼, 아이콘, 데이터 라벨에 짧은 설명을 붙일 때 사용합니다.
+상호작용이 필요한 내용이나 긴 설명은 Tooltip이 아니라 Popover 또는 Dialog로 분리합니다.
+
+<ComponentPreview
+  code={`<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Button variant="outline">평균가</Button>
+    </TooltipTrigger>
+    <TooltipContent>최근 30일 실거래가 기준</TooltipContent>
+  </Tooltip>
+</TooltipProvider>`}
+>
+  <BrowserOnly>{() => <DefaultExample />}</BrowserOnly>
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+앱 루트나 문서 preview 영역을 `TooltipProvider`로 감싸고, 각 trigger/content를 `Tooltip` 안에 배치합니다.
+
+```tsx
+import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@tcground/ui';
+
+export function Example() {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant='outline'>평균가</Button>
+        </TooltipTrigger>
+        <TooltipContent>최근 30일 실거래가 기준</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+```
+
+## 예제
+
+### 기본
+
+Trigger에 hover 또는 keyboard focus가 들어가면 tooltip이 표시됩니다.
+
+<ComponentPreview
+  code={`<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Button variant="outline">평균가</Button>
+    </TooltipTrigger>
+    <TooltipContent>최근 30일 실거래가 기준</TooltipContent>
+  </Tooltip>
+</TooltipProvider>`}
+>
+  <BrowserOnly>{() => <DefaultExample />}</BrowserOnly>
+</ComponentPreview>
+
+### Side offset
+
+`side`와 `sideOffset`으로 trigger와 tooltip 사이 위치를 조정합니다.
+
+<ComponentPreview
+  code={`<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Button variant="outline">표본 수</Button>
+    </TooltipTrigger>
+    <TooltipContent side="right" sideOffset={8}>
+      이상치 제거 후 남은 거래 건수입니다.
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>`}
+>
+  <BrowserOnly>{() => <SideExample />}</BrowserOnly>
+</ComponentPreview>
+
+### Shortcut
+
+짧은 keyboard shortcut 힌트는 `kbd`를 함께 배치할 수 있습니다.
+
+<ComponentPreview
+  code={`<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Button variant="ghost">검색</Button>
+    </TooltipTrigger>
+    <TooltipContent>
+      카드 검색 <kbd data-slot="kbd">⌘K</kbd>
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>`}
+>
+  <BrowserOnly>{() => <ShortcutExample />}</BrowserOnly>
+</ComponentPreview>
+
+## API Reference
+
+### TooltipProvider
+
+<PropsTable
+  rows={[
+    {
+      name: 'delayDuration',
+      type: 'number',
+      default: '0',
+      description: 'Tooltip 표시 전 대기 시간(ms).',
+    },
+    {
+      name: 'skipDelayDuration',
+      type: 'number',
+      description: '연속 tooltip 이동 시 delay를 생략하는 시간(ms).',
+    },
+  ]}
+/>
+
+### Tooltip
+
+<PropsTable
+  rows={[
+    {
+      name: 'defaultOpen',
+      type: 'boolean',
+      default: 'false',
+      description: 'uncontrolled 모드에서 초기 open 상태.',
+    },
+    {
+      name: 'open',
+      type: 'boolean',
+      description: 'controlled open 상태.',
+    },
+    {
+      name: 'onOpenChange',
+      type: '(open: boolean) => void',
+      description: 'open 상태가 바뀔 때 호출됩니다.',
+    },
+  ]}
+/>
+
+### TooltipContent
+
+<PropsTable
+  rows={[
+    {
+      name: 'side',
+      type: "'top' | 'right' | 'bottom' | 'left'",
+      description: 'content가 열리는 방향.',
+    },
+    {
+      name: 'sideOffset',
+      type: 'number',
+      default: '0',
+      description: 'trigger와 content 사이 간격.',
+    },
+  ]}
+/>
+
+### TooltipTrigger
+
+`asChild`를 지원하며, 보통 icon button 또는 짧은 text button에 연결합니다.
+
+## 접근성
+
+- Trigger는 hover뿐 아니라 keyboard focus에서도 tooltip을 표시합니다.
+- Tooltip 내용은 짧은 보조 설명에 제한합니다.
+- 클릭 가능한 요소나 form control은 TooltipContent 안에 넣지 않습니다.
+- 이미 visible label이 충분히 설명적인 경우 Tooltip을 중복 사용하지 않습니다.

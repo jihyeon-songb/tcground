@@ -1,0 +1,210 @@
+---
+title: Popover
+description: trigger 근처에 보조 정보와 짧은 상호작용을 표시하는 floating panel.
+---
+
+import BrowserOnly from '@docusaurus/BrowserOnly';
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {
+  ControlledExample,
+  DefaultExample,
+  WithActionsExample,
+} from '@site/src/components/examples/popover';
+
+# Popover
+
+현재 화면을 떠나지 않고 trigger와 관련된 짧은 정보, 필터 요약, 작은 설정을 표시할 때 사용합니다.
+`PopoverContent`는 portal로 렌더되고 Radix positioning props를 그대로 사용할 수 있습니다.
+
+<ComponentPreview
+  code={`<Popover>
+  <PopoverTrigger asChild>
+    <Button variant="outline">가격 알림</Button>
+  </PopoverTrigger>
+  <PopoverContent>
+    <PopoverHeader>
+      <PopoverTitle>가격 알림</PopoverTitle>
+      <PopoverDescription>
+        관심 카드의 평균가가 10% 이상 변동하면 알림을 보냅니다.
+      </PopoverDescription>
+    </PopoverHeader>
+  </PopoverContent>
+</Popover>`}
+>
+  <BrowserOnly>{() => <DefaultExample />}</BrowserOnly>
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import {
+  Button,
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from '@tcground/ui';
+
+export function Example() {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant='outline'>열기</Button>
+      </PopoverTrigger>
+      <PopoverContent>
+        <PopoverHeader>
+          <PopoverTitle>제목</PopoverTitle>
+          <PopoverDescription>보조 설명</PopoverDescription>
+        </PopoverHeader>
+      </PopoverContent>
+    </Popover>
+  );
+}
+```
+
+## 예제
+
+### 기본
+
+짧은 설명만 필요한 경우 `PopoverHeader`, `PopoverTitle`, `PopoverDescription` 조합을 사용합니다.
+
+<ComponentPreview
+  code={`<Popover>
+  <PopoverTrigger asChild>
+    <Button variant="outline">가격 알림</Button>
+  </PopoverTrigger>
+  <PopoverContent>
+    <PopoverHeader>
+      <PopoverTitle>가격 알림</PopoverTitle>
+      <PopoverDescription>
+        관심 카드의 평균가가 10% 이상 변동하면 알림을 보냅니다.
+      </PopoverDescription>
+    </PopoverHeader>
+  </PopoverContent>
+</Popover>`}
+>
+  <BrowserOnly>{() => <DefaultExample />}</BrowserOnly>
+</ComponentPreview>
+
+### Actions
+
+Popover 안에는 button, form control, 짧은 설명을 함께 배치할 수 있습니다. 긴 폼이나 복잡한 탐색은 Dialog 또는 Sheet를 사용합니다.
+
+<ComponentPreview
+  code={`<Popover>
+  <PopoverTrigger asChild>
+    <Button>필터 요약</Button>
+  </PopoverTrigger>
+  <PopoverContent align="start">
+    <PopoverHeader>
+      <PopoverTitle>현재 필터</PopoverTitle>
+      <PopoverDescription>
+        포켓몬, 한국판, 최근 30일 거래가 기준입니다.
+      </PopoverDescription>
+    </PopoverHeader>
+    <div>
+      <Button variant="ghost" size="sm">초기화</Button>
+      <Button size="sm">적용</Button>
+    </div>
+  </PopoverContent>
+</Popover>`}
+>
+  <BrowserOnly>{() => <WithActionsExample />}</BrowserOnly>
+</ComponentPreview>
+
+### Controlled
+
+`open` / `onOpenChange`를 사용하면 Popover를 다른 인터랙션 상태와 함께 제어할 수 있습니다.
+
+<ComponentPreview
+  code={`const [open, setOpen] = useState(false);
+
+<Popover open={open} onOpenChange={setOpen}>
+  <PopoverTrigger asChild>
+    <Button variant="outline">제어된 Popover</Button>
+  </PopoverTrigger>
+  <PopoverContent>
+    <PopoverHeader>
+      <PopoverTitle>외부 상태와 동기화</PopoverTitle>
+      <PopoverDescription>
+        open 상태를 부모가 관리합니다.
+      </PopoverDescription>
+    </PopoverHeader>
+  </PopoverContent>
+</Popover>`}
+>
+  <BrowserOnly>{() => <ControlledExample />}</BrowserOnly>
+</ComponentPreview>
+
+## API Reference
+
+### Popover
+
+<PropsTable
+  rows={[
+    {
+      name: 'defaultOpen',
+      type: 'boolean',
+      default: 'false',
+      description: 'uncontrolled 모드에서 초기 open 상태.',
+    },
+    {
+      name: 'open',
+      type: 'boolean',
+      description: 'controlled open 상태. onOpenChange와 함께 사용합니다.',
+    },
+    {
+      name: 'onOpenChange',
+      type: '(open: boolean) => void',
+      description: 'open 상태가 바뀔 때 호출됩니다.',
+    },
+  ]}
+/>
+
+### PopoverContent
+
+<PropsTable
+  rows={[
+    {
+      name: 'align',
+      type: "'start' | 'center' | 'end'",
+      default: "'center'",
+      description: 'trigger 기준 content 정렬.',
+    },
+    {
+      name: 'side',
+      type: "'top' | 'right' | 'bottom' | 'left'",
+      description: 'content가 열리는 방향.',
+    },
+    {
+      name: 'sideOffset',
+      type: 'number',
+      default: '4',
+      description: 'trigger와 content 사이 간격.',
+    },
+  ]}
+/>
+
+### PopoverTrigger / PopoverAnchor / Header / Title / Description
+
+대응되는 Radix primitive 또는 native element props를 그대로 받습니다. `PopoverTrigger`는 `asChild`를 지원합니다.
+
+## 접근성
+
+- Trigger에는 expanded 상태와 popover 연결 정보가 전달됩니다.
+- ESC 또는 외부 클릭으로 닫을 수 있습니다.
+- Popover 안에 focusable 요소가 있으면 keyboard navigation 순서에 포함됩니다.
+- 보조 설명만 필요한 hover UI에는 Popover 대신 Tooltip을 사용합니다.

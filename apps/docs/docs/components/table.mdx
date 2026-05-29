@@ -1,0 +1,157 @@
+---
+title: Table
+description: 행과 열로 구조화된 데이터를 표시하는 table component set.
+---
+
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import { DefaultExample, SelectedRowExample } from '@site/src/components/examples/table';
+
+# Table
+
+행과 열로 구조화된 데이터를 표시하는 컴포넌트 세트입니다.
+`Table`은 overflow container를 함께 렌더하므로 좁은 화면에서는 표 내부에서 가로 스크롤됩니다.
+
+<ComponentPreview
+  code={`<Table>
+  <TableCaption>최근 거래가 기준 상위 카드</TableCaption>
+  <TableHeader>
+    <TableRow>
+      <TableHead>카드</TableHead>
+      <TableHead>세트</TableHead>
+      <TableHead>평균가</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    <TableRow>
+      <TableCell>리자몽 ex 151 SAR</TableCell>
+      <TableCell>한국판 SV2a</TableCell>
+      <TableCell>420,000원</TableCell>
+    </TableRow>
+  </TableBody>
+</Table>`}
+>
+  <DefaultExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@tcground/ui';
+
+export function Example() {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>카드</TableHead>
+          <TableHead>평균가</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow>
+          <TableCell>리자몽 ex 151 SAR</TableCell>
+          <TableCell>420,000원</TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
+  );
+}
+```
+
+## 예제
+
+### 기본
+
+<ComponentPreview
+  code={`<Table>
+  <TableCaption>최근 거래가 기준 상위 카드</TableCaption>
+  <TableHeader>
+    <TableRow>
+      <TableHead>카드</TableHead>
+      <TableHead>세트</TableHead>
+      <TableHead>평균가</TableHead>
+      <TableHead style={{ textAlign: 'right' }}>변동</TableHead>
+    </TableRow>
+  </TableHeader>
+  <TableBody>{rows.map((row) => (
+    <TableRow key={row.name}>
+      <TableCell>{row.name}</TableCell>
+      <TableCell>{row.set}</TableCell>
+      <TableCell>{row.price}</TableCell>
+      <TableCell style={{ textAlign: 'right' }}>{row.change}</TableCell>
+    </TableRow>
+  ))}</TableBody>
+</Table>`}
+>
+  <DefaultExample />
+</ComponentPreview>
+
+### Selected row
+
+선택 상태는 `TableRow`에 `data-state="selected"`를 지정해 표시합니다.
+
+<ComponentPreview
+  code={`<TableRow data-state="selected">
+  <TableCell>리자몽 ex 151 SAR</TableCell>
+  <TableCell>관심 카드</TableCell>
+  <TableCell style={{ textAlign: 'right' }}>18</TableCell>
+</TableRow>`}
+>
+  <SelectedRowExample />
+</ComponentPreview>
+
+## API Reference
+
+### Table
+
+<PropsTable
+  rows={[
+    {
+      name: 'className',
+      type: 'string',
+      description: 'table element에 추가할 className.',
+    },
+    {
+      name: 'children',
+      type: 'React.ReactNode',
+      description: 'TableHeader, TableBody, TableFooter, TableCaption 등을 배치합니다.',
+    },
+  ]}
+/>
+
+### TableHeader / TableBody / TableFooter / TableRow / TableHead / TableCell / TableCaption
+
+각 subcomponent는 대응되는 native table element props를 그대로 받습니다.
+
+<PropsTable
+  rows={[
+    {
+      name: 'data-state',
+      type: "'selected' | string",
+      description: 'TableRow 선택 상태 스타일을 적용할 때 사용합니다.',
+    },
+    {
+      name: 'className',
+      type: 'string',
+      description: '정렬, 폭, 강조 스타일을 조정할 때 사용합니다.',
+    },
+  ]}
+/>
+
+## 접근성
+
+- 표 데이터에는 `TableHead`를 사용해 열 제목을 제공합니다.
+- 제목이 필요한 표에는 `TableCaption`을 추가합니다.
+- 숫자나 가격 열은 시각적 정렬만 바꾸고, 실제 텍스트는 읽기 쉬운 형식을 유지합니다.
+- 행 클릭 동작을 추가할 때는 행 전체에만 의존하지 말고 명확한 button 또는 link를 제공합니다.

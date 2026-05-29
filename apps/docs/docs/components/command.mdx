@@ -1,0 +1,241 @@
+---
+title: Command
+description: 검색형 명령 목록과 command palette를 구성하는 컴포넌트.
+---
+
+import BrowserOnly from '@docusaurus/BrowserOnly';
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {
+  CheckedExample,
+  DefaultExample,
+  DialogExample,
+} from '@site/src/components/examples/command';
+
+# Command
+
+카드 검색, 빠른 이동, 설정 명령처럼 keyboard 중심 탐색이 필요한 목록 UI에 사용합니다.
+`cmdk` 기반이며, standalone command list와 `CommandDialog` command palette를 모두 지원합니다.
+
+<ComponentPreview
+  code={`<Command>
+  <CommandInput placeholder="명령 또는 카드를 검색..." />
+  <CommandList>
+    <CommandEmpty>일치하는 결과가 없습니다.</CommandEmpty>
+    <CommandGroup heading="제안">
+      <CommandItem>가격 알림 설정</CommandItem>
+      <CommandItem>내 계정</CommandItem>
+    </CommandGroup>
+    <CommandSeparator />
+    <CommandGroup heading="설정">
+      <CommandItem>
+        환경설정
+        <CommandShortcut>⌘,</CommandShortcut>
+      </CommandItem>
+    </CommandGroup>
+  </CommandList>
+</Command>`}
+>
+  <DefaultExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandShortcut,
+} from '@tcground/ui';
+
+export function Example() {
+  return (
+    <Command>
+      <CommandInput placeholder='카드 검색...' />
+      <CommandList>
+        <CommandEmpty>결과가 없습니다.</CommandEmpty>
+        <CommandGroup heading='카드'>
+          <CommandItem>리자몽 ex 151 SAR</CommandItem>
+          <CommandItem>
+            피카츄 ex SAR
+            <CommandShortcut>⌘P</CommandShortcut>
+          </CommandItem>
+        </CommandGroup>
+      </CommandList>
+    </Command>
+  );
+}
+```
+
+## 예제
+
+### 기본
+
+Standalone command list는 검색 패널, 빠른 작업 카드, 설정 목록 안에 배치할 수 있습니다.
+
+<ComponentPreview
+  code={`<Command>
+  <CommandInput placeholder="명령 또는 카드를 검색..." />
+  <CommandList>
+    <CommandEmpty>일치하는 결과가 없습니다.</CommandEmpty>
+    <CommandGroup heading="제안">
+      <CommandItem>가격 알림 설정</CommandItem>
+      <CommandItem>내 계정</CommandItem>
+    </CommandGroup>
+    <CommandSeparator />
+    <CommandGroup heading="설정">
+      <CommandItem>
+        환경설정
+        <CommandShortcut>⌘,</CommandShortcut>
+      </CommandItem>
+    </CommandGroup>
+  </CommandList>
+</Command>`}
+>
+  <DefaultExample />
+</ComponentPreview>
+
+### Checked item
+
+선택된 항목은 `data-checked="true"`를 지정해 check indicator를 표시할 수 있습니다.
+
+<ComponentPreview
+  code={`<Command>
+  <CommandInput placeholder="작업 검색..." />
+  <CommandList>
+    <CommandGroup heading="카드 작업">
+      <CommandItem data-checked="true">
+        관심 카드 저장
+        <CommandShortcut>⌘S</CommandShortcut>
+      </CommandItem>
+      <CommandItem>가격 알림 설정</CommandItem>
+    </CommandGroup>
+  </CommandList>
+</Command>`}
+>
+  <CheckedExample />
+</ComponentPreview>
+
+### Command Dialog
+
+`CommandDialog`는 Dialog 안에 command list를 넣어 command palette 패턴을 만듭니다.
+
+<ComponentPreview
+  code={`const [open, setOpen] = useState(false);
+
+<Button variant="outline" onClick={() => setOpen(true)}>
+  명령 팔레트 열기
+</Button>
+<CommandDialog open={open} onOpenChange={setOpen} title="카드 검색">
+  <Command>
+    <CommandInput placeholder="카드명 또는 작업 검색..." />
+    <CommandList>
+      <CommandEmpty>일치하는 결과가 없습니다.</CommandEmpty>
+      <CommandGroup heading="빠른 작업">
+        <CommandItem>
+          카드 검색
+          <CommandShortcut>⌘K</CommandShortcut>
+        </CommandItem>
+        <CommandItem>관심 카드 보기</CommandItem>
+      </CommandGroup>
+    </CommandList>
+  </Command>
+</CommandDialog>`}
+>
+  <BrowserOnly>{() => <DialogExample />}</BrowserOnly>
+</ComponentPreview>
+
+## API Reference
+
+### Command
+
+<PropsTable
+  rows={[
+    {
+      name: 'value',
+      type: 'string',
+      description: 'controlled 검색값 또는 선택값. cmdk Root props를 따릅니다.',
+    },
+    {
+      name: 'onValueChange',
+      type: '(value: string) => void',
+      description: '값이 바뀔 때 호출됩니다.',
+    },
+    {
+      name: 'filter',
+      type: '(value: string, search: string, keywords?: string[]) => number',
+      description: '검색 결과 점수 계산 함수를 재정의합니다.',
+    },
+  ]}
+/>
+
+### CommandDialog
+
+<PropsTable
+  rows={[
+    {
+      name: 'title',
+      type: 'string',
+      default: "'Command Palette'",
+      description: '스크린 리더용 Dialog title.',
+    },
+    {
+      name: 'description',
+      type: 'string',
+      default: "'Search for a command to run...'",
+      description: '스크린 리더용 Dialog description.',
+    },
+    {
+      name: 'showCloseButton',
+      type: 'boolean',
+      default: 'false',
+      description: 'Dialog close button 표시 여부.',
+    },
+  ]}
+/>
+
+### CommandInput / List / Empty / Group / Item / Shortcut / Separator
+
+대응되는 `cmdk` primitive 또는 native element props를 그대로 받습니다.
+
+<PropsTable
+  rows={[
+    {
+      name: 'heading',
+      type: 'React.ReactNode',
+      description: 'CommandGroup 제목.',
+    },
+    {
+      name: 'disabled',
+      type: 'boolean',
+      default: 'false',
+      description: 'CommandItem 선택을 비활성화합니다.',
+    },
+    {
+      name: 'data-checked',
+      type: 'boolean | string',
+      description: 'CommandItem의 선택 표시를 노출할 때 사용합니다.',
+    },
+  ]}
+/>
+
+## 접근성
+
+- CommandInput은 listbox 검색 입력으로 동작하며, 항목 탐색은 `cmdk` keyboard behavior를 따릅니다.
+- 결과가 없을 때는 `CommandEmpty`로 명시적인 빈 상태를 제공합니다.
+- 그룹이 많으면 `CommandGroup`과 `CommandSeparator`로 의미 단위를 나눕니다.
+- Dialog 형태로 사용할 때는 `CommandDialog`의 `title`과 `description`을 실제 목적에 맞게 지정합니다.

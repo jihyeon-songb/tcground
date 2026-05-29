@@ -1,0 +1,207 @@
+---
+title: Sheet
+description: 화면 가장자리에서 열리는 보조 패널.
+---
+
+import BrowserOnly from '@docusaurus/BrowserOnly';
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import { BottomExample, LeftExample, RightExample } from '@site/src/components/examples/sheet';
+
+# Sheet
+
+페이지 맥락을 유지하면서 필터, 모바일 탐색, 짧은 설정을 표시하는 edge panel입니다.
+Radix Dialog primitive를 기반으로 하므로 modal focus 관리와 ESC 닫기 동작을 제공합니다.
+
+<ComponentPreview
+  code={`<Sheet>
+  <SheetTrigger asChild>
+    <Button variant="outline">필터 열기</Button>
+  </SheetTrigger>
+  <SheetContent>
+    <SheetHeader>
+      <SheetTitle>필터</SheetTitle>
+      <SheetDescription>
+        가격대, 세트, 상태로 검색 결과를 좁혀보세요.
+      </SheetDescription>
+    </SheetHeader>
+    <SheetFooter>
+      <Button>적용</Button>
+    </SheetFooter>
+  </SheetContent>
+</Sheet>`}
+>
+  <BrowserOnly>{() => <RightExample />}</BrowserOnly>
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import {
+  Button,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@tcground/ui';
+
+export function Example() {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant='outline'>필터</Button>
+      </SheetTrigger>
+      <SheetContent side='right'>
+        <SheetHeader>
+          <SheetTitle>필터</SheetTitle>
+          <SheetDescription>결과를 좁힙니다.</SheetDescription>
+        </SheetHeader>
+        <SheetFooter>
+          <Button>적용</Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+```
+
+## 예제
+
+### Right side
+
+오른쪽 Sheet는 desktop과 mobile에서 필터나 세부 설정을 보여주기 좋습니다.
+
+<ComponentPreview
+  code={`<Sheet>
+  <SheetTrigger asChild>
+    <Button variant="outline">필터 열기</Button>
+  </SheetTrigger>
+  <SheetContent>
+    <SheetHeader>
+      <SheetTitle>필터</SheetTitle>
+      <SheetDescription>
+        가격대, 세트, 상태로 검색 결과를 좁혀보세요.
+      </SheetDescription>
+    </SheetHeader>
+    <SheetFooter>
+      <Button>적용</Button>
+    </SheetFooter>
+  </SheetContent>
+</Sheet>`}
+>
+  <BrowserOnly>{() => <RightExample />}</BrowserOnly>
+</ComponentPreview>
+
+### Left side
+
+왼쪽 Sheet는 작은 화면의 navigation drawer에 적합합니다.
+
+<ComponentPreview
+  code={`<Sheet>
+  <SheetTrigger asChild>
+    <Button variant="outline">모바일 메뉴</Button>
+  </SheetTrigger>
+  <SheetContent side="left">
+    <SheetHeader>
+      <SheetTitle>탐색</SheetTitle>
+      <SheetDescription>주요 페이지를 빠르게 이동합니다.</SheetDescription>
+    </SheetHeader>
+  </SheetContent>
+</Sheet>`}
+>
+  <BrowserOnly>{() => <LeftExample />}</BrowserOnly>
+</ComponentPreview>
+
+### Bottom side
+
+하단 Sheet는 모바일에서 짧은 선택지나 정렬 옵션을 제공할 때 사용합니다.
+
+<ComponentPreview
+  code={`<Sheet>
+  <SheetTrigger asChild>
+    <Button variant="secondary">정렬 옵션</Button>
+  </SheetTrigger>
+  <SheetContent side="bottom" showCloseButton={false}>
+    <SheetHeader>
+      <SheetTitle>정렬</SheetTitle>
+      <SheetDescription>
+        모바일 하단 시트로 짧은 선택지를 제공합니다.
+      </SheetDescription>
+    </SheetHeader>
+    <SheetFooter>
+      <Button variant="outline">가격 낮은순</Button>
+      <Button>최근 거래순</Button>
+    </SheetFooter>
+  </SheetContent>
+</Sheet>`}
+>
+  <BrowserOnly>{() => <BottomExample />}</BrowserOnly>
+</ComponentPreview>
+
+## API Reference
+
+### Sheet
+
+<PropsTable
+  rows={[
+    {
+      name: 'defaultOpen',
+      type: 'boolean',
+      default: 'false',
+      description: 'uncontrolled 모드에서 초기 open 상태.',
+    },
+    {
+      name: 'open',
+      type: 'boolean',
+      description: 'controlled open 상태. onOpenChange와 함께 사용합니다.',
+    },
+    {
+      name: 'onOpenChange',
+      type: '(open: boolean) => void',
+      description: 'open 상태가 바뀔 때 호출됩니다.',
+    },
+  ]}
+/>
+
+### SheetContent
+
+<PropsTable
+  rows={[
+    {
+      name: 'side',
+      type: "'top' | 'right' | 'bottom' | 'left'",
+      default: "'right'",
+      description: 'Sheet가 열리는 화면 가장자리.',
+    },
+    {
+      name: 'showCloseButton',
+      type: 'boolean',
+      default: 'true',
+      description: '우측 상단 close button 렌더 여부.',
+    },
+  ]}
+/>
+
+### SheetTrigger / SheetClose / Header / Footer / Title / Description
+
+대응되는 Radix Dialog primitive 또는 native element props를 그대로 받습니다. `SheetTrigger`와 `SheetClose`는 `asChild`를 지원합니다.
+
+## 접근성
+
+- Content는 modal dialog semantics를 가지며, 열린 동안 focus가 Sheet 안에 머뭅니다.
+- Title과 Description으로 panel 목적을 설명합니다.
+- ESC 키, overlay 클릭, close button으로 닫을 수 있습니다.
+- 모바일 navigation처럼 반복 사용되는 Sheet는 trigger와 첫 focus 대상의 위치를 예측 가능하게 유지합니다.

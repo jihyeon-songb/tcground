@@ -1,0 +1,89 @@
+---
+title: Separator
+description: 콘텐츠 구획을 나누는 수평/수직 분리선.
+---
+
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import { HorizontalExample, VerticalExample } from '@site/src/components/examples/separator';
+
+# Separator
+
+관련 콘텐츠 사이의 시각적 구획을 만드는 분리선입니다.
+기본은 장식용 `horizontal` separator이며, 필요하면 `orientation="vertical"`로 수직 분리선을 만들 수 있습니다.
+
+<ComponentPreview code={`<Separator />`}>
+  <HorizontalExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import { Separator } from '@tcground/ui';
+
+export function Example() {
+  return (
+    <div>
+      <div>최근 본 카드</div>
+      <Separator />
+      <div>관심 카드 목록</div>
+    </div>
+  );
+}
+```
+
+## 예제
+
+### Horizontal
+
+<ComponentPreview code={`<Separator />`}>
+  <HorizontalExample />
+</ComponentPreview>
+
+### Vertical
+
+수직 separator는 부모 컨테이너에 명시적인 높이가 있어야 보입니다.
+
+<ComponentPreview code={`<Separator orientation="vertical" />`}>
+  <VerticalExample />
+</ComponentPreview>
+
+## API Reference
+
+<PropsTable
+  rows={[
+    {
+      name: 'orientation',
+      type: "'horizontal' | 'vertical'",
+      default: "'horizontal'",
+      description: '분리선 방향.',
+    },
+    {
+      name: 'decorative',
+      type: 'boolean',
+      default: 'true',
+      description: 'true이면 보조 기기에서 무시됩니다. 의미 있는 구획이면 false로 설정합니다.',
+    },
+    {
+      name: 'className',
+      type: 'string',
+      description: '기본 스타일 위에 추가할 className.',
+    },
+  ]}
+/>
+
+## 접근성
+
+- 단순 장식용 구분선은 기본값인 `decorative={true}`를 유지합니다.
+- 콘텐츠 구조를 보조 기기에 전달해야 하는 구분선이면 `decorative={false}`를 사용합니다.
+- 수직 separator는 충분한 부모 높이와 인접 항목 간격을 함께 설정합니다.

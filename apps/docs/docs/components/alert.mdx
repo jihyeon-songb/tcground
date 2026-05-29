@@ -1,0 +1,138 @@
+---
+title: Alert
+description: 중요한 상태, 결과, 오류를 사용자에게 알리는 inline feedback 컴포넌트.
+---
+
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {
+  DefaultExample,
+  DestructiveExample,
+  WithActionExample,
+} from '@site/src/components/examples/alert';
+
+# Alert
+
+상태 변경, 저장 결과, 오류처럼 사용자가 즉시 알아야 하는 정보를 본문 흐름 안에서 전달하는 컴포넌트입니다.
+`Alert`는 기본적으로 `role="alert"`를 가지며, title, description, action 영역을 조합할 수 있습니다.
+
+<ComponentPreview
+  code={`<Alert>
+  <InfoIcon />
+  <AlertTitle>새 카드가 등록되었습니다.</AlertTitle>
+  <AlertDescription>최근 추가된 한국판 포켓몬 카드를 확인해 보세요.</AlertDescription>
+</Alert>`}
+>
+  <DefaultExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import { Alert, AlertDescription, AlertTitle } from '@tcground/ui';
+import { InfoIcon } from 'lucide-react';
+
+export function Example() {
+  return (
+    <Alert>
+      <InfoIcon aria-hidden='true' />
+      <AlertTitle>새 카드가 등록되었습니다.</AlertTitle>
+      <AlertDescription>최근 추가된 한국판 포켓몬 카드를 확인해 보세요.</AlertDescription>
+    </Alert>
+  );
+}
+```
+
+아이콘은 필수가 아니지만, 상태를 빠르게 구분해야 하는 feedback에는 함께 쓰는 편이 좋습니다.
+
+## 예제
+
+### 기본
+
+<ComponentPreview
+  code={`<Alert>
+  <InfoIcon />
+  <AlertTitle>새 카드가 등록되었습니다.</AlertTitle>
+  <AlertDescription>최근 추가된 한국판 포켓몬 카드를 확인해 보세요.</AlertDescription>
+</Alert>`}
+>
+  <DefaultExample />
+</ComponentPreview>
+
+### Destructive
+
+오류나 위험 상태는 `variant="destructive"`로 표시합니다.
+
+<ComponentPreview
+  code={`<Alert variant="destructive">
+  <CircleAlertIcon />
+  <AlertTitle>요청을 처리할 수 없습니다.</AlertTitle>
+  <AlertDescription>네트워크 상태를 확인한 뒤 다시 시도해 주세요.</AlertDescription>
+</Alert>`}
+>
+  <DestructiveExample />
+</ComponentPreview>
+
+### Action
+
+보조 동작은 `AlertAction`에 배치합니다. 문구가 길어질 수 있으므로 action은 짧은 명령 하나로 제한합니다.
+
+<ComponentPreview
+  code={`<Alert>
+  <InfoIcon />
+  <AlertTitle>가격 알림이 도착했습니다.</AlertTitle>
+  <AlertDescription>리자몽 ex 151 SAR 시세가 5% 하락했습니다.</AlertDescription>
+  <AlertAction>
+    <Button size="xs" variant="outline">보기</Button>
+  </AlertAction>
+</Alert>`}
+>
+  <WithActionExample />
+</ComponentPreview>
+
+## API Reference
+
+### Alert
+
+<PropsTable
+  rows={[
+    {
+      name: 'variant',
+      type: "'default' | 'destructive'",
+      default: "'default'",
+      description: '알림의 시각적 의도. 오류나 위험 상태에는 destructive를 사용합니다.',
+    },
+    {
+      name: 'role',
+      type: 'string',
+      default: "'alert'",
+      description: '보조 기기에 알림 영역임을 전달합니다. 필요하면 직접 override할 수 있습니다.',
+    },
+    {
+      name: 'className',
+      type: 'string',
+      description: '기본 스타일 위에 추가할 className.',
+    },
+  ]}
+/>
+
+### AlertTitle / AlertDescription / AlertAction
+
+각각 native `<div>` props를 그대로 받습니다. `AlertAction`은 우측 상단에 절대 배치됩니다.
+
+## 접근성
+
+- 기본 `role="alert"`는 보조 기기에 즉시 알립니다. 단순 안내처럼 즉시 읽히지 않아도 되는 영역은 `role="status"` 등으로 조정합니다.
+- 아이콘은 같은 의미를 중복 전달하지 않도록 `aria-hidden="true"`를 사용합니다.
+- destructive 상태는 색상만으로 의미를 전달하지 말고 명확한 title/description을 함께 제공합니다.
+- action 버튼은 짧고 구체적인 라벨을 사용합니다.

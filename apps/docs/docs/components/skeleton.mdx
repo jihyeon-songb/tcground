@@ -1,0 +1,91 @@
+---
+title: Skeleton
+description: 데이터 로딩 중 콘텐츠 형태를 미리 보여주는 placeholder.
+---
+
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import { BlockExample, CardItemExample } from '@site/src/components/examples/skeleton';
+
+# Skeleton
+
+데이터 로딩 중 실제 콘텐츠의 대략적인 형태를 먼저 보여주는 placeholder입니다.
+`Skeleton`은 크기를 직접 지정해 쓰는 작은 primitive이며, 주변 layout의 안정적인 폭과 높이가 중요합니다.
+
+<ComponentPreview
+  code={`<div>
+  <Skeleton style={{ height: '8rem', width: '100%' }} />
+  <Skeleton style={{ height: '1rem', width: '75%' }} />
+  <Skeleton style={{ height: '1rem', width: '50%' }} />
+</div>`}
+>
+  <BlockExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import { Skeleton } from '@tcground/ui';
+
+export function Example() {
+  return <Skeleton style={{ height: '1rem', width: '12rem' }} />;
+}
+```
+
+## 예제
+
+### Block
+
+<ComponentPreview
+  code={`<Skeleton style={{ height: '8rem', width: '100%' }} />
+<Skeleton style={{ height: '1rem', width: '75%' }} />
+<Skeleton style={{ height: '1rem', width: '50%' }} />`}
+>
+  <BlockExample />
+</ComponentPreview>
+
+### Card item
+
+<ComponentPreview
+  code={`<Skeleton style={{ borderRadius: '9999px', height: '3rem', width: '3rem' }} />
+<Skeleton style={{ height: '1rem', width: '66%' }} />
+<Skeleton style={{ height: '0.75rem', width: '33%' }} />`}
+>
+  <CardItemExample />
+</ComponentPreview>
+
+## API Reference
+
+<PropsTable
+  rows={[
+    {
+      name: 'className',
+      type: 'string',
+      description: '크기, radius, layout을 조정할 className.',
+    },
+    {
+      name: 'style',
+      type: 'React.CSSProperties',
+      description: '문서 예시처럼 고정 높이와 폭을 직접 지정할 때 사용합니다.',
+    },
+  ]}
+/>
+
+`Skeleton`은 native `<div>` props를 그대로 받습니다.
+
+## 접근성
+
+- Skeleton 자체는 의미 있는 콘텐츠가 아닙니다. 필요한 경우 주변 영역에 `aria-busy="true"`를 설정합니다.
+- 로딩이 길어질 수 있으면 상태 텍스트를 시각적으로 숨긴 형태로 함께 제공합니다.
+- 실제 콘텐츠와 비슷한 크기로 만들어 layout shift를 줄입니다.
+- 깜박임이 강한 커스텀 애니메이션은 피합니다.

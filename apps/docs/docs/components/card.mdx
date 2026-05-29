@@ -1,0 +1,152 @@
+---
+title: Card
+description: 관련 콘텐츠와 액션을 하나의 표면으로 묶는 layout primitive.
+---
+
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {
+  DefaultExample,
+  SmallExample,
+  WithActionExample,
+} from '@site/src/components/examples/card';
+
+# Card
+
+관련된 정보와 액션을 하나의 표면으로 묶는 layout primitive입니다.
+`Card`는 header, content, footer, action 영역을 조합해 목록 항목, 요약 패널, 설정 패널에 사용할 수 있습니다.
+
+<ComponentPreview
+  code={`<Card>
+  <CardHeader>
+    <CardTitle>리자몽 ex 151 SAR</CardTitle>
+    <CardDescription>한국판 / SV 강화확장팩</CardDescription>
+  </CardHeader>
+  <CardContent>최근 30일 평균 거래가가 12% 상승했습니다.</CardContent>
+  <CardFooter>
+    <Button variant="outline">상세보기</Button>
+  </CardFooter>
+</Card>`}
+>
+  <DefaultExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@tcground/ui';
+
+export function Example() {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>리자몽 ex 151 SAR</CardTitle>
+        <CardDescription>한국판 / SV 강화확장팩</CardDescription>
+      </CardHeader>
+      <CardContent>최근 30일 평균 거래가가 12% 상승했습니다.</CardContent>
+      <CardFooter>상세보기</CardFooter>
+    </Card>
+  );
+}
+```
+
+## 예제
+
+### 기본
+
+<ComponentPreview
+  code={`<Card>
+  <CardHeader>
+    <CardTitle>리자몽 ex 151 SAR</CardTitle>
+    <CardDescription>한국판 / SV 강화확장팩</CardDescription>
+  </CardHeader>
+  <CardContent>최근 30일 평균 거래가가 12% 상승했습니다.</CardContent>
+  <CardFooter>
+    <Button variant="outline">상세보기</Button>
+  </CardFooter>
+</Card>`}
+>
+  <DefaultExample />
+</ComponentPreview>
+
+### Header action
+
+`CardAction`은 header의 우측 액션 영역에 사용합니다.
+
+<ComponentPreview
+  code={`<Card>
+  <CardHeader>
+    <CardTitle>관심 카드</CardTitle>
+    <CardDescription>최근 가격 변동을 한눈에 확인하세요.</CardDescription>
+    <CardAction>
+      <Button size="sm" variant="ghost">관리</Button>
+    </CardAction>
+  </CardHeader>
+  <CardContent>등록된 카드 12개</CardContent>
+</Card>`}
+>
+  <WithActionExample />
+</ComponentPreview>
+
+### Small
+
+좁은 패널이나 밀도 높은 목록에는 `size="sm"`을 사용합니다.
+
+<ComponentPreview
+  code={`<Card size="sm">
+  <CardHeader>
+    <CardTitle>Small Card</CardTitle>
+    <CardDescription>컴팩트 배치에 적합한 사이즈입니다.</CardDescription>
+  </CardHeader>
+  <CardContent>본문 영역</CardContent>
+</Card>`}
+>
+  <SmallExample />
+</ComponentPreview>
+
+## API Reference
+
+### Card
+
+<PropsTable
+  rows={[
+    {
+      name: 'size',
+      type: "'default' | 'sm'",
+      default: "'default'",
+      description: '카드 내부 간격과 title 크기를 조정합니다.',
+    },
+    {
+      name: 'className',
+      type: 'string',
+      description: '기본 스타일 위에 추가할 className.',
+    },
+  ]}
+/>
+
+### CardHeader / CardContent / CardFooter / CardTitle / CardDescription / CardAction
+
+각 subcomponent는 native `<div>` props를 그대로 받습니다. `CardAction`은 `CardHeader` 안에서 우측 상단 영역으로 배치됩니다.
+
+## 접근성
+
+- Card 자체는 의미 요소가 아니므로 콘텐츠 의미에 맞춰 내부에 heading, paragraph, list, link, button을 사용합니다.
+- 반복 카드 목록에서는 각 카드의 주요 제목을 heading 또는 링크로 제공합니다.
+- 전체 카드가 클릭 가능해야 할 때도 내부 버튼과 링크의 focus 순서를 명확히 유지합니다.

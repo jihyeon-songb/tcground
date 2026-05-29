@@ -1,0 +1,241 @@
+---
+title: Alert Dialog
+description: 되돌리기 어렵거나 중요한 결정을 확인하는 모달 컴포넌트.
+---
+
+import BrowserOnly from '@docusaurus/BrowserOnly';
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {
+  ControlledExample,
+  DefaultExample,
+  SmallExample,
+} from '@site/src/components/examples/alert-dialog';
+
+# Alert Dialog
+
+사용자가 실수로 실행하면 안 되는 작업을 한 번 더 확인할 때 사용하는 모달 컴포넌트입니다.
+Radix Alert Dialog primitive 기반이며, destructive action, cancel action, title, description을 명확하게 분리합니다.
+
+<ComponentPreview
+  code={`<AlertDialog>
+  <AlertDialogTrigger asChild>
+    <Button variant="destructive">관심 카드 삭제</Button>
+  </AlertDialogTrigger>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>관심 카드에서 제외할까요?</AlertDialogTitle>
+      <AlertDialogDescription>
+        지정된 카드의 가격 알림과 즐겨찾기 정보가 함께 삭제됩니다.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>취소</AlertDialogCancel>
+      <AlertDialogAction variant="destructive">삭제</AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>`}
+>
+  <BrowserOnly>{() => <DefaultExample />}</BrowserOnly>
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+`AlertDialog`는 `Dialog`보다 확인/취소 흐름에 더 특화되어 있습니다. 삭제, 알림 중지, 대량 변경처럼 사용자의 의도가 확실해야 하는 동작에 사용합니다.
+
+```tsx
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  Button,
+} from '@tcground/ui';
+
+export function Example() {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant='destructive'>삭제</Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>삭제할까요?</AlertDialogTitle>
+          <AlertDialogDescription>이 작업은 되돌릴 수 없습니다.</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>취소</AlertDialogCancel>
+          <AlertDialogAction variant='destructive'>삭제</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+```
+
+## 예제
+
+### 기본
+
+중요한 destructive action에는 `AlertDialogAction`에 `variant="destructive"`를 지정합니다.
+
+<ComponentPreview
+  code={`<AlertDialog>
+  <AlertDialogTrigger asChild>
+    <Button variant="destructive">관심 카드 삭제</Button>
+  </AlertDialogTrigger>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogMedia><TrashIcon /></AlertDialogMedia>
+      <AlertDialogTitle>관심 카드에서 제외할까요?</AlertDialogTitle>
+      <AlertDialogDescription>
+        지정된 카드의 가격 알림과 즐겨찾기 정보가 함께 삭제됩니다.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>취소</AlertDialogCancel>
+      <AlertDialogAction variant="destructive">삭제</AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>`}
+>
+  <BrowserOnly>{() => <DefaultExample />}</BrowserOnly>
+</ComponentPreview>
+
+### Small
+
+짧은 문장과 두 개의 선택지만 필요한 확인 창은 `size="sm"`으로 더 좁게 표시합니다.
+
+<ComponentPreview
+  code={`<AlertDialog>
+  <AlertDialogTrigger asChild>
+    <Button variant="outline">가격 알림 중지</Button>
+  </AlertDialogTrigger>
+  <AlertDialogContent size="sm">
+    <AlertDialogHeader>
+      <AlertDialogTitle>알림을 중지할까요?</AlertDialogTitle>
+      <AlertDialogDescription>
+        이 카드는 관심 목록에 남지만 가격 변동 알림은 보내지 않습니다.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel size="sm">취소</AlertDialogCancel>
+      <AlertDialogAction size="sm">중지</AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>`}
+>
+  <BrowserOnly>{() => <SmallExample />}</BrowserOnly>
+</ComponentPreview>
+
+### Controlled
+
+`open` / `onOpenChange`를 사용하면 외부 버튼, 단축키, 비동기 상태와 확인 창을 동기화할 수 있습니다.
+
+<ComponentPreview
+  code={`const [open, setOpen] = useState(false);
+
+<Button variant="outline" onClick={() => setOpen(true)}>
+  외부 버튼으로 열기
+</Button>
+<AlertDialog open={open} onOpenChange={setOpen}>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>제어된 Alert Dialog</AlertDialogTitle>
+      <AlertDialogDescription>
+        상위 컴포넌트가 확인 창의 open 상태를 직접 관리합니다.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>취소</AlertDialogCancel>
+      <AlertDialogAction>확인</AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>`}
+>
+  <BrowserOnly>{() => <ControlledExample />}</BrowserOnly>
+</ComponentPreview>
+
+## API Reference
+
+### AlertDialog
+
+<PropsTable
+  rows={[
+    {
+      name: 'defaultOpen',
+      type: 'boolean',
+      default: 'false',
+      description: 'uncontrolled 모드에서 초기 open 상태.',
+    },
+    {
+      name: 'open',
+      type: 'boolean',
+      description: 'controlled open 상태. onOpenChange와 함께 사용합니다.',
+    },
+    {
+      name: 'onOpenChange',
+      type: '(open: boolean) => void',
+      description: 'open 상태가 바뀔 때 호출됩니다.',
+    },
+  ]}
+/>
+
+### AlertDialogContent
+
+<PropsTable
+  rows={[
+    {
+      name: 'size',
+      type: "'default' | 'sm'",
+      default: "'default'",
+      description: 'content 최대 폭과 footer button layout을 조정합니다.',
+    },
+  ]}
+/>
+
+### AlertDialogAction / AlertDialogCancel
+
+<PropsTable
+  rows={[
+    {
+      name: 'variant',
+      type: 'Button variant',
+      default: "'default' | 'outline'",
+      description:
+        '내부적으로 Button을 사용합니다. Action 기본값은 default, Cancel 기본값은 outline입니다.',
+    },
+    {
+      name: 'size',
+      type: 'Button size',
+      default: "'default'",
+      description: '확인/취소 버튼 크기를 조정합니다.',
+    },
+  ]}
+/>
+
+### AlertDialogTrigger / Header / Footer / Media / Title / Description
+
+대응되는 Radix primitive 또는 native element props를 그대로 받습니다. `AlertDialogTrigger`는 `asChild`를 지원합니다.
+
+## 접근성
+
+- Content는 alert dialog role과 modal semantics를 Radix primitive에서 제공합니다.
+- Title과 Description을 함께 배치해 사용자가 결정의 결과를 이해할 수 있게 합니다.
+- Cancel action은 항상 명확한 텍스트로 제공하고, destructive action은 시각적으로 구분합니다.
+- ESC 키와 cancel action으로 닫을 수 있으며, 닫힌 뒤 focus는 trigger로 복원됩니다.
