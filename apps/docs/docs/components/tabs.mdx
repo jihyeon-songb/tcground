@@ -10,7 +10,8 @@ import { BasicExample, ControlledExample } from '@site/src/components/examples/t
 # Tabs
 
 여러 개의 관련된 패널 중 하나만 표시하는 컴포넌트입니다.
-Radix Tabs primitive 위에 TCGround 스타일을 얹은 styled UI 컴포넌트라 `theme.css`만 불러와도 list, trigger, active, panel의 기본 스타일이 포함됩니다.
+`@tcground/ui`가 직접 구현한 접근성 primitive로, `theme.css`만 불러와도 list, trigger, active, panel의 기본 스타일이 포함됩니다.
+내부에서 tablist/tab/tabpanel ARIA 연결, roving tabindex, 방향키 이동과 활성화를 처리합니다.
 
 <ComponentPreview
   code={`<Tabs defaultValue="usage">
@@ -163,7 +164,7 @@ native `<button>` 의 props 를 받습니다. `role="tab"`, `aria-selected`, `ar
   ]}
 />
 
-Radix Content props 를 받습니다. `role="tabpanel"`, `aria-labelledby`, `tabIndex={0}` 이 자동 적용됩니다. 비활성 패널은 `hidden` 으로 처리됩니다.
+native `<div>` props 를 받습니다. `role="tabpanel"`, `aria-labelledby`, `tabIndex={0}` 이 자동 적용됩니다. 비활성 패널은 `hidden` 으로 처리됩니다.
 
 ## 접근성
 

@@ -1,8 +1,10 @@
+'use client';
+
 import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { Slot } from 'radix-ui';
 
 import { cn } from '../../utils';
+import { composeEventHandlers, PrimitiveSlot } from './primitive';
 
 const buttonVariants = cva(
   "group/button inline-flex shrink-0 cursor-pointer items-center justify-center border border-transparent bg-clip-padding font-semibold whitespace-nowrap shadow-xs transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-2 focus-visible:outline-none active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:cursor-not-allowed disabled:translate-y-0 disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none disabled:opacity-70 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:focus-visible:ring-offset-background dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
@@ -53,11 +55,44 @@ type ButtonProps = React.ComponentPropsWithoutRef<'button'> &
   };
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { className, variant = 'default', size = 'default', asChild = false, type, ...props },
+  {
+    className,
+    variant = 'default',
+    size = 'default',
+    asChild = false,
+    type,
+    disabled,
+    onClick,
+    tabIndex,
+    ...props
+  },
   ref,
 ) {
-  const Comp = asChild ? Slot.Root : 'button';
+  const Comp = asChild ? PrimitiveSlot : 'button';
   const typeProps = asChild ? (type ? { type } : {}) : { type: type ?? 'button' };
+  const disabledProps = asChild
+    ? {
+        'aria-disabled': disabled || undefined,
+        'data-disabled': disabled ? '' : undefined,
+        tabIndex: disabled ? -1 : tabIndex,
+        onClick: disabled
+          ? (event: React.MouseEvent<HTMLButtonElement>) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+          : onClick,
+      }
+    : {
+        disabled,
+        onClick: composeEventHandlers(onClick, (event) => {
+          if (!disabled) {
+            return;
+          }
+          event.preventDefault();
+          event.stopPropagation();
+        }),
+        tabIndex,
+      }
 
   return (
     <Comp
@@ -67,6 +102,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       data-size={size}
       className={cn(buttonVariants({ variant, size, className }))}
       {...typeProps}
+      {...disabledProps}
       {...props}
     />
   );

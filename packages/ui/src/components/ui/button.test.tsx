@@ -48,4 +48,21 @@ describe('Button', () => {
     expect(button.getAttribute('data-variant')).toBe('default');
     expect(button.getAttribute('data-size')).toBe('search');
   });
+
+  it('maps disabled semantics when rendered as a child element', () => {
+    const onClick = vi.fn();
+
+    render(
+      <Button asChild disabled onClick={onClick}>
+        <a href='https://example.com/cards'>카드 보기</a>
+      </Button>,
+    );
+
+    const link = screen.getByRole('link', { name: '카드 보기' });
+    fireEvent.click(link);
+
+    expect(link.getAttribute('aria-disabled')).toBe('true');
+    expect(link.getAttribute('tabindex')).toBe('-1');
+    expect(onClick).not.toHaveBeenCalled();
+  });
 });
