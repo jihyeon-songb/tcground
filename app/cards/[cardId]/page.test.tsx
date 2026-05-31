@@ -30,13 +30,36 @@ describe('CardDetailContent', () => {
   });
 
   it('renders DB detail view model fields', () => {
-    render(<CardDetailContent card={createCardDetail()} />);
+    render(
+      <CardDetailContent
+        card={createCardDetail()}
+        ratingSummary={{ average: 4.2, count: 12 }}
+        viewerRating={null}
+        isAuthenticated={false}
+      />,
+    );
 
     expect(screen.getByRole('heading', { name: '리자몽 ex' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: '포켓몬 카드 151' })).toBeTruthy();
     expect(screen.getAllByText('SAR').length).toBeGreaterThan(0);
     expect(screen.getAllByText('201/165').length).toBeGreaterThan(0);
     expect(screen.getByText('BS2023014201')).toBeTruthy();
+  });
+
+  it('shows the public rating average and a sign-in prompt for guests', () => {
+    render(
+      <CardDetailContent
+        card={createCardDetail()}
+        ratingSummary={{ average: 4.2, count: 12 }}
+        viewerRating={null}
+        isAuthenticated={false}
+      />,
+    );
+
+    expect(screen.getByText('4.2')).toBeTruthy();
+    expect(screen.getByText('12개 평가')).toBeTruthy();
+    expect(screen.getByRole('link', { name: '로그인' })).toBeTruthy();
+    expect(screen.queryByRole('radiogroup', { name: '카드 평점 선택' })).toBeNull();
   });
 });
 
@@ -97,6 +120,7 @@ describe('CardDetailPage', () => {
 
 function createCardDetail(): CatalogCardDetail {
   return {
+    cardId: 'card-kr-004',
     slug: 'kr-004-charizard-ex-151',
     metaTitle: 'TCGround | 리자몽 ex - 포켓몬 카드 151',
     metaDescription: '포켓몬 카드 151 리자몽 ex 카드 상세',

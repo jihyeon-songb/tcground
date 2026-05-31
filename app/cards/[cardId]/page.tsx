@@ -4,96 +4,25 @@ import Link from 'next/link';
 import { Button } from '@tcground/ui';
 import { notFound } from 'next/navigation';
 import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
+import { createClient } from '@/lib/supabase/server';
 import {
   getCardDetailBySlug,
+  getCardRatingSummary,
   getPriceTrendSeries,
+  getViewerRating,
+  type CardRatingSummary,
   type CatalogCardDetail,
-  type PricePoint,
 } from '@/lib/tcg-catalog';
 import { formatPrice } from '@/lib/tcg-data';
+import { PriceHistoryChart } from './PriceHistoryChart';
+import { CardRating } from './CardRating';
 
 export const dynamic = 'force-dynamic';
 
+// Re-exported for tests that exercise the pure geometry helper against `./page`.
+export { buildChartGeometry } from './price-chart';
+
 type ChangeTone = 'up' | 'down' | 'flat';
-
-const CHART_PERIODS = [
-  { value: '7d', label: '7일' },
-  { value: '30d', label: '30일' },
-  { value: '90d', label: '90일' },
-  { value: '1y', label: '1년' },
-] as const;
-
-const ACTIVE_CHART_PERIOD: (typeof CHART_PERIODS)[number]['value'] = '90d';
-
-interface ChartGeometry {
-  linePath: string;
-  areaPath: string;
-  linePoints: Array<{ x: number; y: number }>;
-  overlayPoints: Array<{ x: number; y: number }>;
-  hasData: boolean;
-}
-
-// Chart drawing band inside the `0 0 100 50` viewBox: the trend spans y 6..44,
-// leaving headroom above and a baseline below for the filled area.
-const CHART_Y_TOP = 6;
-const CHART_Y_BOTTOM = 44;
-
-/**
- * Maps the asking trend line and sold overlay points to SVG coordinates in a
- * `0 0 100 50` viewBox. Both axes are scaled to the asking series alone so the
- * trend line always fills the chart; sold points are overlaid only when they
- * fall inside that time window, with prices clamped to the drawing band so a
- * stray sale can't push them off-canvas.
- */
-export function buildChartGeometry(
-  series: readonly PricePoint[],
-  overlay: readonly PricePoint[],
-): ChartGeometry {
-  // Scale to the asking series; fall back to the overlay only when there is no
-  // trend line at all, so a sold-only history still renders.
-  const scaleBasis = series.length > 0 ? series : overlay;
-  if (scaleBasis.length === 0) {
-    return { linePath: '', areaPath: '', linePoints: [], overlayPoints: [], hasData: false };
-  }
-
-  const times = scaleBasis.map((point) => new Date(point.date).getTime());
-  const prices = scaleBasis.map((point) => point.avgPrice);
-  const minTime = Math.min(...times);
-  const maxTime = Math.max(...times);
-  const lowPrice = Math.min(...prices);
-  const highPrice = Math.max(...prices);
-
-  const xOf = (date: string) =>
-    maxTime === minTime ? 50 : ((new Date(date).getTime() - minTime) / (maxTime - minTime)) * 100;
-  const yOf = (price: number) => {
-    if (highPrice === lowPrice) return (CHART_Y_TOP + CHART_Y_BOTTOM) / 2;
-    const y = CHART_Y_BOTTOM - ((price - lowPrice) / (highPrice - lowPrice)) * (CHART_Y_BOTTOM - CHART_Y_TOP);
-    return Math.min(CHART_Y_BOTTOM, Math.max(CHART_Y_TOP, y));
-  };
-
-  const linePoints = series.map((point) => ({ x: xOf(point.date), y: yOf(point.avgPrice) }));
-  const linePath = linePoints
-    .map((coord, index) => `${index === 0 ? 'M' : 'L'}${coord.x.toFixed(2)},${coord.y.toFixed(2)}`)
-    .join(' ');
-  const areaPath =
-    linePoints.length > 0
-      ? `M${linePoints[0].x.toFixed(2)},50 ${linePoints
-          .map((coord) => `L${coord.x.toFixed(2)},${coord.y.toFixed(2)}`)
-          .join(' ')} L${linePoints[linePoints.length - 1].x.toFixed(2)},50 Z`
-      : '';
-
-  // Drop overlay points outside the trend window — they have no real position on
-  // an axis scaled to the asking series, and stretching the axis to include them
-  // is what squashed the trend in the first place.
-  const overlayPoints = overlay
-    .filter((point) => {
-      const time = new Date(point.date).getTime();
-      return time >= minTime && time <= maxTime;
-    })
-    .map((point) => ({ x: xOf(point.date), y: yOf(point.avgPrice) }));
-
-  return { linePath, areaPath, linePoints, overlayPoints, hasData: true };
-}
 
 interface CardDetailPageProps {
   params: Promise<{ cardId: string }>;
@@ -124,12 +53,25 @@ export default async function CardDetailPage({ params }: CardDetailPageProps) {
     notFound();
   }
 
+  const supabase = await createClient();
+  const [ratingSummary, viewerRating, claims] = await Promise.all([
+    getCardRatingSummary(card.cardId, supabase),
+    getViewerRating(card.cardId, supabase),
+    supabase.auth.getClaims(),
+  ]);
+  const isAuthenticated = Boolean(claims.data?.claims?.sub);
+
   return (
     <div className='flex min-h-screen flex-col bg-[#f8f9fb] text-[#191c1e]'>
       <PublicHeader currentPath={`/cards/${cardId}`} search={{ desktopOnly: true }} />
 
       <main className='mx-auto w-full max-w-[1440px] flex-grow px-5 pt-6 pb-16 md:px-16'>
-        <CardDetailContent card={card} />
+        <CardDetailContent
+          card={card}
+          ratingSummary={ratingSummary}
+          viewerRating={viewerRating}
+          isAuthenticated={isAuthenticated}
+        />
       </main>
 
       <PageFooter />
@@ -137,14 +79,25 @@ export default async function CardDetailPage({ params }: CardDetailPageProps) {
   );
 }
 
-export function CardDetailContent({ card }: { card: CatalogCardDetail }) {
+interface CardDetailContentProps {
+  card: CatalogCardDetail;
+  ratingSummary: CardRatingSummary;
+  viewerRating: number | null;
+  isAuthenticated: boolean;
+}
+
+export function CardDetailContent({
+  card,
+  ratingSummary,
+  viewerRating,
+  isAuthenticated,
+}: CardDetailContentProps) {
   // Draw the trend line from the asking series when we have it, otherwise from
   // the coherent sold series — so a sold-only history is still a real line, not
   // scattered dots. Overlay sold points only when they're distinct from the line.
   const trendSeries = getPriceTrendSeries(card.priceHistory);
   const overlaySold =
     card.priceHistory.askingSeries.length > 0 ? card.priceHistory.soldPoints : [];
-  const chartGeometry = buildChartGeometry(trendSeries, overlaySold);
 
   return (
     <>
@@ -229,6 +182,14 @@ export function CardDetailContent({ card }: { card: CatalogCardDetail }) {
             <InfoItem label='카드 번호' value={card.printing.collectorNumber} />
           </dl>
 
+          <CardRating
+            cardId={card.cardId}
+            slug={card.slug}
+            summary={ratingSummary}
+            viewerRating={viewerRating}
+            isAuthenticated={isAuthenticated}
+          />
+
           <div className='mt-2 flex flex-wrap gap-4'>
             <Button
               type='button'
@@ -252,103 +213,11 @@ export function CardDetailContent({ card }: { card: CatalogCardDetail }) {
             </Button>
           </div>
 
-          <section
-            aria-labelledby='price-history-heading'
-            className='mt-8 rounded-2xl bg-white p-6'
-          >
-            <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
-              <h3
-                id='price-history-heading'
-                className='text-2xl leading-[1.2] font-bold text-[#191c1e]'
-              >
-                가격 변동 추이
-              </h3>
-              <div
-                className='flex items-center gap-1 rounded-full bg-[#f2f4f6] p-1'
-                role='tablist'
-                aria-label='차트 기간'
-              >
-                {CHART_PERIODS.map((period) => {
-                  const isActive = period.value === ACTIVE_CHART_PERIOD;
-                  return (
-                    <Button
-                      key={period.value}
-                      type='button'
-                      variant={isActive ? 'outline' : 'ghost'}
-                      size='tab'
-                      role='tab'
-                      aria-selected={isActive}
-                      className={
-                        isActive
-                          ? 'bg-white text-[#191c1e]'
-                          : 'text-[#535f73] hover:bg-transparent hover:text-[#191c1e]'
-                      }
-                    >
-                      {period.label}
-                    </Button>
-                  );
-                })}
-              </div>
-            </div>
-            {card.priceHistory.hasData ? (
-              <div className='relative h-56 w-full overflow-hidden rounded-xl bg-[#f8f9fb]'>
-                <svg
-                  className='h-full w-full'
-                  viewBox='0 0 100 50'
-                  preserveAspectRatio='none'
-                  aria-hidden='true'
-                >
-                  <defs>
-                    <linearGradient id='card-detail-chart-gradient' x1='0' x2='0' y1='0' y2='1'>
-                      <stop offset='0%' stopColor='#bb001a' stopOpacity='0.25' />
-                      <stop offset='100%' stopColor='#bb001a' stopOpacity='0' />
-                    </linearGradient>
-                  </defs>
-                  {chartGeometry.areaPath && (
-                    <path d={chartGeometry.areaPath} fill='url(#card-detail-chart-gradient)' />
-                  )}
-                  {chartGeometry.linePath && (
-                    <path
-                      d={chartGeometry.linePath}
-                      fill='none'
-                      stroke='#bb001a'
-                      strokeWidth='2'
-                      vectorEffect='non-scaling-stroke'
-                    />
-                  )}
-                </svg>
-                {chartGeometry.linePoints.length === 1 && (
-                  <ChartDot point={chartGeometry.linePoints[0]} className='bg-[#bb001a]' />
-                )}
-                {chartGeometry.overlayPoints.map((point, index) => (
-                  <ChartDot
-                    key={index}
-                    point={point}
-                    className='border-2 border-[#bb001a] bg-white'
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className='flex h-56 w-full items-center justify-center rounded-xl bg-[#f8f9fb] px-6 text-center text-sm text-[#535f73]'>
-                아직 가격 표본을 수집 중입니다. 매일 판매 데이터를 모아 추이를 채워갑니다.
-              </div>
-            )}
-            {card.priceHistory.hasData && chartGeometry.overlayPoints.length > 0 && (
-              <div className='mt-3 flex flex-wrap items-center gap-4 text-sm text-[#535f73]'>
-                <span className='flex items-center gap-2'>
-                  <span className='h-2.5 w-2.5 rounded-full bg-[#bb001a]' aria-hidden />
-                  판매중 호가 추이
-                </span>
-                <span className='flex items-center gap-2'>
-                  <span
-                    className='h-2.5 w-2.5 rounded-full border-2 border-[#bb001a] bg-white'
-                    aria-hidden
-                  />
-                  실거래가 (참조)
-                </span>
-              </div>
-            )}
-          </section>
+          <PriceHistoryChart
+            trendSeries={trendSeries}
+            overlaySold={overlaySold}
+            hasData={card.priceHistory.hasData}
+          />
 
           <p className='mt-2 flex items-center gap-2 text-sm leading-[1.5] text-[#535f73]'>
             <span className='material-symbols-outlined text-[16px] leading-none' aria-hidden>
@@ -401,22 +270,6 @@ function CardArtPanel({ card }: { card: CatalogCardDetail }) {
         <p className='mt-4 text-base font-semibold text-[#535f73]'>{card.collectorNumber}</p>
       </div>
     </div>
-  );
-}
-
-function ChartDot({
-  point,
-  className,
-}: {
-  point: { x: number; y: number };
-  className: string;
-}) {
-  return (
-    <span
-      className={`absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ${className}`}
-      style={{ left: `${point.x}%`, top: `${(point.y / 50) * 100}%` }}
-      aria-hidden
-    />
   );
 }
 

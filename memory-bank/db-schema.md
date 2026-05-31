@@ -207,6 +207,25 @@ Supabase Auth 사용자별 관심 카드 저장 테이블이다.
 
 제약/인덱스: `unique(favorite_cards.user_id, favorite_cards.card_id)`, `index(favorite_cards.card_id)`.
 
+### `card_ratings`
+
+Supabase Auth 사용자별 카드 평점(호감도) 저장 테이블이다. 사용자당 카드 1점을 매기고, 카드별 공개 평균은 `get_card_rating_summary(card_id)` RPC로 노출한다.
+
+| 컬럼         | 타입          | 제약                                     | 설명                |
+| ------------ | ------------- | ---------------------------------------- | ------------------- |
+| `id`         | `uuid`        | PK, default `gen_random_uuid()`          | 내부 식별자         |
+| `user_id`    | `uuid`        | FK `auth.users(id)` on delete cascade    | 사용자              |
+| `card_id`    | `uuid`        | FK `cards(id)` on delete cascade         | 평가 대상 카드      |
+| `score`      | `smallint`    | not null, `check (score between 1 and 5)`| 별점 1~5            |
+| `created_at` | `timestamptz` | not null, default `now()`                | 등록 시각           |
+| `updated_at` | `timestamptz` | not null, default `now()`                | 수정 시각           |
+
+제약/인덱스: `unique(card_ratings.user_id, card_ratings.card_id)`, `index(card_ratings.card_id)`.
+
+### `get_card_rating_summary(card_id)` (RPC)
+
+`card_ratings`는 RLS로 본인 행만 보이므로, 카드별 공개 평균/표본 수는 `SECURITY DEFINER` 함수로 집계해 노출한다. `(average_score numeric, rating_count int)`를 반환하며, 개별 점수 행은 노출하지 않는다. `search_path = ''`로 고정하고 `anon`, `authenticated`에 `execute`를 부여한다.
+
 ## 3. 조회 기준
 
 - 홈: `tcg_games`에서 주요 카테고리를 읽고, `cards.is_featured = true` 카드의 대표 `card_printings`에 최신 `card_price_snapshots`를 붙여 인기 카드 영역을 구성한다.
@@ -214,6 +233,7 @@ Supabase Auth 사용자별 관심 카드 저장 테이블이다.
 - 카테고리: `card_categories`와 `card_category_links`로 선택 범위에 해당하는 카드를 찾고 최신 가격 스냅샷을 조인한다.
 - 상품 상세: `cards` + `card_printings` + `tcg_games` + `card_sets`로 기본 정보를 읽고, 선택한 market/variant/condition/grade 조합의 `card_price_snapshots` 기간별 데이터를 차트로 사용한다.
 - 관심 카드: 로그인 사용자의 `favorite_cards`를 `auth.uid()` 기준으로 읽고 쓴다.
+- 카드 평점: 로그인 사용자가 `card_ratings`에 본인 점수를 upsert하고, 상세 페이지는 `get_card_rating_summary(card_id)` RPC로 공개 평균/표본 수를 읽는다.
 - 가격 수집: source adapter가 `price_collection_runs`를 시작하고 `price_observations`를 저장한 뒤, source 단위 성공/실패를 기록하고 일별 `card_price_snapshots`를 만든다.
 
 ## 4. RLS 정책 기준
@@ -222,6 +242,7 @@ Supabase Auth 사용자별 관심 카드 저장 테이블이다.
 - 공개 쓰기 금지: 카드/카테고리/가격 데이터는 앱 클라이언트에서 직접 쓰지 않는다.
 - 클라이언트 접근 차단: `price_observations`, `price_collection_runs`는 RLS deny-all 정책을 두고 service role 또는 서버 전용 관리 경로에서만 사용한다.
 - 사용자별 읽기/쓰기 허용: `favorite_cards`는 `auth.uid() = user_id`인 행만 `select`, `insert`, `delete` 가능하다.
+- 사용자별 읽기/쓰기 허용: `card_ratings`는 `auth.uid() = user_id`인 행만 `select`, `insert`, `update`, `delete` 가능하다. 공개 평균은 개별 행을 노출하지 않는 `get_card_rating_summary` RPC로만 읽는다.
 - 운영자 데이터 입력: 카드/가격 수집·수정은 Supabase service role 또는 서버 전용 관리 경로에서만 수행한다.
 
 ## 5. 후속 확장
@@ -235,4 +256,5 @@ Supabase Auth 사용자별 관심 카드 저장 테이블이다.
 
 - 2026-05-20: 포켓몬 우선 가격 데이터 수집 전략에 맞춰 `card_printings`, `price_observations`, `price_collection_runs`를 추가하고 `card_price_snapshots`를 `card_printing_id` 기준으로 확장.
 - 2026-05-20: Supabase MCP migration으로 MVP 스키마를 실제 프로젝트에 적용하고, `favorite_cards` RLS 정책을 Supabase 성능 권장 형태로 최적화.
+- 2026-05-31: 카드 평점(호감도) 기능을 위해 `card_ratings` 테이블과 RLS, 공개 평균 집계용 `get_card_rating_summary` RPC를 `create_card_ratings`, `replace_card_rating_summary_view_with_rpc` migration으로 추가.
 - 2026-05-20: MVP Supabase Postgres 스키마 초안 작성.

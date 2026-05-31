@@ -164,3 +164,9 @@ export function formatPrice(value: number, currency: string) {
     maximumFractionDigits: 2,
   }).format(value);
 }
+
+/** Formats an average rating to one decimal, or a placeholder when unrated. */
+export function formatRating(average: number | null) {
+  if (average === null) return '평가 없음';
+  return average.toFixed(1);
+}

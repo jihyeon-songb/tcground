@@ -134,7 +134,15 @@ export interface PokemonCategoryPageData {
   query: string;
 }
 
+/** Public aggregate of user ratings for a card. */
+export interface CardRatingSummary {
+  /** Average score (1–5, one decimal), or null when there are no ratings. */
+  average: number | null;
+  count: number;
+}
+
 export interface CatalogCardDetail {
+  cardId: string;
   slug: string;
   metaTitle: string;
   metaDescription: string;
@@ -386,6 +394,58 @@ export async function getCardDetailBySlug(
   return mapCardDetailRow(detailRow, (snapshotData ?? []) as CardPriceSnapshotRow[]);
 }
 
+interface CardRatingSummaryRow {
+  average_score: number | string | null;
+  rating_count: number | null;
+}
+
+/**
+ * Reads the public rating aggregate for a card via the `get_card_rating_summary`
+ * RPC, which exposes only the average and count — never individual user rows.
+ */
+export async function getCardRatingSummary(
+  cardId: string,
+  client?: SupabaseClient,
+): Promise<CardRatingSummary> {
+  const supabase = client ?? (await createClient());
+
+  const { data, error } = await supabase
+    .rpc('get_card_rating_summary', { p_card_id: cardId })
+    .maybeSingle();
+
+  throwIfSupabaseError(error);
+
+  const row = data as CardRatingSummaryRow | null;
+  const count = row?.rating_count ?? 0;
+  if (!row || count === 0 || row.average_score === null) {
+    return { average: null, count: 0 };
+  }
+
+  return { average: Number(row.average_score), count };
+}
+
+/**
+ * Reads the signed-in viewer's own rating for a card, or null when they have
+ * not rated it (or are not signed in). RLS limits the row to the current user.
+ */
+export async function getViewerRating(
+  cardId: string,
+  client?: SupabaseClient,
+): Promise<number | null> {
+  const supabase = client ?? (await createClient());
+
+  const { data, error } = await supabase
+    .from('card_ratings')
+    .select('score')
+    .eq('card_id', cardId)
+    .maybeSingle();
+
+  throwIfSupabaseError(error);
+
+  const row = data as { score: number } | null;
+  return row?.score ?? null;
+}
+
 /** Source name written by the daily eBay Browse asking collection. */
 const ASKING_SOURCE_NAME = 'ebay_browse';
 
@@ -428,6 +488,7 @@ export function mapCardDetailRow(
     createDeterministicPriceDisplay(row.slug, sampleId);
 
   return {
+    cardId: row.id,
     slug: row.slug,
     metaTitle: `TCGround | ${row.name} - ${setLabel}`,
     metaDescription: `${setLabel} ${row.name} 카드의 세트, 레어도, 번호와 가격 요약을 확인하세요.`,
