@@ -4,11 +4,15 @@
  * Usage (Node 20+ loads env from .env.local):
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --browse
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --csv
+ *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --csv-asking
  *   add --dry-run to compute without writing to the DB.
  *
  * `--browse` runs the same daily Browse collection as the cron route.
- * `--csv` imports verified sold rows from memory-bank/price-source-validation.csv,
- * aggregates them, and upserts sold snapshots (the chart's overlay reference).
+ * `--csv` imports verified sold rows (e.g. eBay, manual_kream) from
+ * memory-bank/price-source-validation.csv, aggregates them, and upserts sold
+ * snapshots (the chart's overlay reference).
+ * `--csv-asking` imports asking rows (e.g. manual_bunjang listing prices) and
+ * upserts daily asking snapshots (the chart's KR trend line).
  */
 
 import { readFileSync } from 'node:fs';
@@ -19,19 +23,24 @@ import {
   getSampleIdToPrintingId,
   upsertSnapshots,
 } from '../lib/pricing/collect-prices';
-import { parsePriceValidationCsv, resolveCardPrintingIds } from '../lib/pricing/csv-import';
-import { aggregateObservations } from '../lib/pricing/aggregate';
+import {
+  parseAskingValidationCsv,
+  parsePriceValidationCsv,
+  resolveCardPrintingIds,
+} from '../lib/pricing/csv-import';
+import { aggregateAskingObservations, aggregateObservations } from '../lib/pricing/aggregate';
 
 async function main(): Promise<void> {
   const args = new Set(process.argv.slice(2));
   const dryRun = args.has('--dry-run');
   const runCsv = args.has('--csv');
-  const runBrowse = args.has('--browse') || !runCsv;
+  const runCsvAsking = args.has('--csv-asking');
+  const runBrowse = args.has('--browse') || (!runCsv && !runCsvAsking);
 
   const supabase = createAdminClient();
+  const csvPath = join(process.cwd(), 'memory-bank', 'price-source-validation.csv');
 
   if (runCsv) {
-    const csvPath = join(process.cwd(), 'memory-bank', 'price-source-validation.csv');
     const parsed = parsePriceValidationCsv(readFileSync(csvPath, 'utf8'));
     const printingIds = await getSampleIdToPrintingId(supabase);
     const observations = resolveCardPrintingIds(parsed, printingIds);
@@ -43,6 +52,21 @@ async function main(): Promise<void> {
     if (!dryRun && snapshots.length > 0) {
       const written = await upsertSnapshots(supabase, snapshots);
       console.log(`[csv] upserted ${written} sold snapshots`);
+    }
+  }
+
+  if (runCsvAsking) {
+    const parsed = parseAskingValidationCsv(readFileSync(csvPath, 'utf8'));
+    const printingIds = await getSampleIdToPrintingId(supabase);
+    const observations = resolveCardPrintingIds(parsed, printingIds);
+    const snapshots = aggregateAskingObservations(observations);
+
+    console.log(
+      `[csv-asking] parsed=${parsed.length} resolved=${observations.length} snapshots=${snapshots.length} dryRun=${dryRun}`,
+    );
+    if (!dryRun && snapshots.length > 0) {
+      const written = await upsertSnapshots(supabase, snapshots);
+      console.log(`[csv-asking] upserted ${written} asking snapshots`);
     }
   }
 

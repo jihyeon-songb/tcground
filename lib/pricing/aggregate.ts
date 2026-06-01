@@ -82,6 +82,67 @@ export function aggregateObservations(
   return snapshots;
 }
 
+/**
+ * Aggregates asking observations (current listing prices, e.g. `manual_bunjang`
+ * rows) into daily asking snapshots. One snapshot per
+ * (printing, date, market, currency, variant, condition, grade, source) bucket,
+ * using the outlier-filtered median listing price as the representative asking
+ * price — mirroring the eBay Browse / Bunjang live adapters. The row's own
+ * `sourceName` is preserved so manual asking sources keep their attribution.
+ */
+export function aggregateAskingObservations(
+  observations: readonly PriceObservationInput[],
+  options: AggregateOptions = {},
+): SnapshotAggregate[] {
+  const {
+    confidenceThreshold = DEFAULT_CONFIDENCE_THRESHOLD,
+    aggregationMethod = 'manual_asking_median',
+  } = options;
+
+  const buckets = new Map<string, PriceObservationInput[]>();
+
+  for (const observation of observations) {
+    if (observation.confidenceScore < confidenceThreshold) continue;
+    if (!Number.isFinite(observation.soldPrice) || observation.soldPrice <= 0) continue;
+
+    const snapshotDate = toSnapshotDate(observation.soldAt);
+    if (!snapshotDate) continue;
+
+    const key = `${observation.sourceName}|${bucketKey(observation, snapshotDate)}`;
+    const existing = buckets.get(key);
+    if (existing) existing.push(observation);
+    else buckets.set(key, [observation]);
+  }
+
+  const snapshots: SnapshotAggregate[] = [];
+
+  for (const group of buckets.values()) {
+    const prices = removeOutliers(group.map((item) => item.soldPrice));
+    if (prices.length === 0) continue;
+
+    const sample = group[0];
+    snapshots.push({
+      cardPrintingId: sample.cardPrintingId,
+      snapshotDate: toSnapshotDate(sample.soldAt) as string,
+      market: sample.market,
+      currency: sample.currency,
+      variant: sample.variant,
+      conditionLabel: sample.conditionLabel,
+      gradeCompany: sample.gradeCompany,
+      gradeValue: sample.gradeValue,
+      avgPrice: roundCurrency(median(prices)),
+      minPrice: roundCurrency(Math.min(...prices)),
+      maxPrice: roundCurrency(Math.max(...prices)),
+      sampleCount: prices.length,
+      sourceName: sample.sourceName,
+      sourceUrl: null,
+      aggregationMethod,
+    });
+  }
+
+  return snapshots;
+}
+
 /** Extracts a `YYYY-MM-DD` date from an ISO timestamp, or null if unparseable. */
 export function toSnapshotDate(isoTimestamp: string): string | null {
   const parsed = new Date(isoTimestamp);
@@ -134,6 +195,14 @@ function quantile(sortedValues: readonly number[], fraction: number): number {
 
 function mean(values: readonly number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+/** Median of a value list (sorts a copy first). Empty input returns 0. */
+function median(values: readonly number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
 function roundCurrency(value: number): number {

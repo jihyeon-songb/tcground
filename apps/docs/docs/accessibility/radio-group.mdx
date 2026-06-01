@@ -1,0 +1,68 @@
+---
+title: RadioGroup 접근성
+description: 단일 선택 의미와 방향키 이동을 잘못된 예와 비교합니다.
+---
+
+import A11yComparison from '@site/src/components/A11yComparison';
+import { AccessibleExample, InaccessibleExample } from '@site/src/components/examples/a11y/radio-group';
+
+# RadioGroup — 단일 선택과 그룹 의미
+
+여러 선택지 중 하나만 고르는 UI는 **단일 선택(radio)** 의미를 가져야 합니다.
+흔한 실수는 checkbox 로 단일 선택을 흉내 내는 것입니다. 그러면 의미가 어긋나고,
+모든 항목이 `Tab` 정지점이 되어 탐색이 번거로워집니다.
+`@tcground/headless` 의 `RadioGroup` 은 그룹 role 과 roving tabindex, 방향키 선택을 기본 제공합니다.
+
+<A11yComparison
+  bad={<InaccessibleExample />}
+  good={<AccessibleExample />}
+  badNotes={[
+    '단일 선택인데 checkbox 라 역할 의미가 어긋남',
+    'radiogroup role 이 없어 보기들이 한 묶음임을 알 수 없음',
+    '모든 항목이 Tab 정지점 — 항목이 많으면 탐색이 번거로움',
+    '방향키로 선택을 옮길 수 없음',
+  ]}
+  goodNotes={[
+    'role="radiogroup" + aria-label 로 그룹의 목적 노출',
+    '각 항목 role="radio" + aria-checked 로 선택 상태 노출',
+    'roving tabindex: 그룹 전체가 Tab 정지점 하나',
+    '방향키로 선택 이동 (순환)',
+  ]}
+  badCode={`function FakeRadioGroup() {
+  const [selected, setSelected] = useState('kr');
+  return (
+    <div>
+      {options.map((o) => (
+        <label key={o.value}>
+          {/* 단일 선택인데 checkbox + 그룹 role 없음 */}
+          <input
+            type="checkbox"
+            checked={selected === o.value}
+            onChange={() => setSelected(o.value)}
+          />
+          {o.label}
+        </label>
+      ))}
+    </div>
+  );
+}`}
+  goodCode={`import { Label, RadioGroup, RadioGroupItem } from '@tcground/ui';
+
+<RadioGroup defaultValue="kr" aria-label="카드 언어판 선택">
+  <Label><RadioGroupItem value="kr" /> 한국판</Label>
+  <Label><RadioGroupItem value="jp" /> 일본판</Label>
+  <Label><RadioGroupItem value="en" /> 영문판</Label>
+</RadioGroup>`}
+/>
+
+## 직접 확인
+
+- ✅ 버전: `Tab` 한 번으로 그룹에 진입(선택된 항목에 focus) → 방향키로 선택을 옮김.
+- ❌ 버전: 항목마다 `Tab` 을 눌러야 하고, 방향키가 동작하지 않으며, 여러 개를 동시에 체크할 수 있어 단일 선택 의미가 깨집니다.
+
+## headless가 보장하는 것
+
+- `RadioGroup` 은 `role="radiogroup"` 을 가지며 `aria-label` 로 목적을 알릴 수 있습니다.
+- `RadioGroupItem` 은 `role="radio"`, `aria-checked` 를 가집니다.
+- roving tabindex 로 그룹 전체가 하나의 `Tab` 정지점이 됩니다.
+- 방향키(`ArrowUp`/`ArrowDown`/`ArrowLeft`/`ArrowRight`)로 선택을 이동하며 끝에서 순환합니다.

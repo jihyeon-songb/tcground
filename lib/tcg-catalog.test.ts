@@ -409,9 +409,147 @@ describe('price history view models', () => {
     expect(history.soldPoints[0].avgPrice).toBe(150);
   });
 
+  it('draws graded sold data as the trend (with a grade label) only when no raw data exists', () => {
+    const history = buildPriceHistory([
+      // KREAM PSA 10 체결가 — the only data this card has, so it becomes the line
+      snapshotRow({
+        source_name: 'kream',
+        market: 'KR',
+        currency: 'KRW',
+        variant: 'graded',
+        grade_company: 'PSA',
+        grade_value: '10',
+        snapshot_date: '2026-05-20',
+        avg_price: 500000,
+      }),
+      snapshotRow({
+        source_name: 'kream',
+        market: 'KR',
+        currency: 'KRW',
+        variant: 'graded',
+        grade_company: 'PSA',
+        grade_value: '10',
+        snapshot_date: '2026-05-21',
+        avg_price: 520000,
+      }),
+    ]);
+
+    expect(history.askingSeries).toHaveLength(0);
+    expect(history.soldPoints.map((p) => p.avgPrice)).toEqual([500000, 520000]);
+    expect(history.gradeLabel).toBe('PSA 10');
+
+    const price = derivePriceDisplayFromHistory(history);
+    expect(price?.sourceLabel).toContain('PSA 10');
+  });
+
+  it('keeps graded data out of the trend when raw data is present', () => {
+    const history = buildPriceHistory([
+      // raw 번개장터 호가 — the comparable trend
+      snapshotRow({
+        source_name: 'bunjang',
+        market: 'KR',
+        currency: 'KRW',
+        snapshot_date: '2026-05-28',
+        avg_price: 60000,
+      }),
+      // KREAM PSA 10 — far higher; excluded from the raw line and overlay
+      snapshotRow({
+        source_name: 'kream',
+        market: 'KR',
+        currency: 'KRW',
+        variant: 'graded',
+        grade_company: 'PSA',
+        grade_value: '10',
+        snapshot_date: '2026-05-20',
+        avg_price: 500000,
+      }),
+    ]);
+
+    expect(history.gradeLabel).toBeNull();
+    expect(history.askingSeries.map((p) => p.avgPrice)).toEqual([60000]);
+    expect(history.soldPoints).toHaveLength(0);
+  });
+
+  it('prefers a KRW bucket over a larger USD bucket for the trend', () => {
+    const history = buildPriceHistory([
+      // USD asking (eBay) — more rows, but not domestic
+      snapshotRow({ snapshot_date: '2026-05-26', avg_price: 160 }),
+      snapshotRow({ snapshot_date: '2026-05-27', avg_price: 162 }),
+      snapshotRow({ snapshot_date: '2026-05-28', avg_price: 164 }),
+      // KRW asking (번개장터) — fewer rows, but wins because this is a KR catalog
+      snapshotRow({
+        source_name: 'bunjang',
+        currency: 'KRW',
+        market: 'KR',
+        snapshot_date: '2026-05-29',
+        avg_price: 72000,
+      }),
+    ]);
+
+    expect(history.currency).toBe('KRW');
+    expect(history.askingSeries.map((p) => p.avgPrice)).toEqual([72000]);
+  });
+
   it('ignores snapshots without an average price', () => {
     const history = buildPriceHistory([snapshotRow({ avg_price: null })]);
     expect(history.hasData).toBe(false);
+  });
+
+  it('treats 번개장터 as an asking trend and KREAM as a sold overlay', () => {
+    const history = buildPriceHistory([
+      snapshotRow({
+        source_name: 'bunjang',
+        market: 'KR',
+        currency: 'KRW',
+        snapshot_date: '2026-05-28',
+        avg_price: 60000,
+      }),
+      snapshotRow({
+        source_name: 'bunjang',
+        market: 'KR',
+        currency: 'KRW',
+        snapshot_date: '2026-05-29',
+        avg_price: 72000,
+      }),
+      snapshotRow({
+        source_name: 'kream',
+        market: 'KR',
+        currency: 'KRW',
+        snapshot_date: '2026-05-20',
+        avg_price: 90000,
+      }),
+    ]);
+
+    expect(history.askingSeries).toHaveLength(2);
+    expect(history.soldPoints).toHaveLength(1);
+    expect(history.soldPoints[0].avgPrice).toBe(90000);
+    expect(history.currency).toBe('KRW');
+  });
+
+  it('prefers the KRW bucket over a same-size USD bucket for the trend', () => {
+    const history = buildPriceHistory([
+      // USD asking (eBay) — same row count as the KRW asking bucket
+      snapshotRow({ snapshot_date: '2026-05-28', avg_price: 160 }),
+      snapshotRow({ snapshot_date: '2026-05-29', avg_price: 168 }),
+      // KRW asking (번개장터) — wins the tie because this is a Korean-print catalog
+      snapshotRow({
+        source_name: 'bunjang',
+        currency: 'KRW',
+        market: 'KR',
+        snapshot_date: '2026-05-28',
+        avg_price: 60000,
+      }),
+      snapshotRow({
+        source_name: 'bunjang',
+        currency: 'KRW',
+        market: 'KR',
+        snapshot_date: '2026-05-29',
+        avg_price: 72000,
+      }),
+    ]);
+
+    expect(history.currency).toBe('KRW');
+    expect(history.askingSeries.map((p) => p.avgPrice)).toEqual([60000, 72000]);
   });
 
   it('derives the summary and change rate from the asking series', () => {

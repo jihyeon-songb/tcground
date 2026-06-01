@@ -1824,3 +1824,17 @@
 [data-slot='switch'][data-checked] [data-slot='switch-thumb'] {
   transform: translateX(calc(100% - 1px));
 }
+
+/* 스크린리더 전용 텍스트(예: 닫기 버튼의 "Close" 라벨)를 시각적으로 숨깁니다.
+   Tailwind 의 sr-only 유틸리티를 사용하지 않는 환경(docs 등)을 위해 직접 정의합니다. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}

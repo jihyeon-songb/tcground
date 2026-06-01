@@ -101,10 +101,45 @@ export interface PriceSourceAdapter {
   requiresApproval: boolean;
 }
 
-/** Thrown when a restricted source is invoked without granted API access. */
-export class EbayAccessNotGrantedError extends Error {
+/**
+ * Thrown when a source whose access is gated (restricted API, or a domestic
+ * marketplace without a confirmed compliant access path) is invoked before that
+ * access has been explicitly enabled. Scaffolded adapters throw this instead of
+ * touching the network so they can drop in once access is granted.
+ */
+export class PriceSourceAccessNotGrantedError extends Error {
+  readonly sourceName: string;
+
+  constructor(sourceName: string, message?: string) {
+    super(message ?? `Price source "${sourceName}" access has not been granted for this application`);
+    this.name = 'PriceSourceAccessNotGrantedError';
+    this.sourceName = sourceName;
+  }
+}
+
+/**
+ * Back-compat alias for the eBay restricted-source guard. Retained so existing
+ * eBay callers/tests keep working while new sources use the generic error.
+ */
+export class EbayAccessNotGrantedError extends PriceSourceAccessNotGrantedError {
   constructor(message = 'eBay restricted API access has not been granted for this application') {
-    super(message);
+    super('ebay_sold', message);
     this.name = 'EbayAccessNotGrantedError';
   }
+}
+
+/**
+ * Source names that represent *current asking* prices (active listings) rather
+ * than completed sales. Single source of truth for the detail chart's
+ * asking-vs-sold split and for any asking-specific collection handling.
+ */
+export const ASKING_SOURCE_NAMES: ReadonlySet<string> = new Set([
+  'ebay_browse',
+  'bunjang',
+  'manual_bunjang',
+]);
+
+/** True when a snapshot/observation source name is an asking-price source. */
+export function isAskingSource(sourceName: string): boolean {
+  return ASKING_SOURCE_NAMES.has(sourceName);
 }

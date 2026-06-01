@@ -1,5 +1,19 @@
 @import '../../../../packages/ui/src/theme.css';
 
+/* Dialog/Sheet 닫기 버튼의 스크린리더 전용 "Close" 라벨을 시각적으로 숨깁니다.
+   docs(Docusaurus)는 Tailwind 의 sr-only 유틸리티를 처리하지 않으므로 직접 정의합니다. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 :root {
   --ifm-color-primary: #1f8f4d;
   --ifm-color-primary-dark: #1c8045;
@@ -57,6 +71,75 @@
 [data-theme='dark'] .component-preview__surface {
   background: #1c2520;
   border-color: #2c3a31;
+}
+
+.a11y-comparison {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .a11y-comparison {
+    grid-template-columns: 1fr;
+  }
+}
+
+.a11y-comparison__col {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  border-top-width: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.a11y-comparison__col--bad {
+  border-top-color: #d64545;
+}
+
+.a11y-comparison__col--good {
+  border-top-color: #1f8f4d;
+}
+
+.a11y-comparison__title {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.a11y-comparison__surface {
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  min-height: 10rem;
+  padding: 1.5rem;
+}
+
+[data-theme='dark'] .a11y-comparison__surface {
+  background: #1c2520;
+  border-color: #2c3a31;
+}
+
+.a11y-comparison__notes {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.a11y-comparison__notes li {
+  margin-bottom: 0.35rem;
+}
+
+.a11y-comparison__code summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
 .props-table {

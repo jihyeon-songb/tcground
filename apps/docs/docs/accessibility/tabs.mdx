@@ -1,0 +1,68 @@
+---
+title: Tabs 접근성
+description: roving tabindex와 방향키 이동을 잘못된 예와 비교합니다.
+---
+
+import A11yComparison from '@site/src/components/A11yComparison';
+import { AccessibleExample, InaccessibleExample } from '@site/src/components/examples/a11y/tabs';
+
+# Tabs — roving tabindex와 방향키 이동
+
+탭의 핵심 접근성 패턴은 **roving tabindex** 입니다. 탭 목록 전체가 `Tab` 정지점 하나만 차지하고,
+그 안에서는 **방향키**로 탭을 이동·활성화합니다. `@tcground/headless` 의 `Tabs` 는
+`tablist` / `tab` / `tabpanel` role 과 `aria-selected`, `aria-controls` 연결을 기본 제공합니다.
+
+<A11yComparison
+  bad={<InaccessibleExample />}
+  good={<AccessibleExample />}
+  badNotes={[
+    'tablist / tab / tabpanel role 이 없어 탭 UI 임을 알 수 없음',
+    'div onClick 이라 키보드 focus 자체가 불가능',
+    '방향키로 탭을 이동할 수 없음',
+    '활성 탭이 aria-selected 로 노출되지 않음',
+  ]}
+  goodNotes={[
+    'role="tablist" + aria-label 로 탭 묶음의 목적 노출',
+    '각 탭에 role="tab", aria-selected, aria-controls 자동 연결',
+    'roving tabindex: Tab 한 번으로 활성 탭에 진입',
+    '좌우 방향키로 탭 이동 + 자동 활성화',
+  ]}
+  badCode={`function FakeTabs() {
+  const [active, setActive] = useState('price');
+  return (
+    <div>
+      <div style={{ display: 'flex' }}>
+        {/* div onClick: role 없음, 키보드 이동 불가 */}
+        <div onClick={() => setActive('price')}>시세</div>
+        <div onClick={() => setActive('detail')}>상세</div>
+        <div onClick={() => setActive('history')}>거래 이력</div>
+      </div>
+      <div>{/* 활성 패널 */}</div>
+    </div>
+  );
+}`}
+  goodCode={`import { Tabs, TabsContent, TabsList, TabsTrigger } from '@tcground/ui';
+
+<Tabs defaultValue="price">
+  <TabsList aria-label="카드 정보 섹션">
+    <TabsTrigger value="price">시세</TabsTrigger>
+    <TabsTrigger value="detail">상세</TabsTrigger>
+    <TabsTrigger value="history">거래 이력</TabsTrigger>
+  </TabsList>
+  <TabsContent value="price">최근 평균 거래가…</TabsContent>
+  <TabsContent value="detail">세트, 레어도…</TabsContent>
+  <TabsContent value="history">최근 거래 내역…</TabsContent>
+</Tabs>`}
+/>
+
+## 직접 확인
+
+- ✅ 버전: `Tab` 으로 탭 목록에 진입하면 활성 탭에 focus → 좌우 방향키로 탭 이동 시 자동 활성화.
+- ❌ 버전: `Tab` 으로 탭에 focus 가 가지 않고, 방향키도 동작하지 않습니다. 마우스로만 전환할 수 있습니다.
+
+## headless가 보장하는 것
+
+- `TabsList` 는 `role="tablist"` 를 가지며 `aria-label` 로 목적을 알릴 수 있습니다.
+- `TabsTrigger` 는 `role="tab"`, `aria-selected`, `aria-controls`, roving `tabIndex`(활성 0 / 비활성 -1)를 가집니다.
+- `TabsContent` 는 `role="tabpanel"`, `aria-labelledby` 로 트리거와 연결됩니다.
+- `ArrowLeft` / `ArrowRight` 로 trigger 사이를 이동하면 해당 탭이 활성화됩니다.
