@@ -81,12 +81,14 @@ export interface PricePoint {
 /**
  * Price history for the detail chart. `askingSeries` is the daily eBay Browse
  * asking trend; `soldPoints` are aggregated sold observations overlaid as
- * reference points.
+ * reference points. `gradeLabel` names the grade of the trend series when it is
+ * a graded fallback (e.g. KREAM PSA 10 체결가), and is null when the trend is raw.
  */
 export interface PriceHistory {
   askingSeries: PricePoint[];
   soldPoints: PricePoint[];
   currency: string | null;
+  gradeLabel: string | null;
   hasData: boolean;
 }
 
@@ -539,39 +541,50 @@ export function createDeterministicPriceDisplay(slug: string, sampleId: string):
  * Builds the detail chart history from snapshots. Snapshots mix currencies,
  * variants, conditions, grades and markets, so we never draw them all as one
  * line. Instead we pick a single coherent bucket — same currency, variant and
- * condition, ungraded — and draw that as the trend. The eBay Browse asking
- * series is preferred; otherwise the richest sold bucket forms the line, with
- * comparable sold points overlaid only when an asking trend is present.
+ * grade — and draw that as the trend. The eBay Browse asking series is
+ * preferred; otherwise the richest sold bucket forms the line, with comparable
+ * sold points overlaid only when an asking trend is present.
+ *
+ * Raw (ungraded) buckets are preferred so the trend axis stays on comparable
+ * prices. Graded sold data (e.g. KREAM PSA 10 체결가) only forms the trend as a
+ * fallback when no raw data exists — in that case `gradeLabel` records the grade
+ * so the UI can tell the user which grade the chart is showing.
  */
 export function buildPriceHistory(snapshots: readonly CardPriceSnapshotRow[]): PriceHistory {
   const priced = snapshots.filter((snapshot) => snapshot.avg_price !== null);
   // Asking sources (eBay Browse, 번개장터) form the trend line; sold sources
   // (eBay sold, KREAM 체결, manual sold imports) form the overlay/sold series.
   const askingRows = priced.filter((snapshot) => isAskingSource(snapshot.source_name));
-  const soldRows = priced.filter(
-    (snapshot) => !isAskingSource(snapshot.source_name) && isUngraded(snapshot),
-  );
+  const soldRows = priced.filter((snapshot) => !isAskingSource(snapshot.source_name));
 
   const askingBucket = pickRichestBucket(askingRows);
   const askingSeries = askingBucket ? collapseByDate(askingBucket.rows) : [];
 
   // When an asking trend exists, overlay only sold points from the matching
-  // bucket (same currency/variant/condition). Otherwise the richest sold bucket
-  // becomes the trend line itself so a sold-only history is still a real line.
+  // bucket (same currency/variant/grade) so graded prices never distort the raw
+  // axis. Otherwise the richest sold bucket becomes the trend line itself — and
+  // since raw buckets are preferred, graded data only surfaces here when it is
+  // the only data the card has.
   let soldPoints: PricePoint[] = [];
+  let trendBucket = askingBucket;
   if (askingBucket) {
     soldPoints = collapseByDate(soldRows.filter((row) => bucketKey(row) === askingBucket.key));
   } else {
     const soldBucket = pickRichestBucket(soldRows);
-    if (soldBucket) soldPoints = collapseByDate(soldBucket.rows);
+    if (soldBucket) {
+      soldPoints = collapseByDate(soldBucket.rows);
+      trendBucket = soldBucket;
+    }
   }
 
   const currency = askingSeries[0]?.currency ?? soldPoints[0]?.currency ?? null;
+  const gradeLabel = trendBucket ? gradeLabelForRows(trendBucket.rows) : null;
 
   return {
     askingSeries,
     soldPoints,
     currency,
+    gradeLabel,
     hasData: askingSeries.length > 0 || soldPoints.length > 0,
   };
 }
@@ -589,14 +602,27 @@ function isUngraded(snapshot: CardPriceSnapshotRow): boolean {
   return !snapshot.grade_company && !snapshot.grade_value;
 }
 
+/** Human-readable grade for a coherent bucket's rows, or null when ungraded. */
+function gradeLabelForRows(rows: readonly CardPriceSnapshotRow[]): string | null {
+  const sample = rows[0];
+  if (!sample || isUngraded(sample)) return null;
+  return [sample.grade_company, sample.grade_value].filter(Boolean).join(' ').trim() || null;
+}
+
 /**
- * Identifies a coherent, comparable bucket: one currency + variant of an
- * ungraded card. Market and condition are allowed to vary (and same-date rows
- * are averaged in `collapseByDate`) so the raw-price trend stays continuous
- * instead of fragmenting into single points. Grading is excluded separately.
+ * Identifies a coherent, comparable bucket: one currency + variant + grade.
+ * Market and condition are allowed to vary (and same-date rows are averaged in
+ * `collapseByDate`) so the trend stays continuous instead of fragmenting into
+ * single points. Grade is part of the key so a graded series (e.g. PSA 10) never
+ * mixes with raw prices on the same line.
  */
 function bucketKey(snapshot: CardPriceSnapshotRow): string {
-  return [snapshot.currency, snapshot.variant].join('|');
+  return [
+    snapshot.currency,
+    snapshot.variant,
+    snapshot.grade_company ?? '',
+    snapshot.grade_value ?? '',
+  ].join('|');
 }
 
 /**
@@ -624,20 +650,27 @@ function pickRichestBucket(
 }
 
 /**
- * Whether `(key, rows)` should replace `best`: more rows wins; on a tie the KRW
- * bucket is preferred (this is a Korean-print catalog, so domestic KRW prices
- * are the most relevant trend), then the more recent bucket.
+ * Whether `(key, rows)` should replace `best`. Preference order, strongest
+ * first: a raw (ungraded) bucket beats a graded one (graded is only a fallback
+ * trend so PSA-style prices never distort the raw axis); then KRW beats other
+ * currencies (this is a Korean-print catalog, so domestic prices are the most
+ * relevant trend, even when there are fewer of them); then more rows; then the
+ * more recent bucket.
  */
 function isRicherBucket(
   key: string,
   rows: readonly CardPriceSnapshotRow[],
   best: { key: string; rows: CardPriceSnapshotRow[] },
 ): boolean {
-  if (rows.length !== best.rows.length) return rows.length > best.rows.length;
+  const isRaw = isUngraded(rows[0]);
+  const bestIsRaw = isUngraded(best.rows[0]);
+  if (isRaw !== bestIsRaw) return isRaw;
 
   const isKrw = key.startsWith('KRW|');
   const bestIsKrw = best.key.startsWith('KRW|');
   if (isKrw !== bestIsKrw) return isKrw;
+
+  if (rows.length !== best.rows.length) return rows.length > best.rows.length;
 
   return latestDate(rows) > latestDate(best.rows);
 }
@@ -699,7 +732,7 @@ export function derivePriceDisplayFromHistory(history: PriceHistory): PriceDispl
     lastUpdatedAt: formatSnapshotDate(latest.date),
     sourceLabel: usingAsking
       ? `${latest.currency === 'KRW' ? '국내' : 'eBay'} 판매중 호가 ${latest.sampleCount}건 기준 (실거래가는 참조점으로 표시)`
-      : `최근 실거래가 집계 ${latest.sampleCount}건 기준`,
+      : `최근 ${history.gradeLabel ? `${history.gradeLabel} ` : ''}실거래가 집계 ${latest.sampleCount}건 기준`,
     currency: latest.currency,
     sampleCount: latest.sampleCount,
   };

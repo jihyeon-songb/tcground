@@ -162,6 +162,7 @@ function createCardDetail(): CatalogCardDetail {
       ],
       soldPoints: [],
       currency: 'USD',
+      gradeLabel: null,
       hasData: true,
     },
     printing: {

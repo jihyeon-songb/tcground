@@ -98,6 +98,9 @@ export function CardDetailContent({
   const trendSeries = getPriceTrendSeries(card.priceHistory);
   const overlaySold =
     card.priceHistory.askingSeries.length > 0 ? card.priceHistory.soldPoints : [];
+  // When the trend is a graded fallback (e.g. KREAM PSA 10 체결가), label the
+  // price as that grade instead of the default raw 시세 so the user isn't misled.
+  const priceGradeLabel = card.priceHistory.gradeLabel ?? 'Raw';
 
   return (
     <>
@@ -161,13 +164,13 @@ export function CardDetailContent({
             </div>
             <div className='mt-4 flex flex-wrap gap-8 border-t border-[#e6e8ea] pt-4'>
               <div className='flex flex-col gap-1'>
-                <span className='text-base text-[#535f73]'>최저가 (Raw)</span>
+                <span className='text-base text-[#535f73]'>최저가 ({priceGradeLabel})</span>
                 <span className='text-2xl leading-[1.2] font-bold text-[#191c1e] tabular-nums md:text-[28px]'>
                   {formatPrice(card.price.minPrice, card.price.currency)}
                 </span>
               </div>
               <div className='flex flex-col gap-1'>
-                <span className='text-base text-[#535f73]'>최고가 (Raw)</span>
+                <span className='text-base text-[#535f73]'>최고가 ({priceGradeLabel})</span>
                 <span className='text-2xl leading-[1.2] font-bold text-[#191c1e] tabular-nums md:text-[28px]'>
                   {formatPrice(card.price.maxPrice, card.price.currency)}
                 </span>
@@ -217,6 +220,7 @@ export function CardDetailContent({
             trendSeries={trendSeries}
             overlaySold={overlaySold}
             hasData={card.priceHistory.hasData}
+            gradeLabel={card.priceHistory.gradeLabel}
           />
 
           <p className='mt-2 flex items-center gap-2 text-sm leading-[1.5] text-[#535f73]'>

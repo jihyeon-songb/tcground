@@ -19,6 +19,8 @@ interface PriceHistoryChartProps {
   overlaySold: PricePoint[];
   /** Whether any history exists at all (drives the empty state). */
   hasData: boolean;
+  /** Grade of the trend series when it is a graded fallback (e.g. "PSA 10"); null when raw. */
+  gradeLabel?: string | null;
 }
 
 /**
@@ -26,7 +28,12 @@ interface PriceHistoryChartProps {
  * place; hovering tracks the nearest day and surfaces its price in a tooltip.
  * Overlay sold points are clamped to the active window by `buildChartGeometry`.
  */
-export function PriceHistoryChart({ trendSeries, overlaySold, hasData }: PriceHistoryChartProps) {
+export function PriceHistoryChart({
+  trendSeries,
+  overlaySold,
+  hasData,
+  gradeLabel,
+}: PriceHistoryChartProps) {
   const [period, setPeriod] = useState<ChartPeriod>(DEFAULT_CHART_PERIOD);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
@@ -62,9 +69,16 @@ export function PriceHistoryChart({ trendSeries, overlaySold, hasData }: PriceHi
   return (
     <section aria-labelledby='price-history-heading' className='mt-8 rounded-2xl bg-white p-6'>
       <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
-        <h3 id='price-history-heading' className='text-2xl leading-[1.2] font-bold text-[#191c1e]'>
-          가격 변동 추이
-        </h3>
+        <div className='flex flex-wrap items-center gap-2'>
+          <h3 id='price-history-heading' className='text-2xl leading-[1.2] font-bold text-[#191c1e]'>
+            가격 변동 추이
+          </h3>
+          {gradeLabel && (
+            <span className='rounded-full bg-[#e6e8ea] px-2.5 py-1 text-xs leading-none font-semibold text-[#191c1e]'>
+              {gradeLabel} 체결가 기준
+            </span>
+          )}
+        </div>
         <div
           className='flex items-center gap-1 rounded-full bg-[#f2f4f6] p-1'
           role='tablist'

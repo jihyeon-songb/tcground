@@ -94,6 +94,30 @@ describe('parseAskingValidationCsv', () => {
     expect(asking[0].observation.soldPrice).toBe(60000);
     expect(asking[0].observation.market).toBe('KR');
   });
+
+  it('treats price_kind=listing as asking (호가), not a completed sale', () => {
+    const content = csv(
+      'KR-004,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
+        'manual_bunjang,223419821,https://web.bunjang.co.kr/products/223419821,리자몽 sar,KR,KRW,listing,58000,' +
+        '2026-05-21T12:00:00+09:00,2026-05-21T18:39:22+09:00,,raw,,,,0.7,"{}",',
+    );
+
+    expect(parsePriceValidationCsv(content)).toHaveLength(0);
+    const asking = parseAskingValidationCsv(content);
+    expect(asking).toHaveLength(1);
+    expect(asking[0].priceKind).toBe('asking');
+    expect(asking[0].observation.soldPrice).toBe(58000);
+  });
+
+  it('uppercases the currency so chart bucketing matches', () => {
+    const content = csv(
+      'KR-004,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
+        'ebay_sold,1,https://e/1,t,NA,usd,sold,100,2026-01-01T00:00:00Z,2026-01-02T00:00:00Z,near_mint,raw,,,,0.9,"{}",',
+    );
+
+    const [{ observation }] = parsePriceValidationCsv(content);
+    expect(observation.currency).toBe('USD');
+  });
 });
 
 describe('resolveCardPrintingIds', () => {

@@ -129,7 +129,7 @@ function parseValidationCsv(content: string, wantedKind: PriceKind): ParsedPrice
       observation: {
         sourceName: cell('source_name') || 'manual',
         market: normalizeMarket(cell('market')),
-        currency: cell('currency') || 'KRW',
+        currency: normalizeCurrency(cell('currency')),
         soldPrice,
         soldAt,
         observedAt: cell('observed_at') || new Date().toISOString(),
@@ -185,8 +185,19 @@ function normalizeVariant(value: string): PriceVariant {
   return value.toLowerCase() === 'graded' ? 'graded' : 'raw';
 }
 
+/** Currency codes are stored uppercase so chart bucketing (e.g. KRW tie-breaks) matches. */
+function normalizeCurrency(value: string): string {
+  return (value || 'KRW').toUpperCase();
+}
+
+/**
+ * `asking` and `listing` are both active-listing (호가) rows; everything else is
+ * a completed sale. Mapping `listing` to `asking` keeps priced listings out of
+ * the sold (실거래가) aggregation.
+ */
 function normalizePriceKind(value: string): PriceKind {
-  return value.toLowerCase() === 'asking' ? 'asking' : 'sold';
+  const normalized = value.toLowerCase();
+  return normalized === 'asking' || normalized === 'listing' ? 'asking' : 'sold';
 }
 
 function parseConfidence(value: string): number {
