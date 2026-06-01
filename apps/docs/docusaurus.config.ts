@@ -39,6 +39,7 @@ const config: Config = {
       title: 'TCGround UI',
       items: [
         { to: '/', label: '소개', position: 'left' },
+        { to: '/accessibility', label: '접근성', position: 'left' },
         { to: '/components/button', label: '컴포넌트', position: 'left' },
       ],
     },

@@ -5,7 +5,17 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: '시작하기',
-      items: ['index', 'installation', 'theming', 'accessibility'],
+      items: ['index', 'installation', 'theming'],
+    },
+    {
+      type: 'category',
+      label: '접근성',
+      items: [
+        'accessibility/index',
+        'accessibility/dialog',
+        'accessibility/tabs',
+        'accessibility/radio-group',
+      ],
     },
     {
       type: 'category',

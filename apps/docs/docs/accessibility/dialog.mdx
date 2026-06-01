@@ -1,0 +1,79 @@
+---
+title: Dialog 접근성
+description: focus trap, focus 복원, Esc 닫기를 잘못된 예와 비교합니다.
+---
+
+import A11yComparison from '@site/src/components/A11yComparison';
+import { AccessibleExample, InaccessibleExample } from '@site/src/components/examples/a11y/dialog';
+
+# Dialog — focus trap과 focus 복원
+
+모달 다이얼로그의 핵심 접근성 패턴은 **focus 관리**입니다. 열리면 focus가 다이얼로그 안으로 들어가고,
+`Tab` 은 다이얼로그 내부에서만 순환해야 하며(focus trap), 닫히면 원래 트리거로 focus가 되돌아와야 합니다.
+`@tcground/headless` 의 `Dialog` 는 여기에 `role="dialog"`, `aria-modal`, `aria-labelledby`, Esc 닫기까지 기본 제공합니다.
+
+<A11yComparison
+  bad={<InaccessibleExample />}
+  good={<AccessibleExample />}
+  badNotes={[
+    'role·aria-modal 이 없어 보조 기기가 모달임을 알 수 없음',
+    '트리거가 div onClick 이라 키보드로 열 수 없음',
+    'Tab 이 모달 뒤 배경 요소로 새어 나감 (focus trap 없음)',
+    'Esc 로 닫을 수 없고, 닫아도 focus 가 트리거로 복원되지 않음',
+  ]}
+  goodNotes={[
+    'role="dialog" + aria-modal="true" 로 모달 의미 노출',
+    'aria-labelledby / aria-describedby 로 제목·설명 연결',
+    'Tab / Shift+Tab 이 다이얼로그 안에서만 순환',
+    'Esc 로 닫히고, 닫으면 트리거 버튼으로 focus 복원',
+  ]}
+  badCode={`function FakeDialog() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <span onClick={() => setOpen(true)}>관심 카드에서 삭제</span>
+      {open && (
+        <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0 }}>
+          <div onClick={(e) => e.stopPropagation()}>
+            {/* role 없음, focus trap 없음, Esc 없음 */}
+            <div>관심 카드에서 삭제할까요?</div>
+            <span onClick={() => setOpen(false)}>삭제</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}`}
+  goodCode={`import {
+  Button, Dialog, DialogClose, DialogContent,
+  DialogDescription, DialogTitle, DialogTrigger,
+} from '@tcground/ui';
+
+<Dialog>
+  <DialogTrigger asChild>
+    <Button>관심 카드에서 삭제</Button>
+  </DialogTrigger>
+  <DialogContent>
+    <DialogTitle>관심 카드에서 삭제할까요?</DialogTitle>
+    <DialogDescription>이 카드를 관심 목록에서 제거합니다.</DialogDescription>
+    <DialogClose asChild>
+      <Button>삭제</Button>
+    </DialogClose>
+  </DialogContent>
+</Dialog>`}
+/>
+
+## 직접 확인
+
+키보드만으로 두 데모를 비교해 보세요.
+
+- ✅ 버전: `Tab` 으로 트리거에 도달 → `Enter` 로 열기 → `Tab` 이 다이얼로그 안에서만 순환 → `Esc` 로 닫기 → focus 가 트리거로 복귀.
+- ❌ 버전: 트리거에 `Tab` 으로 도달조차 안 되고, 열어도 `Tab` 이 배경으로 새며 `Esc` 가 동작하지 않습니다.
+
+## headless가 보장하는 것
+
+- `DialogContent` 는 `role="dialog"`(또는 `alertdialog`), `aria-modal="true"` 를 가집니다.
+- `DialogTitle` / `DialogDescription` 이 `aria-labelledby` / `aria-describedby` 로 자동 연결됩니다.
+- 열릴 때 직전 focus 요소를 기억하고, 닫힐 때 그 요소로 focus 를 복원합니다.
+- `Tab` 은 다이얼로그 내부에서 순환하며, 모달 동안 배경은 `aria-hidden` 처리됩니다.
+- `Esc` 로 닫을 수 있습니다.
