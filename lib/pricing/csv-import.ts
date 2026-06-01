@@ -75,6 +75,21 @@ export function parseCsv(content: string): string[][] {
  * with an invalid price — enforcing the single-card, sold-only rule.
  */
 export function parsePriceValidationCsv(content: string): ParsedPriceObservation[] {
+  return parseValidationCsv(content, 'sold');
+}
+
+/**
+ * Parses the same CSV into asking observations (`price_kind = asking`, e.g.
+ * `manual_bunjang` listing rows). These feed the daily asking snapshot path
+ * rather than `price_observations`. `sold_price`/`sold_at` columns carry the
+ * listing price and observation time for asking rows.
+ */
+export function parseAskingValidationCsv(content: string): ParsedPriceObservation[] {
+  return parseValidationCsv(content, 'asking');
+}
+
+/** Parses CSV rows matching `wantedKind`, dropping excluded/invalid rows. */
+function parseValidationCsv(content: string, wantedKind: PriceKind): ParsedPriceObservation[] {
   const rows = parseCsv(content);
   if (rows.length < 2) return [];
 
@@ -91,7 +106,7 @@ export function parsePriceValidationCsv(content: string): ParsedPriceObservation
     if (cell('exclude_reason').length > 0) continue;
 
     const priceKind = normalizePriceKind(cell('price_kind'));
-    if (priceKind !== 'sold') continue;
+    if (priceKind !== wantedKind) continue;
 
     const soldPrice = Number.parseFloat(cell('sold_price'));
     if (!Number.isFinite(soldPrice) || soldPrice <= 0) continue;

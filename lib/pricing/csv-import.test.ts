@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { parseCsv, parsePriceValidationCsv, resolveCardPrintingIds } from './csv-import';
+import {
+  parseAskingValidationCsv,
+  parseCsv,
+  parsePriceValidationCsv,
+  resolveCardPrintingIds,
+} from './csv-import';
 
 const HEADER = [
   'sample_id,card_name,set_name,set_code,collector_number,rarity,language,region,finish,',
@@ -68,6 +73,26 @@ describe('parsePriceValidationCsv', () => {
     expect(observation.gradeCompany).toBe('PSA');
     expect(observation.gradeValue).toBe('10');
     expect(observation.currency).toBe('KRW');
+  });
+});
+
+describe('parseAskingValidationCsv', () => {
+  it('parses asking rows and ignores sold rows', () => {
+    const content = csv(
+      'KR-004,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
+        'manual_bunjang,223419820,https://web.bunjang.co.kr/products/223419820,리자몽 sar,KR,KRW,asking,60000,' +
+        '2026-05-21T12:00:00+09:00,2026-05-21T18:39:22+09:00,,raw,,,,0.74,"{}",',
+      'KR-004,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
+        'manual_kream,804751,https://kream.co.kr/products/804751,PSA 10,KR,KRW,sold,550000,' +
+        '2026-05-12T12:00:00+09:00,2026-05-21T18:39:22+09:00,,graded,PSA,10,,0.88,"{}",',
+    );
+
+    const asking = parseAskingValidationCsv(content);
+    expect(asking).toHaveLength(1);
+    expect(asking[0].priceKind).toBe('asking');
+    expect(asking[0].observation.sourceName).toBe('manual_bunjang');
+    expect(asking[0].observation.soldPrice).toBe(60000);
+    expect(asking[0].observation.market).toBe('KR');
   });
 });
 

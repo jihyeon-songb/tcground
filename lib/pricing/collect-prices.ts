@@ -124,6 +124,7 @@ export async function collectDailyPrices(
 
   if (!options.dryRun) {
     await recordRun(supabase, {
+      sourceName: BROWSE_SOURCE_NAME,
       market: options.market ?? 'NA',
       status,
       startedAt,
@@ -181,6 +182,7 @@ function toSnapshotRow(snapshot: SnapshotAggregate) {
 async function recordRun(
   supabase: SupabaseClient,
   run: {
+    sourceName: string;
     market: PriceMarket;
     status: CollectPricesResult['status'];
     startedAt: string;
@@ -189,7 +191,7 @@ async function recordRun(
   },
 ): Promise<void> {
   await supabase.from('price_collection_runs').insert({
-    source_name: BROWSE_SOURCE_NAME,
+    source_name: run.sourceName,
     market: run.market,
     status: run.status,
     started_at: run.startedAt,

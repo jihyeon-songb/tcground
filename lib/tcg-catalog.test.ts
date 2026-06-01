@@ -414,6 +414,63 @@ describe('price history view models', () => {
     expect(history.hasData).toBe(false);
   });
 
+  it('treats 번개장터 as an asking trend and KREAM as a sold overlay', () => {
+    const history = buildPriceHistory([
+      snapshotRow({
+        source_name: 'bunjang',
+        market: 'KR',
+        currency: 'KRW',
+        snapshot_date: '2026-05-28',
+        avg_price: 60000,
+      }),
+      snapshotRow({
+        source_name: 'bunjang',
+        market: 'KR',
+        currency: 'KRW',
+        snapshot_date: '2026-05-29',
+        avg_price: 72000,
+      }),
+      snapshotRow({
+        source_name: 'kream',
+        market: 'KR',
+        currency: 'KRW',
+        snapshot_date: '2026-05-20',
+        avg_price: 90000,
+      }),
+    ]);
+
+    expect(history.askingSeries).toHaveLength(2);
+    expect(history.soldPoints).toHaveLength(1);
+    expect(history.soldPoints[0].avgPrice).toBe(90000);
+    expect(history.currency).toBe('KRW');
+  });
+
+  it('prefers the KRW bucket over a same-size USD bucket for the trend', () => {
+    const history = buildPriceHistory([
+      // USD asking (eBay) — same row count as the KRW asking bucket
+      snapshotRow({ snapshot_date: '2026-05-28', avg_price: 160 }),
+      snapshotRow({ snapshot_date: '2026-05-29', avg_price: 168 }),
+      // KRW asking (번개장터) — wins the tie because this is a Korean-print catalog
+      snapshotRow({
+        source_name: 'bunjang',
+        currency: 'KRW',
+        market: 'KR',
+        snapshot_date: '2026-05-28',
+        avg_price: 60000,
+      }),
+      snapshotRow({
+        source_name: 'bunjang',
+        currency: 'KRW',
+        market: 'KR',
+        snapshot_date: '2026-05-29',
+        avg_price: 72000,
+      }),
+    ]);
+
+    expect(history.currency).toBe('KRW');
+    expect(history.askingSeries.map((p) => p.avgPrice)).toEqual([60000, 72000]);
+  });
+
   it('derives the summary and change rate from the asking series', () => {
     const history = buildPriceHistory([
       snapshotRow({ snapshot_date: '2026-05-28', avg_price: 100 }),

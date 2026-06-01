@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { aggregateObservations, removeOutliers, toSnapshotDate } from './aggregate';
+import {
+  aggregateAskingObservations,
+  aggregateObservations,
+  removeOutliers,
+  toSnapshotDate,
+} from './aggregate';
 import type { PriceObservationInput } from './price-source.types';
 
 function soldObservation(overrides: Partial<PriceObservationInput> = {}): PriceObservationInput {
@@ -94,5 +99,49 @@ describe('aggregateObservations', () => {
     ]);
 
     expect(snapshots).toHaveLength(2);
+  });
+});
+
+describe('aggregateAskingObservations', () => {
+  function askingObservation(overrides: Partial<PriceObservationInput> = {}): PriceObservationInput {
+    return soldObservation({
+      sourceName: 'manual_bunjang',
+      market: 'KR',
+      currency: 'KRW',
+      soldPrice: 60000,
+      ...overrides,
+    });
+  }
+
+  it('produces one median asking snapshot per source bucket and preserves the source name', () => {
+    const snapshots = aggregateAskingObservations([
+      askingObservation({ soldPrice: 60000 }),
+      askingObservation({ soldPrice: 72000, sourceItemId: '2' }),
+      askingObservation({ soldPrice: 95000, sourceItemId: '3' }),
+    ]);
+
+    expect(snapshots).toHaveLength(1);
+    expect(snapshots[0].avgPrice).toBe(72000);
+    expect(snapshots[0].minPrice).toBe(60000);
+    expect(snapshots[0].maxPrice).toBe(95000);
+    expect(snapshots[0].sampleCount).toBe(3);
+    expect(snapshots[0].sourceName).toBe('manual_bunjang');
+    expect(snapshots[0].aggregationMethod).toBe('manual_asking_median');
+  });
+
+  it('keeps different sources in separate buckets', () => {
+    const snapshots = aggregateAskingObservations([
+      askingObservation({ sourceName: 'manual_bunjang', soldPrice: 60000 }),
+      askingObservation({ sourceName: 'bunjang', soldPrice: 70000, sourceItemId: '2' }),
+    ]);
+
+    expect(snapshots).toHaveLength(2);
+    expect(snapshots.map((s) => s.sourceName).sort()).toEqual(['bunjang', 'manual_bunjang']);
+  });
+
+  it('drops asking rows below the confidence threshold', () => {
+    expect(aggregateAskingObservations([askingObservation({ confidenceScore: 0.5 })])).toHaveLength(
+      0,
+    );
   });
 });

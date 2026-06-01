@@ -1,0 +1,33 @@
+{
+  "trades": [
+    {
+      "tradeId": 9912001,
+      "productId": 804751,
+      "price": "550000",
+      "tradedAt": "2026-05-12T12:00:00+09:00",
+      "optionLabel": "PSA 10",
+      "buyer": { "username": "should-not-be-stored" }
+    },
+    {
+      "tradeId": 9912002,
+      "productId": 804751,
+      "price": 230000,
+      "tradedAt": "2026-05-14T12:00:00+09:00",
+      "optionLabel": "BRG 9 영문"
+    },
+    {
+      "tradeId": 9912003,
+      "productId": 804751,
+      "price": 90000,
+      "tradedAt": "2026-05-10T12:00:00+09:00",
+      "optionLabel": "미감정"
+    },
+    {
+      "tradeId": 9912004,
+      "productId": 804751,
+      "price": "N/A",
+      "tradedAt": "2026-05-09T12:00:00+09:00",
+      "optionLabel": "PSA 9"
+    }
+  ]
+}

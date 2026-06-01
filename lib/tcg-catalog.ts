@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { isAskingSource } from './pricing/price-source.types';
 
 type ChangeTone = 'up' | 'down' | 'flat';
 
@@ -446,9 +447,6 @@ export async function getViewerRating(
   return row?.score ?? null;
 }
 
-/** Source name written by the daily eBay Browse asking collection. */
-const ASKING_SOURCE_NAME = 'ebay_browse';
-
 export function mapPokemonCategoryPageData(
   game: TcgGameRow,
   rows: readonly PokemonCatalogCardRow[],
@@ -547,9 +545,11 @@ export function createDeterministicPriceDisplay(slug: string, sampleId: string):
  */
 export function buildPriceHistory(snapshots: readonly CardPriceSnapshotRow[]): PriceHistory {
   const priced = snapshots.filter((snapshot) => snapshot.avg_price !== null);
-  const askingRows = priced.filter((snapshot) => snapshot.source_name === ASKING_SOURCE_NAME);
+  // Asking sources (eBay Browse, 번개장터) form the trend line; sold sources
+  // (eBay sold, KREAM 체결, manual sold imports) form the overlay/sold series.
+  const askingRows = priced.filter((snapshot) => isAskingSource(snapshot.source_name));
   const soldRows = priced.filter(
-    (snapshot) => snapshot.source_name !== ASKING_SOURCE_NAME && isUngraded(snapshot),
+    (snapshot) => !isAskingSource(snapshot.source_name) && isUngraded(snapshot),
   );
 
   const askingBucket = pickRichestBucket(askingRows);
@@ -616,16 +616,30 @@ function pickRichestBucket(
 
   let best: { key: string; rows: CardPriceSnapshotRow[] } | null = null;
   for (const [key, bucketRows] of buckets) {
-    if (
-      best === null ||
-      bucketRows.length > best.rows.length ||
-      (bucketRows.length === best.rows.length &&
-        latestDate(bucketRows) > latestDate(best.rows))
-    ) {
+    if (best === null || isRicherBucket(key, bucketRows, best)) {
       best = { key, rows: bucketRows };
     }
   }
   return best;
+}
+
+/**
+ * Whether `(key, rows)` should replace `best`: more rows wins; on a tie the KRW
+ * bucket is preferred (this is a Korean-print catalog, so domestic KRW prices
+ * are the most relevant trend), then the more recent bucket.
+ */
+function isRicherBucket(
+  key: string,
+  rows: readonly CardPriceSnapshotRow[],
+  best: { key: string; rows: CardPriceSnapshotRow[] },
+): boolean {
+  if (rows.length !== best.rows.length) return rows.length > best.rows.length;
+
+  const isKrw = key.startsWith('KRW|');
+  const bestIsKrw = best.key.startsWith('KRW|');
+  if (isKrw !== bestIsKrw) return isKrw;
+
+  return latestDate(rows) > latestDate(best.rows);
 }
 
 function latestDate(rows: readonly CardPriceSnapshotRow[]): string {
@@ -684,7 +698,7 @@ export function derivePriceDisplayFromHistory(history: PriceHistory): PriceDispl
     changeTone: getChangeTone(changeRate),
     lastUpdatedAt: formatSnapshotDate(latest.date),
     sourceLabel: usingAsking
-      ? `eBay 판매중 호가 ${latest.sampleCount}건 기준 (실거래가는 참조점으로 표시)`
+      ? `${latest.currency === 'KRW' ? '국내' : 'eBay'} 판매중 호가 ${latest.sampleCount}건 기준 (실거래가는 참조점으로 표시)`
       : `최근 실거래가 집계 ${latest.sampleCount}건 기준`,
     currency: latest.currency,
     sampleCount: latest.sampleCount,
