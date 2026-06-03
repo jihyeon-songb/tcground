@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
 import { getFeaturedPokemonCards, type PokemonCatalogCard } from '@/lib/tcg-catalog';
-import { formatKrw } from '@/lib/tcg-data';
+import { formatPrice } from '@/lib/tcg-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -108,36 +108,42 @@ export function FeaturedCardsGrid({ cards }: { cards: readonly PokemonCatalogCar
                 </p>
               </div>
               <div className='mt-5'>
-                <div className='flex items-center justify-between gap-3'>
-                  <span className='text-2xl leading-none font-bold text-[#191c1e] tabular-nums'>
-                    {formatKrw(card.price.avgPrice)}
-                  </span>
-                  <span
-                    className={`rounded-full px-2 py-1 text-xs font-bold ${changeChipClass(
-                      card.price.changeTone,
-                    )}`}
-                  >
-                    {formatChangeRate(card.price.changeRate)}
-                  </span>
-                </div>
-                <dl className='mt-4 grid grid-cols-2 gap-3 border-t border-[#e6e8ea] pt-4'>
-                  <div>
-                    <dt className='text-xs font-semibold tracking-wider text-[#535f73] uppercase'>
-                      최저
-                    </dt>
-                    <dd className='mt-1 text-base font-bold tabular-nums'>
-                      {formatKrw(card.price.minPrice)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className='text-xs font-semibold tracking-wider text-[#535f73] uppercase'>
-                      최고
-                    </dt>
-                    <dd className='mt-1 text-base font-bold tabular-nums'>
-                      {formatKrw(card.price.maxPrice)}
-                    </dd>
-                  </div>
-                </dl>
+                {card.price ? (
+                  <>
+                    <div className='flex items-center justify-between gap-3'>
+                      <span className='text-2xl leading-none font-bold text-[#191c1e] tabular-nums'>
+                        {formatPrice(card.price.avgPrice, card.price.currency)}
+                      </span>
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-bold ${changeChipClass(
+                          card.price.changeTone,
+                        )}`}
+                      >
+                        {formatChangeRate(card.price.changeRate)}
+                      </span>
+                    </div>
+                    <dl className='mt-4 grid grid-cols-2 gap-3 border-t border-[#e6e8ea] pt-4'>
+                      <div>
+                        <dt className='text-xs font-semibold tracking-wider text-[#535f73] uppercase'>
+                          최저
+                        </dt>
+                        <dd className='mt-1 text-base font-bold tabular-nums'>
+                          {formatPrice(card.price.minPrice, card.price.currency)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className='text-xs font-semibold tracking-wider text-[#535f73] uppercase'>
+                          최고
+                        </dt>
+                        <dd className='mt-1 text-base font-bold tabular-nums'>
+                          {formatPrice(card.price.maxPrice, card.price.currency)}
+                        </dd>
+                      </div>
+                    </dl>
+                  </>
+                ) : (
+                  <p className='text-base font-semibold text-[#9aa5b1]'>시세 정보 없음</p>
+                )}
               </div>
             </div>
           </Link>

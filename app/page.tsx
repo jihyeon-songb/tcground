@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { HomeSearchForm } from '@/components/tcg/search/HomeSearchForm';
 import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
 import { getFeaturedPokemonCards, type PokemonCatalogCard } from '@/lib/tcg-catalog';
-import { formatKrw } from '@/lib/tcg-data';
+import { formatPrice } from '@/lib/tcg-data';
 
 export const dynamic = 'force-dynamic';
 
@@ -197,7 +197,7 @@ export function TrendingCardsGrid({ cards }: { cards: readonly PokemonCatalogCar
             )}
             <div className='absolute top-3 right-3 flex items-center gap-1 rounded-full border border-[#e6bdb9] bg-white/90 px-3 py-1 shadow-sm backdrop-blur-sm'>
               <span className='text-sm leading-none font-bold text-[#191c1e] tabular-nums'>
-                {formatKrw(card.price.avgPrice)}
+                {card.price ? formatPrice(card.price.avgPrice, card.price.currency) : '시세 정보 없음'}
               </span>
             </div>
           </div>
