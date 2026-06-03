@@ -12,15 +12,24 @@
  */
 
 import {
+  KREAM_API_BASE_URL,
   KREAM_CURRENCY,
   KREAM_MARKET,
   KREAM_SOURCE_NAME,
+  KREAM_TRADES_PATH,
   isKreamCollectionEnabled,
 } from './kream-config';
 import {
+  buildKreamSearchUrl,
+  resolveKreamProduct,
+  type KreamSearchResponse,
+  type ResolvedKreamProduct,
+} from './kream-search';
+import { parseGradeLabel, type ParsedGrade } from '../grade-parse';
+import type { MatchTarget } from '../match-confidence';
+import {
   PriceSourceAccessNotGrantedError,
   type PriceObservationInput,
-  type PriceVariant,
 } from '../price-source.types';
 
 /** One completed trade from a KREAM product trade-history (체결 내역) response. */
@@ -61,33 +70,12 @@ export interface CollectKreamOptions {
   accessGranted?: boolean;
 }
 
-const GRADE_COMPANIES = ['PSA', 'BGS', 'BRG', 'CGC', 'SGC', 'ARS'] as const;
-
 /**
- * Parses a KREAM option label into a grading bucket. Returns `raw` (ungraded)
- * when no known grading company is present, otherwise the company + numeric
- * grade. Trailing qualifiers like `영문`/`한글판` are ignored for bucketing.
+ * Parses a KREAM option label into a grading bucket. Thin wrapper around the
+ * shared {@link parseGradeLabel} so existing KREAM callers/tests keep working.
  */
-export function parseKreamOption(optionLabel: string | undefined): {
-  variant: PriceVariant;
-  gradeCompany: string | null;
-  gradeValue: string | null;
-} {
-  const label = (optionLabel ?? '').toUpperCase();
-  const company = GRADE_COMPANIES.find((name) => label.includes(name));
-
-  if (!company) {
-    return { variant: 'raw', gradeCompany: null, gradeValue: null };
-  }
-
-  const after = label.slice(label.indexOf(company) + company.length);
-  const match = after.match(/\d+(\.\d+)?/);
-
-  return {
-    variant: 'graded',
-    gradeCompany: company,
-    gradeValue: match ? match[0] : null,
-  };
+export function parseKreamOption(optionLabel: string | undefined): ParsedGrade {
+  return parseGradeLabel(optionLabel);
 }
 
 /**
@@ -130,15 +118,27 @@ export function mapKreamTradesToObservations(
     .filter((item): item is PriceObservationInput => item !== null);
 }
 
+/** Extracts the numeric KREAM product id from a product URL, or null. */
+export function extractKreamProductId(productUrl: string): string | null {
+  const match = productUrl.match(/products\/(\d+)/);
+  return match ? match[1] : null;
+}
+
+/** Builds the KREAM trade-history (체결 내역) URL for a product. Pure. */
+export function buildKreamTradesUrl(productId: string): string {
+  return `${KREAM_API_BASE_URL}${KREAM_TRADES_PATH(productId)}`;
+}
+
 /**
  * Collects KREAM completed trades for one product. Throws
  * {@link PriceSourceAccessNotGrantedError} unless access is explicitly granted —
  * KREAM offers no official public API and reuse rights are unconfirmed, so
- * automated collection stays off until a compliant path exists.
+ * automated collection stays GATED behind `KREAM_COLLECTION_ENABLED` and must
+ * only run once a compliant access path is in place.
  */
 export async function collectKreamTrades(
-  _productUrl: string,
-  _context: KreamTradeContext,
+  productUrl: string,
+  context: KreamTradeContext,
   options: CollectKreamOptions = {},
 ): Promise<PriceObservationInput[]> {
   const accessGranted = options.accessGranted ?? isKreamCollectionEnabled();
@@ -146,12 +146,65 @@ export async function collectKreamTrades(
     throw new PriceSourceAccessNotGrantedError(KREAM_SOURCE_NAME);
   }
 
-  // Live trade-history fetch + parsing is intentionally unimplemented until a
-  // compliant access path is confirmed. The mapping above is ready to wire in.
-  throw new PriceSourceAccessNotGrantedError(
-    KREAM_SOURCE_NAME,
-    'KREAM live collection is not implemented; use the manual_kream CSV import path',
-  );
+  const productId = extractKreamProductId(productUrl);
+  if (!productId) {
+    throw new Error(`Could not extract a KREAM product id from "${productUrl}"`);
+  }
+
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const response = await fetchImpl(buildKreamTradesUrl(productId), {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    const detail = await safeReadText(response);
+    throw new Error(`KREAM trade-history fetch failed (${response.status}): ${detail}`);
+  }
+
+  const payload = (await response.json()) as KreamTradesResponse;
+  return mapKreamTradesToObservations(payload, {
+    ...context,
+    productUrl: context.productUrl ?? productUrl,
+  });
+}
+
+/**
+ * Searches KREAM by card name and resolves the best-matching product. Throws
+ * {@link PriceSourceAccessNotGrantedError} unless access is granted (same gate as
+ * trade collection). Returns null when no product matches the target.
+ */
+export async function resolveKreamProductByName(
+  keyword: string,
+  target: MatchTarget,
+  options: CollectKreamOptions = {},
+): Promise<ResolvedKreamProduct | null> {
+  const accessGranted = options.accessGranted ?? isKreamCollectionEnabled();
+  if (!accessGranted) {
+    throw new PriceSourceAccessNotGrantedError(KREAM_SOURCE_NAME);
+  }
+
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const response = await fetchImpl(buildKreamSearchUrl(keyword), {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) {
+    const detail = await safeReadText(response);
+    throw new Error(`KREAM search failed (${response.status}): ${detail}`);
+  }
+
+  const payload = (await response.json()) as KreamSearchResponse;
+  return resolveKreamProduct(payload, target);
+}
+
+async function safeReadText(response: Response): Promise<string> {
+  try {
+    return await response.text();
+  } catch {
+    return '<no body>';
+  }
 }
 
 function minimizePayload(trade: KreamTrade): Record<string, unknown> {

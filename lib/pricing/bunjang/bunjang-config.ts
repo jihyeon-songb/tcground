@@ -17,6 +17,10 @@ import type { PriceMarket } from '../price-source.types';
 /** Source name for automated Bunjang asking snapshots. */
 export const BUNJANG_SOURCE_NAME = 'bunjang';
 
+/** Bunjang search endpoint origin + path (used once a compliant path exists). */
+export const BUNJANG_API_BASE_URL = 'https://api.bunjang.co.kr';
+export const BUNJANG_SEARCH_PATH = '/api/1/find_v2.json';
+
 /** Bunjang listings are Korean-market, priced in KRW. */
 export const BUNJANG_MARKET: PriceMarket = 'KR';
 export const BUNJANG_CURRENCY = 'KRW';

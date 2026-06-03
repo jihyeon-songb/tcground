@@ -18,6 +18,16 @@ import type { PriceMarket } from '../price-source.types';
 /** Source name for automated KREAM completed-trade observations. */
 export const KREAM_SOURCE_NAME = 'kream';
 
+/** KREAM site origin; product trade-history (체결 내역) lives under its API path. */
+export const KREAM_API_BASE_URL = 'https://kream.co.kr';
+export const KREAM_TRADES_PATH = (productId: string) => `/api/products/${productId}/trading_infos`;
+
+/** Product search endpoint used to resolve a card name → KREAM product. */
+export const KREAM_SEARCH_PATH = '/api/search';
+
+/** Canonical product URL for attribution and trade-history resolution. */
+export const KREAM_PRODUCT_URL = (productId: string) => `${KREAM_API_BASE_URL}/products/${productId}`;
+
 /** KREAM trades are Korean-market, settled in KRW. */
 export const KREAM_MARKET: PriceMarket = 'KR';
 export const KREAM_CURRENCY = 'KRW';

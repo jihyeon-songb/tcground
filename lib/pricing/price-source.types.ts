@@ -74,6 +74,7 @@ export interface SnapshotAggregate {
   /** `YYYY-MM-DD`. */
   snapshotDate: string;
   market: PriceMarket;
+  /** Source currency. Display currency, if converted, lives in `displayCurrency`. */
   currency: string;
   variant: PriceVariant;
   conditionLabel: string | null;
@@ -86,6 +87,20 @@ export interface SnapshotAggregate {
   sourceName: string;
   sourceUrl: string | null;
   aggregationMethod: string;
+  /** Original source-currency summary, populated when a display conversion is attached. */
+  sourceCurrency?: string | null;
+  sourceAvgPrice?: number | null;
+  sourceMinPrice?: number | null;
+  sourceMaxPrice?: number | null;
+  /** Converted display summary, usually KRW for Korean catalog UI. */
+  displayCurrency?: string | null;
+  displayAvgPrice?: number | null;
+  displayMinPrice?: number | null;
+  displayMaxPrice?: number | null;
+  fxRate?: number | null;
+  /** Actual provider rate date used; can be a prior business day. */
+  fxRateDate?: string | null;
+  fxProvider?: string | null;
 }
 
 /**
@@ -111,7 +126,9 @@ export class PriceSourceAccessNotGrantedError extends Error {
   readonly sourceName: string;
 
   constructor(sourceName: string, message?: string) {
-    super(message ?? `Price source "${sourceName}" access has not been granted for this application`);
+    super(
+      message ?? `Price source "${sourceName}" access has not been granted for this application`,
+    );
     this.name = 'PriceSourceAccessNotGrantedError';
     this.sourceName = sourceName;
   }

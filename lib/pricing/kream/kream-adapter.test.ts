@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  buildKreamTradesUrl,
   collectKreamTrades,
+  extractKreamProductId,
   mapKreamTradesToObservations,
   parseKreamOption,
 } from './kream-adapter';
@@ -72,6 +74,19 @@ describe('mapKreamTradesToObservations', () => {
   });
 });
 
+describe('extractKreamProductId / buildKreamTradesUrl', () => {
+  it('extracts the numeric product id from a product URL', () => {
+    expect(extractKreamProductId('https://kream.co.kr/products/804751')).toBe('804751');
+    expect(extractKreamProductId('https://kream.co.kr/exhibition')).toBeNull();
+  });
+
+  it('builds the trade-history URL for a product', () => {
+    expect(buildKreamTradesUrl('804751')).toBe(
+      'https://kream.co.kr/api/products/804751/trading_infos',
+    );
+  });
+});
+
 describe('collectKreamTrades', () => {
   it('throws PriceSourceAccessNotGrantedError when access is not granted', async () => {
     const fetchImpl = vi.fn();
@@ -85,5 +100,25 @@ describe('collectKreamTrades', () => {
     ).rejects.toBeInstanceOf(PriceSourceAccessNotGrantedError);
 
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('fetches and maps trades when access is granted', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => tradesPayload,
+    } as Response);
+
+    const observations = await collectKreamTrades(
+      'https://kream.co.kr/products/804751',
+      { cardPrintingId: 'printing-4', confidenceScore: 0.82 },
+      { accessGranted: true, fetchImpl },
+    );
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      'https://kream.co.kr/api/products/804751/trading_infos',
+      expect.objectContaining({ method: 'GET' }),
+    );
+    expect(observations).toHaveLength(3);
+    expect(observations[0].sourceUrl).toBe('https://kream.co.kr/products/804751');
   });
 });

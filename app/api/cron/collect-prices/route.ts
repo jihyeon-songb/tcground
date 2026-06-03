@@ -8,8 +8,12 @@ export const maxDuration = 60;
 /**
  * Daily price collection entry point, triggered by Vercel Cron.
  *
- * Verifies the `CRON_SECRET` bearer token, then runs the Browse asking-price
- * collection across the catalog and upserts daily snapshots.
+ * Verifies the `CRON_SECRET` bearer token, then runs collection across the
+ * catalog and upserts daily snapshots. It calls `collectDailyPrices` without a
+ * fetch, so browser-only sources (KREAM, eBay scrape) — which are blocked from
+ * Vercel's datacenter IP — are automatically skipped; only server-reachable
+ * sources (e.g. eBay Browse) run here. Browser sources run via
+ * `scripts/collect-prices.ts` on a residential / Korean IP.
  */
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
