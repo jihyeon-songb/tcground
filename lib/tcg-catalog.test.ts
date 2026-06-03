@@ -3,9 +3,13 @@ import {
   buildPriceHistory,
   createDeterministicPriceDisplay,
   derivePriceDisplayFromHistory,
+  fetchSnapshotsByPrinting,
+  getCardDetailBySlug,
   mapCardDetailRow,
   mapPokemonCategoryPageData,
+  mapTcgCategoryOverviewRows,
   selectFeaturedPokemonCards,
+  sortPokemonCatalogCardsByRecommendation,
   type CardDetailRow,
   type PokemonCatalogCard,
   type PokemonCatalogCardRow,
@@ -21,6 +25,138 @@ const pokemonGame: TcgGameRow = {
 };
 
 describe('tcg catalog view models', () => {
+  it('maps top-level category overview from catalog rows without fake counts', () => {
+    const categories = mapTcgCategoryOverviewRows({
+      games: [
+        {
+          id: 'game-pokemon',
+          slug: 'pokemon',
+          name: 'Pokemon TCG',
+          name_ko: '포켓몬 카드',
+          description: '검증된 한국판 포켓몬 대표 카드 카탈로그',
+        },
+        {
+          id: 'game-magic',
+          slug: 'magic',
+          name: 'Magic: The Gathering',
+          name_ko: '매직 더 개더링',
+          description: null,
+        },
+      ],
+      cards: [
+        { id: 'card-1', game_id: 'game-pokemon' },
+        { id: 'card-2', game_id: 'game-pokemon' },
+        { id: 'card-3', game_id: 'game-pokemon' },
+      ],
+      sets: [
+        { id: 'set-1', game_id: 'game-pokemon' },
+        { id: 'set-2', game_id: 'game-pokemon' },
+      ],
+      printings: [
+        { id: 'printing-1', card_id: 'card-1' },
+        { id: 'printing-2', card_id: 'card-2' },
+      ],
+      snapshots: [
+        { card_printing_id: 'printing-1' },
+        { card_printing_id: 'printing-1' },
+        { card_printing_id: 'printing-2' },
+      ],
+    });
+
+    expect(categories.map((category) => category.slug)).toEqual([
+      'pokemon',
+      'yugioh',
+      'one-piece',
+      'magic',
+    ]);
+    expect(categories[0]).toEqual({
+      slug: 'pokemon',
+      name: '포켓몬 카드',
+      description: '검증된 한국판 포켓몬 대표 카드 카탈로그',
+      href: '/categories/pokemon',
+      cardCount: 3,
+      setCount: 2,
+      priceSnapshotCount: 3,
+      status: 'live',
+      statusLabel: '가격 추적 중',
+    });
+    expect(categories[1]).toMatchObject({
+      slug: 'yugioh',
+      cardCount: 0,
+      setCount: 0,
+      priceSnapshotCount: 0,
+      status: 'empty',
+    });
+    expect(categories[2]).toMatchObject({
+      slug: 'one-piece',
+      cardCount: 0,
+      setCount: 0,
+      priceSnapshotCount: 0,
+      status: 'empty',
+    });
+    expect(categories[3]).toEqual({
+      slug: 'magic',
+      name: '매직 더 개더링',
+      description: '매직 더 개더링 staples와 세트별 카탈로그를 준비 중입니다.',
+      href: '/categories/magic',
+      cardCount: 0,
+      setCount: 0,
+      priceSnapshotCount: 0,
+      status: 'empty',
+      statusLabel: '준비 중',
+    });
+  });
+
+  it('marks category overview as catalog-only when cards exist but prices do not', () => {
+    const categories = mapTcgCategoryOverviewRows({
+      games: [
+        {
+          id: 'game-pokemon',
+          slug: 'pokemon',
+          name: 'Pokemon TCG',
+          name_ko: '포켓몬 카드',
+          description: null,
+        },
+      ],
+      cards: [{ id: 'card-1', game_id: 'game-pokemon' }],
+      sets: [],
+      printings: [{ id: 'printing-1', card_id: 'card-1' }],
+      snapshots: [],
+    });
+
+    expect(categories[0]).toMatchObject({
+      cardCount: 1,
+      priceSnapshotCount: 0,
+      status: 'catalog-only',
+      statusLabel: '카탈로그 연결',
+    });
+  });
+
+  it('uses exact count overrides instead of returned row length for category totals', () => {
+    const categories = mapTcgCategoryOverviewRows({
+      games: [
+        {
+          id: 'game-pokemon',
+          slug: 'pokemon',
+          name: 'Pokemon TCG',
+          name_ko: '포켓몬 카드',
+          description: null,
+        },
+      ],
+      cards: [{ id: 'card-1', game_id: 'game-pokemon' }],
+      sets: [{ id: 'set-1', game_id: 'game-pokemon' }],
+      cardCounts: [{ game_id: 'game-pokemon', count: 3668 }],
+      setCounts: [{ game_id: 'game-pokemon', count: 31 }],
+      printings: [],
+      snapshots: [],
+    });
+
+    expect(categories[0]).toMatchObject({
+      cardCount: 3668,
+      setCount: 31,
+    });
+  });
+
   it('maps ten Pokemon seed cards into category cards with stable detail links', () => {
     const rows = Array.from({ length: 10 }, (_, index) =>
       createCardRow({
@@ -45,6 +181,69 @@ describe('tcg catalog view models', () => {
     expect(data.availableRarities).toEqual(['SAR']);
     expect(data.selectedRarities).toEqual([]);
     expect(data.selectedSetSlugs).toEqual([]);
+  });
+
+  it('orders recommendation cards by priced cards first, then larger price sample count', () => {
+    const rows = [
+      createCardRow({
+        sampleId: 'KR-001',
+        slug: 'kr-001-no-price',
+        name: '가격 없음',
+        setSlug: 'pokemon-kr-151',
+        setName: '포켓몬 카드 151',
+      }),
+      createCardRow({
+        sampleId: 'KR-002',
+        slug: 'kr-002-low-sample',
+        name: '표본 적음',
+        setSlug: 'pokemon-kr-151',
+        setName: '포켓몬 카드 151',
+      }),
+      createCardRow({
+        sampleId: 'KR-003',
+        slug: 'kr-003-high-sample',
+        name: '표본 많음',
+        setSlug: 'pokemon-kr-151',
+        setName: '포켓몬 카드 151',
+      }),
+    ];
+    const snapshotsByPrinting = new Map([
+      [
+        'kr-002-low-sample-printing',
+        [createSnapshotRow({ snapshot_date: '2026-06-01', sample_count: 2 })],
+      ],
+      [
+        'kr-003-high-sample-printing',
+        [createSnapshotRow({ snapshot_date: '2026-06-01', sample_count: 7 })],
+      ],
+    ]);
+
+    const data = mapPokemonCategoryPageData(
+      pokemonGame,
+      rows,
+      { sort: 'best' },
+      snapshotsByPrinting,
+    );
+
+    expect(data.cards.map((card) => card.slug)).toEqual([
+      'kr-003-high-sample',
+      'kr-002-low-sample',
+      'kr-001-no-price',
+    ]);
+  });
+
+  it('leaves explicitly sorted card arrays in their caller-provided order', () => {
+    const cards: PokemonCatalogCard[] = [
+      makeSimpleCard('kr-003-card', null),
+      makeSimpleCard('kr-001-card', 'https://assets.tcgdex.net/1.webp'),
+      makeSimpleCard('kr-002-card', 'https://assets.tcgdex.net/2.webp'),
+    ];
+
+    expect(sortPokemonCatalogCardsByRecommendation(cards, 'name-asc').map((card) => card.slug)).toEqual([
+      'kr-003-card',
+      'kr-001-card',
+      'kr-002-card',
+    ]);
   });
 
   it('maps card detail with set, rarity, collector number, and printing identity', () => {
@@ -219,6 +418,76 @@ describe('tcg catalog view models', () => {
     expect(first.maxPrice).toBeGreaterThan(first.avgPrice);
     expect(first.sourceLabel).not.toContain('임시 가격 표시');
   });
+
+  it('decodes percent-encoded Korean slugs before querying the catalog', async () => {
+    let capturedSlug = '';
+    const fakeClient = {
+      from: () => ({
+        select: () => ({
+          eq: (_column: string, value: string) => {
+            capturedSlug = value;
+            return { maybeSingle: async () => ({ data: null, error: null }) };
+          },
+        }),
+      }),
+    } as unknown as Parameters<typeof getCardDetailBySlug>[1];
+
+    // Next can hand the route param over still percent-encoded ("피콘").
+    await getCardDetailBySlug('sv10-bs2025006001-%ED%94%BC%EC%BD%98', fakeClient);
+
+    expect(capturedSlug).toBe('sv10-bs2025006001-피콘');
+  });
+
+  it('falls back to legacy snapshot columns when FX display columns do not exist', async () => {
+    const selectedColumns: string[] = [];
+    const fakeClient = {
+      from: () => ({
+        select: (columns: string) => {
+          selectedColumns.push(columns);
+          return {
+            in: () => ({
+              order: async () => {
+                if (columns.includes('source_currency')) {
+                  return {
+                    data: null,
+                    error: {
+                      message: 'column card_price_snapshots.source_currency does not exist',
+                    },
+                  };
+                }
+                return {
+                  data: [
+                    {
+                      card_printing_id: 'printing-1',
+                      snapshot_date: '2026-05-28',
+                      market: 'KR',
+                      currency: 'KRW',
+                      variant: 'raw',
+                      condition_label: null,
+                      source_name: 'manual_kream',
+                      avg_price: 100000,
+                      min_price: 90000,
+                      max_price: 110000,
+                      sample_count: 3,
+                      grade_company: null,
+                      grade_value: null,
+                    },
+                  ],
+                  error: null,
+                };
+              },
+            }),
+          };
+        },
+      }),
+    } as unknown as Parameters<typeof fetchSnapshotsByPrinting>[0];
+
+    const snapshots = await fetchSnapshotsByPrinting(fakeClient, ['printing-1']);
+
+    expect(selectedColumns[0]).toContain('source_currency');
+    expect(selectedColumns[1]).not.toContain('source_currency');
+    expect(snapshots.get('printing-1')).toHaveLength(1);
+  });
 });
 
 function makeSimpleCard(slug: string, imageUrl: string | null): PokemonCatalogCard {
@@ -294,6 +563,23 @@ function createCardRow({
         },
       },
     ],
+  };
+}
+
+function createSnapshotRow(overrides: Record<string, unknown> = {}) {
+  return {
+    snapshot_date: '2026-06-01',
+    market: 'KR',
+    currency: 'KRW',
+    variant: 'raw',
+    source_name: 'manual_kream',
+    avg_price: 100000,
+    min_price: 90000,
+    max_price: 120000,
+    sample_count: 3,
+    grade_company: null,
+    grade_value: null,
+    ...overrides,
   };
 }
 
@@ -564,6 +850,55 @@ describe('price history view models', () => {
     expect(price?.currency).toBe('USD');
     expect(price?.changeRate).toBeCloseTo(10);
     expect(price?.changeTone).toBe('up');
+  });
+
+  it('uses KRW display values and keeps the FX rate date in the source label', () => {
+    const history = buildPriceHistory([
+      snapshotRow({
+        snapshot_date: '2026-05-28',
+        currency: 'USD',
+        avg_price: 100,
+        min_price: 90,
+        max_price: 120,
+        source_currency: 'USD',
+        source_avg_price: 100,
+        source_min_price: 90,
+        source_max_price: 120,
+        display_currency: 'KRW',
+        display_avg_price: 138000,
+        display_min_price: 124200,
+        display_max_price: 165600,
+        fx_rate: 1380,
+        fx_rate_date: '2026-05-27',
+        fx_provider: 'korea_exim',
+      }),
+      snapshotRow({
+        snapshot_date: '2026-05-29',
+        currency: 'USD',
+        avg_price: 110,
+        min_price: 100,
+        max_price: 130,
+        source_currency: 'USD',
+        source_avg_price: 110,
+        source_min_price: 100,
+        source_max_price: 130,
+        display_currency: 'KRW',
+        display_avg_price: 151800,
+        display_min_price: 138000,
+        display_max_price: 179400,
+        fx_rate: 1380,
+        fx_rate_date: '2026-05-27',
+        fx_provider: 'korea_exim',
+      }),
+    ]);
+    const price = derivePriceDisplayFromHistory(history);
+
+    expect(history.currency).toBe('KRW');
+    expect(history.askingSeries.map((point) => point.avgPrice)).toEqual([138000, 151800]);
+    expect(history.askingSeries[0].sourceCurrency).toBe('USD');
+    expect(price?.currency).toBe('KRW');
+    expect(price?.sourceCurrency).toBe('USD');
+    expect(price?.sourceLabel).toContain('USD->KRW 환율 2026년 5월 27일 기준');
   });
 
   it('derives the summary from the sold series when there is no asking trend', () => {
