@@ -2,7 +2,7 @@
 
 > 기술 스택·디렉터리 구조·수정 범위·Next.js/UI 가이드.
 > 명명·코딩 스타일·테스트·커밋 룰은 `CONVENTIONS.md`.
-> 마지막 갱신: 2026-05-29 (`@tcground/ui` Button/Tabs/Dialog direct primitives)
+> 마지막 갱신: 2026-06-03 (전체 가격 worklist 확장)
 
 ## 1. 스택
 
@@ -71,13 +71,15 @@ apps/docs/           # Docusaurus 제출/배포용 문서 사이트
 - 카드 이름 검색은 독립 라우트가 아니라 `/categories/[categoryId]?q=...` 쿼리로 동작한다. `q`가 있으면 `lib/tcg-catalog.ts`의 `getPokemonCategoryPageData`가 Supabase `cards.name`에 `ilike '%q%'` 필터를 적용하고, 페이지는 세트 그리드를 숨긴 채 결과 인디케이터와 매칭 카드 그리드만 노출한다. 헤더 검색창의 `initialQuery`/`showClearButton`은 그대로 유지한다.
 - Supabase 이메일 확인 링크는 `app/auth/confirm/route.ts`에서 `token_hash`, `type`, optional `next`를 받아 `verifyOtp`로 처리한다. Confirm signup 이메일 템플릿은 `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email`처럼 `token_hash`와 `type`을 `/auth/confirm` 요청에 포함해야 한다.
 - 인증 진입점의 `next` 값은 `lib/auth/redirect.ts`에서 내부 경로만 허용하며, 외부 URL, protocol-relative URL, `/login`, `/signup`은 `/`로 fallback한다.
-- 현재 정적 카드/카테고리 데이터: `lib/tcg-data.ts`. 홈, `/categories`, `/cards` 목록의 페이지 간 링크와 가격 표시의 기준 데이터로 사용한다.
+- 대분류 카테고리 목록: `lib/tcg-catalog.ts`의 `getTcgCategoryOverview`. `/categories`는 포켓몬/유희왕/원피스/매직 더 개더링 기본 대분류를 항상 보여주고, Supabase 공개 카탈로그 테이블(`tcg_games`, `cards`, `card_sets`, `card_printings`, `card_price_snapshots`)에서 실제 카드/세트/가격 기록 수를 집계한다. 아직 DB row 또는 데이터가 없는 기본 대분류는 숨기지 않고 0으로 표시한다. 카드/세트 수는 PostgREST row limit에 잘리지 않도록 행 배열 길이가 아니라 게임별 exact count 쿼리(`head: true`, `count: exact`)를 기준으로 한다.
+- 정적 카드/검색 보조 데이터: `lib/tcg-data.ts`. `/categories` fake 대분류 숫자는 제거했으며, 홈/인기 목록의 보조 포맷과 기존 정적 featured card 타입 일부만 남아 있다.
 - 포켓몬 카탈로그 서버 조회: `lib/tcg-catalog.ts`. Supabase 공개 카탈로그 테이블(`tcg_games`, `card_sets`, `cards`, `card_printings`, `card_categories`, `card_category_links`)에서 `/categories/pokemon`과 `/cards/[cardId]` view model을 만든다. 가격 snapshot이 없을 때는 DB에 가짜 가격을 쓰지 않고 UI view model에서 deterministic 표시값만 만든다. 목록/홈/인기 카드 이미지는 전송량을 줄이기 위해 `cards.thumbnail_url`을 우선하고, 없을 때 `card_printings.image_url`, `cards.image_url` 순서로 fallback한다. 상세 페이지는 `card_printings.image_url`을 우선하고 `cards.image_url`로 fallback한다.
 - Supabase 클라이언트 유틸은 shadcn Supabase Next.js 컴포넌트가 생성하는 파일을 기준으로 사용하고, 세션 쿠키 갱신은 루트 `proxy.ts`에서 `lib/supabase/middleware.ts`를 호출해 처리한다.
-- 가격 수집 모듈: `lib/pricing/`. source-agnostic 어댑터 계약(`price-source.types.ts`), 관측치→snapshot 집계(`aggregate.ts`), 수동 CSV import(`csv-import.ts`), eBay 어댑터(`ebay/`)를 둔다. 일일 수집은 `app/api/cron/collect-prices/route.ts`(Vercel Cron, `CRON_SECRET` 검증)가 `lib/pricing/collect-prices.ts`를 호출하고, RLS deny-all인 `price_observations`/`card_price_snapshots`/`price_collection_runs` 쓰기는 service-role 클라이언트(`lib/supabase/admin.ts`)로만 한다. 로컬 검증/수동 sold import는 `scripts/collect-prices.ts`.
+- 가격 수집 모듈: `lib/pricing/`. source-agnostic 어댑터 계약(`price-source.types.ts`), 관측치→snapshot 집계(`aggregate.ts`), 수동 CSV import(`csv-import.ts`), 환율 fetch/display 환산(`fx.ts`), eBay 어댑터(`ebay/`)를 둔다. 일일 수집은 `app/api/cron/collect-prices/route.ts`(Vercel Cron, `CRON_SECRET` 검증)가 `lib/pricing/collect-prices.ts`를 호출하고, RLS deny-all인 `price_observations`/`card_price_snapshots`/`price_collection_runs` 쓰기는 service-role 클라이언트(`lib/supabase/admin.ts`)로만 한다. 로컬 검증/수동 sold/asking import와 FX import는 `scripts/collect-prices.ts`. 전체 한국판 카탈로그의 증거 대기 목록 동기화는 `scripts/sync-price-worklist.ts`가 담당하며, `PKMKR-<card_num>` sample id는 `card_printings.external_ids.card_num`으로 해소한다.
 - eBay 가격 source 현실 제약: 실거래가(sold)는 Marketplace Insights API(`buy.marketplace.insights`)로만 얻고 이는 Limited Release라 개인 개발자 승인이 어렵다. `marketplace-insights-adapter.ts`는 매핑/scaffold만 두고 `EBAY_MARKETPLACE_INSIGHTS_ENABLED=true`가 아니면 `EbayAccessNotGrantedError`를 던진다. 일별 시계열은 개인도 쓸 수 있는 Browse API(`browse-adapter.ts`, 판매중 호가) 일일 수집으로 누적하고, 수동 CSV sold 실거래가는 차트 참조점으로 오버레이한다. 카드 상세 차트(`app/cards/[cardId]/page.tsx`)는 `card_price_snapshots`를 읽어 그리며 시장/통화는 섞지 않는다.
+- 환율/표시 가격: `exchange_rates`는 `base_currency`, `quote_currency`, `rate`, `rate_date`, `provider`, `fetched_at`를 저장한다. `card_price_snapshots.currency`와 `avg_price` 계열은 원천 snapshot 통화/금액을 유지하고, FX migration 적용 후에는 `display_currency`, `display_avg_price`, `display_min_price`, `display_max_price`, `fx_rate_date`, `fx_provider`를 화면 표시 기준으로 사용한다. migration 적용 전 원격 DB에서는 legacy snapshot 조회/upsert fallback이 동작한다.
 - 데이터 최소화: eBay/CSV 관측치는 가격·일자·상태·등급·item id/url·축소 `raw_payload`만 저장하고 seller/buyer 식별 정보와 원문 전체 payload는 저장하지 않는다.
-- 가격 수집 env(server-only): `SUPABASE_SERVICE_ROLE_KEY`, `EBAY_ENV`, `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_MARKETPLACE_INSIGHTS_ENABLED`, `CRON_SECRET`. placeholder는 `.env.example` 참고.
+- 가격 수집 env(server-only): `SUPABASE_SERVICE_ROLE_KEY`, `KOREA_EXIM_FX_API_KEY`, `EBAY_ENV`, `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET`, `EBAY_MARKETPLACE_INSIGHTS_ENABLED`, `CRON_SECRET`. placeholder는 `.env.example` 참고.
 - 디자인 토큰·전역 CSS: `app/globals.css`.
 - 외부 이미지는 `next.config.ts`의 `images.remotePatterns`에 허용한 `assets.tcgdex.net`, `lh3.googleusercontent.com`만 `next/image` 최적화 경로로 렌더링한다. 새 외부 이미지 출처를 추가하면 `remotePatterns`와 이미지 fallback 우선순위를 함께 갱신한다.
 - 향후 추가 예정 디렉터리: `hooks/`, `types/`.
@@ -96,6 +98,7 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - `card_category_links`: 카드-카테고리 연결.
 - `price_observations`: source별 실거래 원천 관측치.
 - `card_price_snapshots`: `card_printings` 기준 일자별 가격 히스토리와 현재 가격 요약의 원천.
+- `exchange_rates`: 외화 원천 가격을 KRW 등 표시 통화로 환산할 때 쓰는 일별 FX rate.
 - `price_collection_runs`: source별 가격 수집 실행/실패 로그.
 - `favorite_cards`: Supabase Auth 사용자별 관심 카드.
 
@@ -111,7 +114,7 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - MVP 대상은 포켓몬 우선이다.
 - 카드 카탈로그는 TCGdex와 Pokémon TCG API 조합으로 시작한다.
 - 가격 기준은 실거래가 관측치이며, 판매중 최저가는 보조 지표로만 둔다.
-- daily job은 `price_observations` 저장, 이상치 제거/매칭 검증, `card_price_snapshots` 집계 순서로 처리한다.
+- daily/manual job은 `price_observations` 저장, 이상치 제거/매칭 검증, `card_price_snapshots` 집계, FX display 가격 부여 순서로 처리한다. 외화 원천 금액은 `price_observations.currency/sold_price`와 snapshot source 필드에 보존하고, UI 비교는 `display_currency` 기준으로 한다.
 - 일본/한국 가격 source는 공개 API가 부족할 수 있으므로 수동 import와 ToS가 허용된 source adapter를 분리해 붙인다.
 - 한국판 포켓몬의 1차 자동 가격 adapter source는 `ebay_sold`다. 단, production 구현은 eBay Buy API/Marketplace Insights 접근 승인과 API License Agreement 준수 범위 확인 이후에만 진행한다.
 - 승인 전에는 eBay web page scraping adapter를 만들지 않고, 수동 CSV import와 adapter contract/sandbox mock 기반 검증만 허용한다.
@@ -218,3 +221,6 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 2026-05-28: `@tcground/ui` npm 공개 배포 준비 기준 추가. package metadata, public publish 설정, `dist/theme.css` export, README, pack dry-run 검증을 배포 전 필수 항목으로 둔다.
 - 2026-05-28: 루트 `tcground` 앱 dependency를 npm 배포본 `@tcground/ui@0.1.0` 소비 기준으로 전환하고, `apps/docs`만 workspace package를 유지하는 기준 추가.
 - 2026-05-28: Docusaurus 컴포넌트 문서와 preview 예제 위치(`apps/docs/docs/components/*.mdx`, `apps/docs/src/components/examples/<component>/*`) 기준 추가.
+- 2026-06-02: `/categories` 대분류 목록을 fake `tcgCategories`에서 `getTcgCategoryOverview` 기반 Supabase 집계로 전환. 기본 대분류는 포켓몬/유희왕/원피스/매직 더 개더링을 항상 노출하고, 미연결 데이터는 0으로 표시한다. 화면은 관련 이미지 배경 타일 중심으로 재설계했다.
+- 2026-06-03: 가격 데이터 FX/display 모델을 추가. `exchange_rates`와 snapshot source/display 가격 컬럼 migration SQL을 준비하고, 수동 CSV sold 관측치 저장, asking/sold snapshot 적재, 한국수출입은행 FX fetch/import, 카드 상세 display 가격/환율 기준일 표시 기준을 추가했다. 원격 FX migration 적용은 Supabase MCP/CLI 가능 시점에 진행한다.
+- 2026-06-03: 전체 한국판 포켓몬 카탈로그 가격 검증 backlog를 `PKMKR-<card_num>` pending CSV 행으로 확장했다. 이 backlog는 실제 sold 가격이 아니며 `exclude_reason=pending_evidence`로 공개 가격 산정에서 제외한다. 후속 evidence import가 DB row 수정 없이 해소되도록 sample id resolver가 `external_ids.card_num` 기반 fallback을 제공한다.

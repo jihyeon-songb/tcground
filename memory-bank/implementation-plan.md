@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-05-28 (`tcground` app consumes published `@tcground/ui`)
+> 마지막 갱신: 2026-06-03 (카테고리 추천순 가격 데이터 우선 정렬)
 
 ## 현재 기준 PRD
 
@@ -12,6 +12,7 @@
 - `memory-bank/prd/category.md`
 - `memory-bank/prd/product-detail.md`
 - `memory-bank/prd/headless-ui.md`
+- `memory-bank/prd/price-data.md`
 
 ## 단계별 계획
 
@@ -271,9 +272,9 @@
 - [x] PR1: 폼/입력 계열 문서 작성 — `input`, `textarea`, `label`, `checkbox`, `radio-group`, `select`, `input-group`.
 - [x] PR2: 피드백/표시 계열 문서 작성 — `alert`, `badge`, `card`, `avatar`, `separator`, `skeleton`, `table`.
 - [x] PR3: 오버레이/복합 인터랙션 문서 작성 — `alert-dialog`, `popover`, `sheet`, `tooltip`, `command`.
-
   - 영향 파일: `apps/docs/docs/components/{alert-dialog,popover,sheet,tooltip,command}.mdx`, `apps/docs/src/components/examples/{alert-dialog,popover,sheet,tooltip,command}/**`, `apps/docs/sidebars.ts`, `packages/ui/src/theme.css`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
   - 최소 변경 범위: 기존 문서 패턴과 `@tcground/ui` export API를 유지하며, Tailwind class 생성 없이 Docusaurus preview가 보이도록 PR3 대상의 `data-slot` fallback 스타일만 보강한다.
+
 - [x] PR1 컴포넌트별 example 파일과 `index.ts` export 추가.
 - [x] PR2 컴포넌트별 example 파일과 `index.ts` export 추가.
 - [x] PR3 컴포넌트별 example 파일과 `index.ts` export 추가.
@@ -319,7 +320,7 @@
 - [x] 신규 headless 단위 테스트 추가, `index.ts` export와 README Components 목록 갱신.
 - [x] `pnpm exec tsc --noEmit`, `pnpm exec vitest run`, `pnpm lint`, `pnpm --filter @tcground/headless build`, `pnpm build:ui`, `pnpm build:docs`, `pnpm build-storybook` 검증.
 
-### 5. 품질 게이트이
+### 5. 품질 게이트
 
 - [x] `pnpm lint`
 - [x] `pnpm exec tsc --noEmit`
@@ -406,6 +407,58 @@
 - [x] `node_modules/@tcground/ui`가 workspace symlink가 아니라 `.pnpm/@tcground+ui@0.1.0...` registry 설치본을 가리키는지 확인.
 - [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
 
+### 4.19 `/categories` 대분류 실데이터 전환 및 이미지 타일 재설계
+
+- 영향 파일: `app/categories/page.tsx`, `app/categories/page.test.tsx`, `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `lib/tcg-data.ts`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: `/categories` 대분류 목록의 fake 숫자 데이터를 제거하고, 포켓몬/유희왕/원피스/매직 더 개더링 기본 대분류를 항상 노출한다. Supabase에 연결된 게임은 실제 `tcg_games`/`cards`/`card_sets`/`card_printings`/`card_price_snapshots` 집계값을 표시하고, 아직 데이터가 없는 기본 대분류는 카드/세트/가격 기록을 0으로 표시한다. 화면은 기존 흰색 정보 카드에서 관련 이미지 배경 타일 중심으로 재설계한다.
+- [x] `lib/tcg-catalog.ts`에 `getTcgCategoryOverview`와 기본 대분류 병합 view model 추가.
+- [x] `cards`/`card_sets` 집계는 Supabase row 반환 길이가 아니라 게임별 exact count 쿼리(`head: true`, `count: exact`)를 우선 사용.
+- [x] `lib/tcg-data.ts`의 fake `tcgCategories` 제거.
+- [x] `/categories`를 Supabase 집계 기반 서버 페이지로 전환하고, 조회 실패 시 빈 상태 fallback 제공.
+- [x] 포켓몬/유희왕/매직은 기존 카테고리 이미지를 재사용하고, 원피스는 임시 해상 visual fallback으로 표시.
+- [x] 대분류 카드에서 카드/세트/가격 기록 0 값을 그대로 노출.
+- [x] `app/categories/page.test.tsx`, `lib/tcg-catalog.test.ts` 갱신.
+- [x] `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
+- [x] dev 서버 `http://localhost:3000/categories`에서 4개 대분류 타일, 0 값, console error/warning 없음 확인.
+
+### 4.20 가격 데이터 신뢰도/환율/차트 운영 계획
+
+- 영향 파일: `memory-bank/prd/price-data.md`, `memory-bank/prd/plan.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/db-schema.md`, `memory-bank/architecture.md`, `memory-bank/trouble-shooting.md`, `memory-bank/price-source-validation.csv`, `lib/pricing/**`, `lib/tcg-catalog.ts`, `app/cards/[cardId]/page.tsx`, `scripts/collect-prices.ts`, `scripts/sync-price-worklist.ts`, `.env.example`, `supabase/migrations/202606030001_add_fx_price_display.sql`, Supabase MCP/CLI migration 기록.
+- 최소 변경 범위: 한국판 카탈로그는 현재 약 3,600개로 충분하므로 증설하지 않는다. 가격 데이터는 sold/asking을 분리하고, 자동으로 확실히 가져올 수 있는 eBay Browse asking daily snapshot을 P0 trend source로 둔다. sold는 검증 가능한 수동 CSV 또는 승인된 partner/API source만 사용한다. USD 등 외화 가격은 원천 통화와 원천 금액을 보존하고 기준일 환율로 KRW 표시값을 계산한다.
+- [x] 가격 데이터 전략 PRD(`memory-bank/prd/price-data.md`) 작성.
+- [x] 제품 PRD의 데이터/가격 기준을 카탈로그 증설 제외, sold/asking 분리, FX 환산 필수 기준으로 갱신.
+- [x] FX 저장 모델 SQL 작성: `exchange_rates`와 `card_price_snapshots`의 source/display 가격, `fx_rate_date`, `fx_provider` 컬럼, manual evidence source의 product id 중복을 허용하는 `price_observations` unique index 교체를 `supabase/migrations/202606030001_add_fx_price_display.sql`에 추가.
+- [ ] Supabase MCP/CLI로 FX migration을 원격 DB에 적용.
+- [x] 한국수출입은행 환율 OpenAPI 기준 일별 rate fetch/import 코드와 테스트 추가.
+- [x] `price_observations` 원천 통화 보존, `card_price_snapshots` source/display 가격 분리 코드 추가. 원격 DB가 FX 컬럼 적용 전이면 legacy snapshot upsert로 fallback한다.
+- [x] 카드 상세 차트/요약 view model이 display 가격, 환율 기준일, sold/asking 구분, source, sample count, 데이터 부족 상태를 노출하도록 갱신.
+- [x] `memory-bank/price-source-validation.csv` 수동 sold/asking 적재 실행: 1차로 현 원격 legacy schema 기준 sold 관측치 41건 insert, sold snapshot 43개 upsert, asking snapshot 6개 upsert. 2026-06-03 재적재에서 verified sold `parsed=109/resolved=109/snapshots=107`, asking `parsed=9/resolved=9/snapshots=5`를 확인하고, sold 관측치 66건 추가 insert, sold snapshot 107건, asking snapshot 5건을 upsert했다.
+- [ ] FX migration 적용 후 `scripts/collect-prices.ts --csv --csv-asking --fx`로 KRW display snapshot을 재적재하고, 기존 `source_item_id` unique index 때문에 보류된 manual KREAM grade별 관측치 2건을 추가 적재.
+- [x] priority 카드 50~100개 수동 sold CSV 보강 workflow와 검증 체크리스트 작성.
+  - `memory-bank/price-source-validation.csv`는 `KR-001`~`KR-110`까지 worklist를 가진다. 검증 관측치가 확보된 sample은 실제 evidence 행으로 기록하고, 아직 부족한 sample만 `source_name=pending`, `exclude_reason=pending_evidence` 스켈레톤으로 둔다.
+  - `pending_evidence` 행은 파서/집계가 건너뛰는 후보 행이다. source URL/item ID, 거래일, 원천 가격/통화, 상태/variant, `confidence_score >= 0.8` 근거가 채워지면 pending 행을 제거하고 실제 evidence 행만 남긴다.
+  - 카드당 1차 목표는 raw sold 표본 3개 이상이다. 표본 3개 미만이거나 세트/번호/언어/상태가 충돌하면 “실거래 데이터 부족” 또는 observation only로 유지한다.
+  - 증거 수집 순서는 KREAM/번개/중고나라/eBay sold 공개 표본을 사람이 확인하고, 자동화는 eBay Browse asking daily snapshot과 승인된 partner/API source만 허용한다.
+- [ ] `KR-011`~`KR-060` 실제 sold 표본 보강.
+  - [x] `KR-011`~`KR-019`, `KR-021`~`KR-027`, `KR-030`, `KR-031`: PriceCharting 개별 eBay completed-sale 행 기준 카드당 raw sold 3건 기록.
+  - [x] `KR-036`, `KR-037`, `KR-039`: PriceCharting 개별 eBay completed-sale 행 기준 카드당 raw sold 3건 기록.
+  - [ ] `KR-020`, `KR-028`, `KR-029`, `KR-032`~`KR-035`, `KR-038`, `KR-040`~`KR-060`: 공개 source raw sold 3건 미만 또는 직접 확인 미완료로 pending 유지.
+- [x] 전체 한국판 포켓몬 카탈로그 pending worklist 확장.
+  - Supabase `card_printings` 기준 한국판 프린팅 3,668개 중 기존 CSV에서 카드 identity로 이미 커버된 476개를 제외하고 `PKMKR-<external_ids.card_num>` sample id의 `pending_evidence` 행 3,192개를 추가했다.
+  - `PKMKR-*` 행은 실제 sold evidence가 아니라 증빙 대기 행이다. `source_name=pending`, `exclude_reason=pending_evidence`라 parser/import/snapshot 집계에서 제외된다.
+  - `scripts/sync-price-worklist.ts`는 CSV와 원격 한국판 카탈로그를 대조해 누락된 `PKMKR-*` pending 행만 추가한다. 후속 실제 evidence row가 `PKMKR-*`를 사용할 수 있도록 `getSampleIdToPrintingId`가 `external_ids.card_num` fallback 매핑을 제공한다.
+- [ ] 배포 후 eBay Browse daily collection이 최소 7일 이상 누적되는지 확인.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
+
+### 4.21 카테고리 추천순 가격 데이터 우선 정렬
+
+- 영향 파일: `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `memory-bank/prd/category.md`, `memory-bank/prd/search-results.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: `/categories/pokemon`의 기본 `추천순`은 이름/slug 순이 아니라 가격 데이터가 있는 카드를 먼저 보여준다. 가격 데이터가 있는 카드끼리는 최신 표시 가격의 `sampleCount`가 많은 순으로 정렬하고, 동률은 기존 slug 순서를 유지한다. 명시적 이름 정렬(`name-asc`, `name-desc`)은 기존 동작을 유지한다. 전체 후보/프린팅 snapshot 조회는 Supabase/Cloudflare URL 한도를 넘지 않도록 chunk 단위로 수행한다.
+- [x] PRD에 기본 추천순 기준 요약 반영.
+- [x] `getPokemonCategoryPageData`의 `best` 정렬을 가격 데이터 우선으로 변경.
+- [x] 정렬 회귀 테스트 추가.
+- [x] `pnpm exec vitest run lib/tcg-catalog.test.ts`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build`, Playwright `/categories/pokemon` 런타임 검증.
+
 ## 다음 작업
 
-`@tcground/ui` UI 라이브러리/Docusaurus 문서 작업과 eBay 가격 수집 어댑터 계약·일주일 가격 추적 차트(4.15)는 완료했다. 다음 단계는 (1) 배포 후 Vercel Cron을 가동해 약 7일간 Browse asking series가 누적되는지 확인하고, (2) 카드 상세의 "관심 카드 추가"/"가격 알림" placeholder 버튼을 `favorite_cards` 기반 실제 기능으로 구현하는 것이다. Marketplace Insights(sold) 자동 수집은 개인 승인이 어려워 보류하며, 수동 CSV import로 sold 실거래가를 보강한다.
+최우선 다음 단계는 Supabase MCP/CLI로 `supabase/migrations/202606030001_add_fx_price_display.sql`을 원격 DB에 적용한 뒤 `scripts/collect-prices.ts --csv --csv-asking --fx`로 KRW display snapshot과 manual KREAM grade별 관측치 2건을 재적재하는 것이다. 이후 `KR-020`, `KR-028`, `KR-029`, `KR-032`~`KR-035`, `KR-038`, `KR-040`~`KR-060` priority pending worklist에서 카드별 source URL/item ID가 있는 sold 증거를 수동으로 채운다. 전체 카탈로그는 `PKMKR-*` pending backlog로 보유하되, 증거가 확보된 카드만 실제 evidence 행으로 승격한다. eBay Browse daily asking series가 배포 후 최소 7일 이상 누적되는지 확인한다. Marketplace Insights(sold) 자동 수집과 국내 source 자동화는 접근 승인/재사용 권한 확인 전까지 보류한다. 이후 카드 상세의 "관심 카드 추가"/"가격 알림" placeholder 버튼을 `favorite_cards` 기반 실제 기능으로 구현한다.
