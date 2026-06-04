@@ -104,6 +104,16 @@
 - [x] `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
 - [ ] (배포 후) Vercel Cron 일 1회 가동으로 약 7일간 일별 asking series 누적 확인. Browse는 backfill 불가.
 
+### 4.21 페이지 이동 성능 최적화
+
+- 영향 파일: `app/categories/[categoryId]/page.tsx`, `lib/tcg-catalog.ts`, 관련 테스트, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, 필요 시 `memory-bank/trouble-shooting.md`.
+- 최소 변경 범위: `/categories/pokemon` 이동이 느린 1차 원인은 route metadata와 본문 렌더가 카테고리 전체 데이터를 반복 조회하고, 기본 `추천순(best)`이 전체 포켓몬 카드와 전체 primary printing snapshot을 읽은 뒤 서버에서 정렬하기 때문이다. 이번 작업은 PRD의 추천순 기준(가격 데이터 우선, 표본 수 우선)을 유지하되, 메타데이터는 정적 문구로 처리하고, 추천순 목록은 가격 snapshot이 있는 후보를 먼저 작은 집합으로 조회한 뒤 부족분만 slug 순 fallback으로 채운다.
+- [x] `generateMetadata`에서 `getPokemonCategoryPageData()` 호출 제거.
+- [x] `best` 정렬 조회를 전체 catalog chunk scan + 전체 snapshot chunk fetch에서 snapshot 후보 기반 조회 + fallback pagination으로 변경.
+- [x] 가격 데이터 후보와 fallback 후보가 중복되지 않도록 merge하고, 필터/검색/페이지네이션/이름 정렬 동작을 유지.
+- [x] 성능 회귀 테스트 또는 기존 `lib/tcg-catalog` 테스트 갱신. 기존 view model/route 테스트와 runtime 측정으로 검증.
+- [x] `pnpm exec vitest run lib/tcg-catalog.test.ts app/categories/[categoryId]/page.test.tsx`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
+
 ### 4. UI 구현
 
 - 영향 파일: `app/page.tsx`, `app/search/page.tsx`, `app/categories/[categoryId]/page.tsx`, `app/cards/[cardId]/page.tsx`, `app/login/page.tsx`, `app/globals.css`, `app/layout.tsx`, `components/tcg/HomeSearchForm.tsx`, `components/tcg/HomeSearchForm.test.tsx`, `lib/tcg-data.ts`.

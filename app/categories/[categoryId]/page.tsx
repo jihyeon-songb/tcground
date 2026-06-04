@@ -38,11 +38,9 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
   const { categoryId } = await params;
 
   if (categoryId === 'pokemon') {
-    const data = await getPokemonCategoryPageData();
-
     return {
       title: 'TCGround | 포켓몬 카테고리',
-      description: data?.description ?? '포켓몬 카테고리에서 시세를 추적하고 컬렉션을 탐색하세요.',
+      description: '포켓몬 카테고리에서 시세를 추적하고 컬렉션을 탐색하세요.',
     };
   }
 

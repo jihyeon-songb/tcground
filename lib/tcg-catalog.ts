@@ -189,8 +189,8 @@ export interface AvailableSetOption {
 export type PokemonSort = 'best' | 'name-asc' | 'name-desc';
 
 export const DEFAULT_POKEMON_PAGE_SIZE = 24;
-const BEST_SORT_FETCH_CHUNK_SIZE = 500;
 const SNAPSHOT_FETCH_CHUNK_SIZE = 100;
+const RECOMMENDED_CANDIDATE_FETCH_LIMIT = 5000;
 
 export interface PokemonCategoryPageData {
   gameName: string;
@@ -289,6 +289,17 @@ interface PriceSnapshotPrintingJoinRow {
 interface GameCountRow {
   game_id: string;
   count: number;
+}
+
+interface RecommendedSnapshotCandidateRow {
+  card_printing_id: string | null;
+  snapshot_date: string;
+  sample_count: number | null;
+}
+
+interface PrintingCardIdRow {
+  id: string;
+  card_id: string | null;
 }
 
 const PRICE_SNAPSHOT_SELECT_WITH_DISPLAY =
@@ -524,10 +535,13 @@ export async function getPokemonCategoryPageData(
     }
   }
 
-  const buildCardQuery = () => {
+  const buildCardQuery = (
+    columns = POKEMON_CARD_LIST_SELECT,
+    selectOptions: { count?: 'exact'; head?: boolean } = { count: 'exact' },
+  ) => {
     let cardQuery = supabase
       .from('cards')
-      .select(POKEMON_CARD_LIST_SELECT, { count: 'exact' })
+      .select(columns, selectOptions)
       .eq('game_id', game.id);
 
     if (trimmedQuery) {
@@ -546,39 +560,46 @@ export async function getPokemonCategoryPageData(
   };
 
   if (sort === 'best') {
-    const cardRows: PokemonCatalogCardRow[] = [];
-    let totalCount = 0;
+    const filteredCardQuery = buildCardQuery as unknown as BuildPokemonCardQuery;
+    const [{ count, error: countError }, recommendedCardIds] = await Promise.all([
+      buildCardQuery('id', { count: 'exact', head: true }),
+      getRecommendedPricedCardIds(supabase),
+    ]);
 
-    for (let rangeStart = 0; ; rangeStart += BEST_SORT_FETCH_CHUNK_SIZE) {
-      const rangeEnd = rangeStart + BEST_SORT_FETCH_CHUNK_SIZE - 1;
-      const { data: chunkData, error: chunkError, count } = await buildCardQuery()
-        .order('slug', { ascending: true })
-        .range(rangeStart, rangeEnd);
+    throwIfSupabaseError(countError);
 
-      throwIfSupabaseError(chunkError);
+    const totalCount = count ?? 0;
+    const pricedRows = await fetchCardRowsByIdsInOrder(
+      filteredCardQuery,
+      recommendedCardIds,
+    );
+    const pricedCardIds = new Set(pricedRows.map((row) => row.id));
+    const pricedCount = pricedRows.length;
+    const selectedRows = pricedRows.slice(rangeFrom, rangeTo + 1);
+    const remainingPageSize = safePageSize - selectedRows.length;
 
-      const chunkRows = (chunkData ?? []) as unknown as PokemonCatalogCardRow[];
-      if (rangeStart === 0) totalCount = count ?? chunkRows.length;
-      cardRows.push(...chunkRows);
-
-      if (chunkRows.length === 0 || cardRows.length >= totalCount) break;
+    if (remainingPageSize > 0) {
+      const fallbackOffset = Math.max(0, rangeFrom - pricedCount);
+      const fallbackRows = await fetchUnpricedFallbackRows({
+        buildCardQuery: filteredCardQuery,
+        excludedCardIds: pricedCardIds,
+        offset: fallbackOffset,
+        limit: remainingPageSize,
+      });
+      selectedRows.push(...fallbackRows);
     }
 
     const snapshotsByPrinting = await fetchSnapshotsByPrinting(
       supabase,
-      collectPrimaryPrintingIds(cardRows),
-    );
-    const data = mapPokemonCategoryPageData(
-      game,
-      cardRows,
-      { ...baseMapOptions, totalCount: totalCount || cardRows.length },
-      snapshotsByPrinting,
+      collectPrimaryPrintingIds(selectedRows),
     );
 
-    return {
-      ...data,
-      cards: data.cards.slice(rangeFrom, rangeTo + 1),
-    };
+    return mapPokemonCategoryPageData(
+      game,
+      selectedRows,
+      { ...baseMapOptions, totalCount },
+      snapshotsByPrinting,
+    );
   }
 
   const orderedQuery =
@@ -602,6 +623,149 @@ export async function getPokemonCategoryPageData(
     { ...baseMapOptions, totalCount: count ?? 0 },
     snapshotsByPrinting,
   );
+}
+
+interface CardQueryResult {
+  data: unknown[] | null;
+  error: SupabaseErrorLike | null;
+  count?: number | null;
+}
+
+interface CardQuery extends PromiseLike<CardQueryResult> {
+  in(column: string, values: readonly string[]): CardQuery;
+  not(column: string, operator: string, value: string): CardQuery;
+  order(column: string, options: { ascending: boolean }): CardQuery;
+  range(from: number, to: number): CardQuery;
+}
+
+type BuildPokemonCardQuery = (
+  columns?: string,
+  selectOptions?: { count?: 'exact'; head?: boolean },
+) => CardQuery;
+
+async function getRecommendedPricedCardIds(supabase: SupabaseClient): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('card_price_snapshots')
+    .select('card_printing_id, snapshot_date, sample_count')
+    .not('card_printing_id', 'is', null)
+    .order('sample_count', { ascending: false })
+    .order('snapshot_date', { ascending: false })
+    .limit(RECOMMENDED_CANDIDATE_FETCH_LIMIT);
+
+  throwIfSupabaseError(error);
+
+  const bestByPrinting = new Map<
+    string,
+    { printingId: string; sampleCount: number; snapshotDate: string }
+  >();
+
+  for (const row of (data ?? []) as RecommendedSnapshotCandidateRow[]) {
+    if (!row.card_printing_id) continue;
+    const sampleCount = row.sample_count ?? 0;
+    const existing = bestByPrinting.get(row.card_printing_id);
+    if (
+      !existing ||
+      sampleCount > existing.sampleCount ||
+      (sampleCount === existing.sampleCount && row.snapshot_date > existing.snapshotDate)
+    ) {
+      bestByPrinting.set(row.card_printing_id, {
+        printingId: row.card_printing_id,
+        sampleCount,
+        snapshotDate: row.snapshot_date,
+      });
+    }
+  }
+
+  const printingIds = Array.from(bestByPrinting.values())
+    .sort(
+      (a, b) =>
+        b.sampleCount - a.sampleCount ||
+        b.snapshotDate.localeCompare(a.snapshotDate) ||
+        a.printingId.localeCompare(b.printingId),
+    )
+    .map((entry) => entry.printingId);
+
+  if (printingIds.length === 0) return [];
+
+  const cardIdByPrinting = new Map<string, string>();
+  for (const chunk of chunkStrings(printingIds, SNAPSHOT_FETCH_CHUNK_SIZE)) {
+    const { data: printingData, error: printingError } = await supabase
+      .from('card_printings')
+      .select('id, card_id')
+      .in('id', chunk);
+
+    throwIfSupabaseError(printingError);
+
+    for (const row of (printingData ?? []) as PrintingCardIdRow[]) {
+      if (row.card_id) cardIdByPrinting.set(row.id, row.card_id);
+    }
+  }
+
+  const seenCardIds = new Set<string>();
+  const recommendedCardIds: string[] = [];
+  for (const printingId of printingIds) {
+    const cardId = cardIdByPrinting.get(printingId);
+    if (!cardId || seenCardIds.has(cardId)) continue;
+    seenCardIds.add(cardId);
+    recommendedCardIds.push(cardId);
+  }
+
+  return recommendedCardIds;
+}
+
+async function fetchCardRowsByIdsInOrder(
+  buildCardQuery: BuildPokemonCardQuery,
+  cardIds: readonly string[],
+): Promise<PokemonCatalogCardRow[]> {
+  if (cardIds.length === 0) return [];
+
+  const rows: PokemonCatalogCardRow[] = [];
+  for (const chunk of chunkStrings(cardIds, SNAPSHOT_FETCH_CHUNK_SIZE)) {
+    const { data, error } = await buildCardQuery().in('id', chunk);
+    throwIfSupabaseError(error);
+    rows.push(...((data ?? []) as unknown as PokemonCatalogCardRow[]));
+  }
+
+  const rowById = new Map(rows.map((row) => [row.id, row] as const));
+  return cardIds
+    .map((cardId) => rowById.get(cardId))
+    .filter((row): row is PokemonCatalogCardRow => row !== undefined);
+}
+
+async function fetchUnpricedFallbackRows({
+  buildCardQuery,
+  excludedCardIds,
+  offset,
+  limit,
+}: {
+  buildCardQuery: BuildPokemonCardQuery;
+  excludedCardIds: ReadonlySet<string>;
+  offset: number;
+  limit: number;
+}): Promise<PokemonCatalogCardRow[]> {
+  if (limit <= 0) return [];
+
+  let query = buildCardQuery().order('slug', { ascending: true });
+  if (excludedCardIds.size > 0) {
+    query = query.not('id', 'in', formatPostgrestInList(Array.from(excludedCardIds)));
+  }
+
+  const { data, error } = await query.range(offset, offset + limit - 1);
+  throwIfSupabaseError(error);
+
+  return (data ?? []) as unknown as PokemonCatalogCardRow[];
+}
+
+function chunkStrings(values: readonly string[], chunkSize: number): string[][] {
+  const chunks: string[][] = [];
+  for (let index = 0; index < values.length; index += chunkSize) {
+    chunks.push(values.slice(index, index + chunkSize));
+  }
+  return chunks;
+}
+
+function formatPostgrestInList(values: readonly string[]): string {
+  return `(${values.map((value) => `"${value.replaceAll('"', '\\"')}"`).join(',')})`;
 }
 
 export interface FeaturedPokemonCardsOptions {
