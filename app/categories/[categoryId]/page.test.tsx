@@ -1,10 +1,10 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PokemonCatalogCard, PokemonCategoryPageData } from '@/lib/tcg-catalog';
-import { CardResults } from './CardResults';
-import { CategoryFilterBar } from './CategoryFilterBar';
-import { CategoryResultsToolbar } from './CategoryResultsToolbar';
-import { PokemonCategoryContent } from './page';
+import { CardResults } from './_components/CardResults';
+import { CategoryFilterBar } from './_components/CategoryFilterBar';
+import { CategoryResultsToolbar } from './_components/CategoryResultsToolbar';
+import { PokemonCategoryContent } from './_components/PokemonCategoryContent';
 
 const replaceMock = vi.hoisted(() => vi.fn());
 const searchParamsString = vi.hoisted(() => ({ current: '' }));

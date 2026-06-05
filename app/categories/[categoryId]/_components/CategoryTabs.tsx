@@ -19,7 +19,7 @@ export function CategoryTabs({ productsHref }: CategoryTabsProps) {
   return (
     <nav
       aria-label='카탈로그 보기'
-      className='mb-6 flex items-center gap-6 border-b border-[#e0e3e5]'
+      className='mb-6 flex items-center gap-6 border-b border-border'
     >
       {TABS.map((tab) => {
         const isActive = tab.key === 'products';
@@ -30,7 +30,7 @@ export function CategoryTabs({ productsHref }: CategoryTabsProps) {
               key={tab.key}
               href={productsHref}
               aria-current='page'
-              className='-mb-px border-b-2 border-[#bb001a] px-1 pb-3 text-base font-bold text-[#191c1e]'
+              className='-mb-px border-b-2 border-tcg-red px-1 pb-3 text-base font-bold text-foreground'
             >
               {tab.label}
             </Link>
@@ -41,7 +41,7 @@ export function CategoryTabs({ productsHref }: CategoryTabsProps) {
           <span
             key={tab.key}
             aria-disabled='true'
-            className='-mb-px cursor-not-allowed border-b-2 border-transparent px-1 pb-3 text-base font-semibold text-[#9aa3ab]'
+            className='-mb-px cursor-not-allowed border-b-2 border-transparent px-1 pb-3 text-base font-semibold text-muted-foreground'
           >
             {tab.label}
           </span>

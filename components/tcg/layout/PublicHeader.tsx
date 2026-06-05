@@ -30,7 +30,7 @@ export async function PublicHeader({ currentPath, search = false }: PublicHeader
   const activePath = getActivePath(currentPath);
 
   return (
-    <header className='sticky top-0 z-50 mx-auto flex w-full max-w-[1440px] items-center justify-between gap-4 bg-[#f8f9fb] px-5 py-4'>
+    <header className='sticky top-0 z-50 mx-auto flex w-full max-w-[1440px] items-center justify-between gap-4 bg-background px-5 py-4'>
       <div className='flex items-center gap-6'>
         <Link href='/' aria-label='TCGround home'>
           <Image
@@ -51,8 +51,8 @@ export async function PublicHeader({ currentPath, search = false }: PublicHeader
                 key={item.href}
                 className={
                   isActive
-                    ? 'border-b-2 border-[#bb001a] pb-1 font-bold text-[#191c1e]'
-                    : 'font-normal text-[#535f73] transition-transform duration-200 hover:scale-[1.02] hover:text-[#bb001a]'
+                    ? 'border-b-2 border-tcg-red pb-1 font-bold text-foreground'
+                    : 'font-normal text-muted-foreground transition-transform duration-200 hover:scale-[1.02] hover:text-tcg-red'
                 }
                 href={item.href}
               >
@@ -88,7 +88,7 @@ export async function PublicHeader({ currentPath, search = false }: PublicHeader
         ) : (
           <>
             <Link
-              className='hidden font-normal whitespace-nowrap text-[#535f73] hover:text-[#bb001a] md:block'
+              className='hidden font-normal whitespace-nowrap text-muted-foreground hover:text-tcg-red md:block'
               href={getAuthEntryHref('/login', currentPath)}
             >
               로그인

@@ -6,9 +6,10 @@ import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PokemonCatalogCard, PokemonSort, PriceDisplay } from '@/lib/tcg-catalog';
 import { formatPrice } from '@/lib/tcg-data';
-import { loadPokemonCards } from './_actions/load-cards';
+import { loadPokemonCards } from '../_actions/load-cards';
+import { buildCategoryHref, type CardView } from '../_lib/category-search-params';
 
-export type CardView = 'grid' | 'list';
+export type { CardView };
 
 interface CardResultsProps {
   initialCards: PokemonCatalogCard[];
@@ -122,7 +123,7 @@ export function CardResults({
       <div className='md:hidden'>
         <div ref={sentinelRef} aria-hidden className='h-px w-full' />
         {loading ? (
-          <p aria-live='polite' className='py-6 text-center text-sm font-semibold text-[#535f73]'>
+          <p aria-live='polite' className='py-6 text-center text-sm font-semibold text-muted-foreground'>
             불러오는 중…
           </p>
         ) : null}
@@ -150,14 +151,14 @@ function GridCard({ card }: { card: PokemonCatalogCard }) {
     <Link
       href={card.href}
       aria-label={`${card.name} 상세 보기`}
-      className='group flex h-full w-full flex-col overflow-hidden rounded-xl border border-[#e0e3e5] bg-white shadow-sm transition-all duration-200 hover:shadow-md'
+      className='group flex h-full w-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md'
     >
       <CardImage card={card} />
       <div className='flex flex-1 flex-col gap-1 p-4'>
-        <h3 className='line-clamp-2 text-base leading-tight font-bold text-[#191c1e] transition-colors group-hover:text-[#bb001a]'>
+        <h3 className='line-clamp-2 text-base leading-tight font-bold text-foreground transition-colors group-hover:text-tcg-red'>
           {card.name}
         </h3>
-        <p className='line-clamp-1 text-sm font-medium text-[#535f73]'>
+        <p className='line-clamp-1 text-sm font-medium text-muted-foreground'>
           {card.setName} · {card.rarity} · {card.collectorNumber}
         </p>
         <div className='mt-auto pt-3'>
@@ -171,18 +172,18 @@ function GridCard({ card }: { card: PokemonCatalogCard }) {
 /** Renders the price summary, or a "시세 정보 없음" placeholder when there is none. */
 function PriceSummary({ price }: { price: PriceDisplay | null }) {
   if (!price) {
-    return <p className='text-sm font-semibold text-[#9aa5b1]'>시세 정보 없음</p>;
+    return <p className='text-sm font-semibold text-muted-foreground'>시세 정보 없음</p>;
   }
 
   return (
     <>
-      <p className='text-xs font-semibold tracking-wide text-[#535f73]'>
+      <p className='text-xs font-semibold tracking-wide text-muted-foreground'>
         {price.sampleCount > 0 ? `${price.sampleCount}건 등록 · 최저` : '시세 기준'}
       </p>
-      <p className='text-xl leading-none font-bold text-[#191c1e] tabular-nums'>
+      <p className='text-xl leading-none font-bold text-foreground tabular-nums'>
         {formatPrice(price.minPrice, price.currency)}
       </p>
-      <p className='mt-1 text-sm font-bold text-[#166534] tabular-nums'>
+      <p className='mt-1 text-sm font-bold text-price-up tabular-nums'>
         시세 {formatPrice(price.avgPrice, price.currency)}
       </p>
     </>
@@ -192,7 +193,7 @@ function PriceSummary({ price }: { price: PriceDisplay | null }) {
 function CardImage({ card }: { card: PokemonCatalogCard }) {
   if (card.imageUrl) {
     return (
-      <div className='relative aspect-[2.5/3.5] w-full overflow-hidden bg-[#eceef0]'>
+      <div className='relative aspect-[2.5/3.5] w-full overflow-hidden bg-surface-container'>
         <Image
           alt={`${card.name} 카드`}
           src={card.imageUrl}
@@ -205,20 +206,20 @@ function CardImage({ card }: { card: PokemonCatalogCard }) {
   }
 
   return (
-    <div className='flex aspect-[2.5/3.5] w-full flex-col justify-between bg-[#eceef0] p-4'>
+    <div className='flex aspect-[2.5/3.5] w-full flex-col justify-between bg-surface-container p-4'>
       <div className='flex items-center justify-between gap-2'>
-        <span className='rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-bold text-[#535f73]'>
+        <span className='rounded-full bg-card/80 px-2 py-0.5 text-[10px] font-bold text-muted-foreground'>
           {card.sampleId}
         </span>
-        <span className='rounded-full bg-[#bb001a] px-2 py-0.5 text-[10px] font-bold text-white'>
+        <span className='rounded-full bg-tcg-red px-2 py-0.5 text-[10px] font-bold text-primary-foreground'>
           {card.rarity}
         </span>
       </div>
       <div>
-        <p className='line-clamp-2 text-lg leading-tight font-extrabold text-[#191c1e]'>
+        <p className='line-clamp-2 text-lg leading-tight font-extrabold text-foreground'>
           {card.name}
         </p>
-        <p className='mt-1 text-xs font-semibold text-[#535f73]'>{card.collectorNumber}</p>
+        <p className='mt-1 text-xs font-semibold text-muted-foreground'>{card.collectorNumber}</p>
       </div>
     </div>
   );
@@ -229,14 +230,14 @@ function ListCard({ card }: { card: PokemonCatalogCard }) {
     <Link
       href={card.href}
       aria-label={`${card.name} 상세 보기`}
-      className='group flex w-full gap-4 rounded-xl border border-[#e0e3e5] bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md'
+      className='group flex w-full gap-4 rounded-xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md'
     >
       <ListImage card={card} />
       <div className='flex min-w-0 flex-1 flex-col gap-1'>
-        <h3 className='line-clamp-2 text-base leading-tight font-bold text-[#191c1e] transition-colors group-hover:text-[#bb001a]'>
+        <h3 className='line-clamp-2 text-base leading-tight font-bold text-foreground transition-colors group-hover:text-tcg-red'>
           {card.name}
         </h3>
-        <p className='text-sm font-medium text-[#535f73]'>
+        <p className='text-sm font-medium text-muted-foreground'>
           {card.setName} · {card.rarity} · {card.collectorNumber}
         </p>
         <div className='mt-auto pt-2'>
@@ -250,7 +251,7 @@ function ListCard({ card }: { card: PokemonCatalogCard }) {
 function ListImage({ card }: { card: PokemonCatalogCard }) {
   if (card.imageUrl) {
     return (
-      <div className='relative aspect-[2.5/3.5] w-24 shrink-0 overflow-hidden rounded-lg bg-[#eceef0] sm:w-28'>
+      <div className='relative aspect-[2.5/3.5] w-24 shrink-0 overflow-hidden rounded-lg bg-surface-container sm:w-28'>
         <Image
           alt={`${card.name} 카드`}
           src={card.imageUrl}
@@ -263,11 +264,11 @@ function ListImage({ card }: { card: PokemonCatalogCard }) {
   }
 
   return (
-    <div className='flex aspect-[2.5/3.5] w-24 shrink-0 flex-col justify-between rounded-lg bg-[#eceef0] p-2 sm:w-28'>
-      <span className='self-start rounded-full bg-[#bb001a] px-2 py-0.5 text-[10px] font-bold text-white'>
+    <div className='flex aspect-[2.5/3.5] w-24 shrink-0 flex-col justify-between rounded-lg bg-surface-container p-2 sm:w-28'>
+      <span className='self-start rounded-full bg-tcg-red px-2 py-0.5 text-[10px] font-bold text-primary-foreground'>
         {card.rarity}
       </span>
-      <span className='text-[10px] font-semibold text-[#535f73]'>{card.collectorNumber}</span>
+      <span className='text-[10px] font-semibold text-muted-foreground'>{card.collectorNumber}</span>
     </div>
   );
 }
@@ -291,17 +292,8 @@ function Pagination({
   sort: PokemonSort;
   view: CardView;
 }) {
-  const buildHref = (targetPage: number) => {
-    const params = new URLSearchParams();
-    if (query) params.set('q', query);
-    if (rarities.length > 0) params.set('rarity', rarities.join(','));
-    if (setSlugs.length > 0) params.set('set', setSlugs.join(','));
-    if (sort !== 'best') params.set('sort', sort);
-    if (view === 'list') params.set('view', 'list');
-    if (targetPage > 1) params.set('page', String(targetPage));
-    const queryString = params.toString();
-    return queryString ? `${pathname}?${queryString}` : pathname;
-  };
+  const buildHref = (targetPage: number) =>
+    buildCategoryHref(pathname, { query, rarities, setSlugs, sort, page: targetPage, view });
 
   const pages = pageWindow(currentPage, totalPages);
 
@@ -358,7 +350,7 @@ function PageLink({
     return (
       <span
         aria-disabled='true'
-        className={`${base} cursor-not-allowed border-[#e0e3e5] text-[#c2c8cd]`}
+        className={`${base} cursor-not-allowed border-border text-muted-foreground`}
       >
         {children}
       </span>
@@ -373,8 +365,8 @@ function PageLink({
       scroll
       className={`${base} ${
         active
-          ? 'border-[#bb001a] bg-[#bb001a] text-white'
-          : 'border-[#cdd2d6] bg-white text-[#191c1e] hover:border-[#191c1e]'
+          ? 'border-tcg-red bg-tcg-red text-primary-foreground'
+          : 'border-border bg-card text-foreground hover:border-foreground'
       }`}
     >
       {children}
@@ -396,10 +388,10 @@ function EmptyCardsState({ title }: { title: string }) {
   return (
     <section
       aria-live='polite'
-      className='flex flex-col items-center justify-center gap-3 rounded-2xl bg-white px-6 py-16 text-center'
+      className='flex flex-col items-center justify-center gap-3 rounded-2xl bg-card px-6 py-16 text-center'
     >
-      <h3 className='text-2xl leading-tight font-bold text-[#191c1e]'>{title}</h3>
-      <p className='max-w-md text-base leading-[1.5] text-[#535f73]'>
+      <h3 className='text-2xl leading-tight font-bold text-foreground'>{title}</h3>
+      <p className='max-w-md text-base leading-[1.5] text-muted-foreground'>
         다른 카테고리를 둘러보거나 검색어로 카드를 찾아보세요.
       </p>
     </section>

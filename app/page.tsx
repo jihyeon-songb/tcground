@@ -1,7 +1,9 @@
+import { ArrowRight, Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { HomeSearchForm } from '@/components/tcg/search/HomeSearchForm';
+import { PageFooter } from '@/components/tcg/layout/PageFooter';
 import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
 import { getFeaturedPokemonCards, type PokemonCatalogCard } from '@/lib/tcg-catalog';
 import { formatPrice } from '@/lib/tcg-data';
@@ -38,15 +40,15 @@ export default async function Home() {
   const trendingCards = await getTrendingCards();
 
   return (
-    <div className='flex min-h-screen flex-col bg-[#f8f9fb] text-[#191c1e]'>
+    <div className='flex min-h-screen flex-col bg-background text-foreground'>
       <PublicHeader currentPath='/' />
 
       <main className='mx-auto w-full max-w-[1440px] flex-grow pb-16'>
         <section className='mt-16 mb-16 px-5 text-center'>
-          <h1 className='mb-6 text-5xl leading-[1.1] font-extrabold text-[#191c1e] md:text-[70px]'>
+          <h1 className='mb-6 text-5xl leading-[1.1] font-extrabold text-foreground md:text-[70px]'>
             안전하고 확실한 카드 수집
           </h1>
-          <p className='mx-auto mb-8 max-w-2xl text-xl leading-[1.5] font-normal text-[#535f73]'>
+          <p className='mx-auto mb-8 max-w-2xl text-xl leading-[1.5] font-normal text-muted-foreground'>
             데이터 기반 큐레이션 플랫폼에서 트레이딩 카드 컬렉션을 발견하고, 추적하며, 가치를
             평가하세요.
           </p>
@@ -98,15 +100,15 @@ export default async function Home() {
 
         <section className='mb-16 px-5'>
           <div className='mb-8 flex items-end justify-between'>
-            <h2 className='text-[32px] leading-[1.2] font-bold text-[#191c1e]'>
+            <h2 className='text-[32px] leading-[1.2] font-bold text-foreground'>
               현재 인기 있는 카드
             </h2>
             <Link
-              className='flex items-center gap-1 text-sm leading-none font-semibold text-[#bb001a] hover:underline'
+              className='flex items-center gap-1 text-sm leading-none font-semibold text-tcg-red hover:underline'
               href='/cards'
             >
               모두 보기
-              {/*<span className='material-symbols-outlined text-sm leading-none'>arrow_forward</span>*/}
+              <ArrowRight className='size-4' aria-hidden />
             </Link>
           </div>
 
@@ -114,18 +116,18 @@ export default async function Home() {
         </section>
 
         <section className='mb-16 px-5'>
-          <div className='rounded-[24px] bg-[#e6e8ea] p-12 text-center md:flex md:items-center md:justify-between md:text-left'>
+          <div className='rounded-[24px] bg-muted p-12 text-center md:flex md:items-center md:justify-between md:text-left'>
             <div className='md:max-w-xl'>
-              <h2 className='mb-4 text-[32px] leading-[1.2] font-bold text-[#191c1e]'>
+              <h2 className='mb-4 text-[32px] leading-[1.2] font-bold text-foreground'>
                 컬렉션 업그레이드
               </h2>
-              <p className='mb-8 text-base leading-[1.5] font-normal text-[#535f73] md:mb-0'>
+              <p className='mb-8 text-base leading-[1.5] font-normal text-muted-foreground md:mb-0'>
                 실시간 시장 데이터, 포트폴리오 추적 및 원활한 탐색을 위해 TCGround를 신뢰하는 수천
                 명의 수집가와 함께하세요.
               </p>
             </div>
             <Link
-              className='inline-flex rounded-lg bg-[#bb001a] px-8 py-4 text-lg leading-none font-semibold whitespace-nowrap text-white shadow-sm transition-colors hover:bg-[#930012]'
+              className='inline-flex rounded-lg bg-tcg-red px-8 py-4 text-lg leading-none font-semibold whitespace-nowrap text-primary-foreground shadow-sm transition-colors hover:bg-tcg-red-dark'
               href='/login'
             >
               TCGround 가입하기
@@ -134,23 +136,7 @@ export default async function Home() {
         </section>
       </main>
 
-      <footer className='mt-auto grid w-full gap-5 bg-[#f2f4f6] px-5 py-16 md:grid-cols-4 md:px-16'>
-        <div className='col-span-1 mb-8 md:mb-0'>
-          <Image
-            src='/logo-transparent.png'
-            alt='TCGround Logo'
-            width={172}
-            height={40}
-            className='mb-4 h-8 w-auto object-contain'
-          />
-          <p className='text-base leading-[1.5] font-normal text-[#535f73]'>
-            © 2024 TCGround. 수집가를 위한 큐레이션 플랫폼.
-          </p>
-        </div>
-        <FooterColumn title='플랫폼' links={['소개', '지원', 'API 문서']} />
-        <FooterColumn title='게임' links={['포켓몬', '매직: 더 개더링', '유희왕!']} />
-        <FooterColumn title='법적 고지' links={['개인정보 처리방침', '이용약관', '채용정보']} />
-      </footer>
+      <PageFooter />
     </div>
   );
 }
@@ -167,7 +153,7 @@ async function getTrendingCards(): Promise<PokemonCatalogCard[]> {
 export function TrendingCardsGrid({ cards }: { cards: readonly PokemonCatalogCard[] }) {
   if (cards.length === 0) {
     return (
-      <div className='rounded-2xl bg-white p-12 text-center text-base text-[#535f73]'>
+      <div className='rounded-2xl bg-card p-12 text-center text-base text-muted-foreground'>
         아직 표시할 인기 카드가 없습니다.
       </div>
     );
@@ -180,11 +166,11 @@ export function TrendingCardsGrid({ cards }: { cards: readonly PokemonCatalogCar
           key={card.slug}
           href={card.href}
           aria-label={`${card.name} 상세 보기`}
-          className='group block cursor-pointer break-inside-avoid overflow-hidden rounded-2xl bg-white transition-transform duration-200 hover:scale-[1.02]'
+          className='group block cursor-pointer break-inside-avoid overflow-hidden rounded-2xl bg-card transition-transform duration-200 hover:scale-[1.02]'
         >
           <div className='relative'>
             {card.imageUrl ? (
-              <div className='relative aspect-[2.5/3.5] w-full bg-[#eceef0]'>
+              <div className='relative aspect-[2.5/3.5] w-full bg-surface-container'>
                 <Image
                   alt={`${card.name} 카드`}
                   src={card.imageUrl}
@@ -194,23 +180,21 @@ export function TrendingCardsGrid({ cards }: { cards: readonly PokemonCatalogCar
                 />
               </div>
             ) : (
-              <div className='flex aspect-[2.5/3.5] w-full items-center justify-center bg-[#e6e8ea]'>
-                <span className='material-symbols-outlined text-[70px] leading-none text-[#bb001a] opacity-50'>
-                  style
-                </span>
+              <div className='flex aspect-[2.5/3.5] w-full items-center justify-center bg-muted'>
+                <Sparkles className='size-[70px] text-tcg-red opacity-50' aria-hidden />
               </div>
             )}
-            <div className='absolute top-3 right-3 flex items-center gap-1 rounded-full border border-[#e6bdb9] bg-white/90 px-3 py-1 shadow-sm backdrop-blur-sm'>
-              <span className='text-sm leading-none font-bold text-[#191c1e] tabular-nums'>
+            <div className='absolute top-3 right-3 flex items-center gap-1 rounded-full border border-border bg-card/90 px-3 py-1 shadow-sm backdrop-blur-sm'>
+              <span className='text-sm leading-none font-bold text-foreground tabular-nums'>
                 {card.price ? formatPrice(card.price.avgPrice, card.price.currency) : '시세 정보 없음'}
               </span>
             </div>
           </div>
-          <div className='bg-white p-3'>
-            <h4 className='truncate text-base leading-[1.5] font-bold text-[#191c1e]'>
+          <div className='bg-card p-3'>
+            <h4 className='truncate text-base leading-[1.5] font-bold text-foreground'>
               {card.name}
             </h4>
-            <p className='mt-1 text-sm leading-none font-semibold text-[#535f73]'>
+            <p className='mt-1 text-sm leading-none font-semibold text-muted-foreground'>
               {card.setName} · {card.rarity}
             </p>
           </div>
@@ -220,21 +204,3 @@ export function TrendingCardsGrid({ cards }: { cards: readonly PokemonCatalogCar
   );
 }
 
-function FooterColumn({ title, links }: { title: string; links: string[] }) {
-  return (
-    <div className='flex flex-col gap-3'>
-      <h4 className='mb-2 text-sm leading-none font-bold tracking-wider text-[#191c1e] uppercase'>
-        {title}
-      </h4>
-      {links.map((link) => (
-        <Link
-          key={link}
-          className='text-base leading-[1.5] font-normal text-[#5c3f3d] underline transition-colors hover:text-[#bb001a]'
-          href='#'
-        >
-          {link}
-        </Link>
-      ))}
-    </div>
-  );
-}

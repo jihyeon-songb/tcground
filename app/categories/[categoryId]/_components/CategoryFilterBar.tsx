@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
 import type { AvailableSetOption } from '@/lib/tcg-catalog';
+import { appendQuery } from '../_lib/category-search-params';
 
 type FilterKey = 'rarity' | 'set';
 
@@ -46,8 +47,7 @@ export function CategoryFilterBar({
       // A filter change invalidates the current page position.
       params.delete('page');
 
-      const query = params.toString();
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+      router.replace(appendQuery(pathname, params), { scroll: false });
     },
     [pathname, router, searchParams],
   );
@@ -57,8 +57,7 @@ export function CategoryFilterBar({
     params.delete('rarity');
     params.delete('set');
     params.delete('page');
-    const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    router.replace(appendQuery(pathname, params), { scroll: false });
   }, [pathname, router, searchParams]);
 
   const raritySet = new Set(selectedRarities);
@@ -67,10 +66,10 @@ export function CategoryFilterBar({
 
   return (
     <div className='mb-6 flex flex-wrap items-center gap-2'>
-      <span className='inline-flex items-center gap-2 rounded-lg border border-[#191c1e] bg-white px-4 py-2 text-sm font-bold text-[#191c1e]'>
+      <span className='inline-flex items-center gap-2 rounded-lg border border-foreground bg-card px-4 py-2 text-sm font-bold text-foreground'>
         모든 필터
         {activeCount > 0 ? (
-          <span className='inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#bb001a] px-1.5 text-xs font-bold text-white'>
+          <span className='inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-tcg-red px-1.5 text-xs font-bold text-primary-foreground'>
             {activeCount}
           </span>
         ) : null}
@@ -81,7 +80,7 @@ export function CategoryFilterBar({
         <Link
           href='/categories'
           aria-label='포켓몬 카테고리 해제'
-          className='ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full text-[#0079b6] transition-colors hover:bg-[#dcefff]'
+          className='ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full text-tcg-blue transition-colors hover:bg-tcg-blue/15'
         >
           ✕
         </Link>
@@ -89,7 +88,7 @@ export function CategoryFilterBar({
 
       <FilterDropdown label='세트' selectedCount={selectedSetSlugs.length}>
         {availableSets.length === 0 ? (
-          <p className='px-1 text-sm text-[#535f73]'>등록된 세트가 없습니다.</p>
+          <p className='px-1 text-sm text-muted-foreground'>등록된 세트가 없습니다.</p>
         ) : (
           availableSets.map((set) => (
             <FilterCheckbox
@@ -105,7 +104,7 @@ export function CategoryFilterBar({
 
       <FilterDropdown label='레어도' selectedCount={selectedRarities.length}>
         {availableRarities.length === 0 ? (
-          <p className='px-1 text-sm text-[#535f73]'>등록된 레어도가 없습니다.</p>
+          <p className='px-1 text-sm text-muted-foreground'>등록된 레어도가 없습니다.</p>
         ) : (
           availableRarities.map((rarity) => (
             <FilterCheckbox
@@ -123,7 +122,7 @@ export function CategoryFilterBar({
         <button
           type='button'
           onClick={clearFilters}
-          className='ml-1 text-sm font-bold text-[#191c1e] transition-colors hover:text-[#bb001a]'
+          className='ml-1 text-sm font-bold text-foreground transition-colors hover:text-tcg-red'
         >
           필터 초기화
         </button>
@@ -138,7 +137,7 @@ function CategoryChip({
 }: { children: React.ReactNode } & React.HTMLAttributes<HTMLSpanElement>) {
   return (
     <span
-      className='inline-flex items-center gap-1 rounded-lg border border-[#0079b6] bg-[#eef7ff] px-4 py-2 text-sm font-bold text-[#0079b6]'
+      className='inline-flex items-center gap-1 rounded-lg border border-tcg-blue bg-tcg-blue-surface px-4 py-2 text-sm font-bold text-tcg-blue'
       {...props}
     >
       {children}
@@ -160,15 +159,15 @@ function FilterDropdown({
       <PopoverTrigger asChild>
         <button
           type='button'
-          className='inline-flex items-center gap-2 rounded-lg border border-[#cdd2d6] bg-white px-4 py-2 text-sm font-semibold text-[#191c1e] transition-colors hover:border-[#191c1e] data-[state=open]:border-[#bb001a]'
+          className='inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-foreground data-[state=open]:border-tcg-red'
         >
           {label}
           {selectedCount > 0 ? (
-            <span className='inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#bb001a] px-1.5 text-xs font-bold text-white'>
+            <span className='inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-tcg-red px-1.5 text-xs font-bold text-primary-foreground'>
               {selectedCount}
             </span>
           ) : null}
-          <span aria-hidden className='text-[#535f73]'>
+          <span aria-hidden className='text-muted-foreground'>
             ▾
           </span>
         </button>
@@ -198,9 +197,9 @@ function FilterCheckbox({
         type='checkbox'
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className='h-5 w-5 rounded border-[#535f73] text-[#bb001a] focus:ring-[#bb001a]'
+        className='h-5 w-5 rounded border-muted-foreground text-tcg-red focus:ring-tcg-red'
       />
-      <span className='text-base text-[#191c1e] transition-colors group-hover:text-[#bb001a]'>
+      <span className='text-base text-foreground transition-colors group-hover:text-tcg-red'>
         {label}
       </span>
     </label>
