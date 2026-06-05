@@ -219,7 +219,10 @@
     @apply border-border outline-ring/50;
   }
   html {
-    @apply h-full scroll-smooth font-sans;
+    /* No `scroll-smooth` here: a global smooth scroll-behavior turns the App
+       Router's scroll-to-top on navigation into an animated crawl that fights
+       scroll restoration. There are no in-page anchor flows relying on it. */
+    @apply h-full font-sans;
   }
   body {
     @apply bg-background text-foreground min-h-full antialiased;
