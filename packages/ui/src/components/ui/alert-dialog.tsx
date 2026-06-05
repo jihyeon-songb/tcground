@@ -13,8 +13,8 @@ import {
   AlertDialogTrigger as HeadlessAlertDialogTrigger,
 } from '@tcground/headless';
 
-import { cn } from '../../utils';
-import { Button } from './button';
+import { cn } from '../../utils.js';
+import { Button } from './button.js';
 
 function AlertDialog({ ...props }: React.ComponentProps<typeof HeadlessAlertDialog>) {
   return <HeadlessAlertDialog {...props} />;

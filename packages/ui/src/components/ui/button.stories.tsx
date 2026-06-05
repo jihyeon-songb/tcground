@@ -86,7 +86,7 @@ export const TcgUsage: Story = {
           가격 알림 설정
         </Button>
       </div>
-      <div className='flex w-fit items-center gap-1 rounded-full bg-muted p-1'>
+      <div className='bg-muted flex w-fit items-center gap-1 rounded-full p-1'>
         <Button size='tab' variant='ghost'>
           7일
         </Button>
@@ -100,7 +100,7 @@ export const TcgUsage: Story = {
 
 export const DarkTheme: Story = {
   render: () => (
-    <div className='dark rounded-2xl bg-background p-6 text-foreground'>
+    <div className='dark bg-background text-foreground rounded-2xl p-6'>
       <div className='flex flex-wrap items-center gap-2'>
         <Button>Default</Button>
         <Button variant='outline'>Outline</Button>

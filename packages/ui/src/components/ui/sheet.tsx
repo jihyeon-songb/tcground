@@ -12,8 +12,8 @@ import {
   SheetTrigger as HeadlessSheetTrigger,
 } from '@tcground/headless';
 
-import { cn } from '../../utils';
-import { Button } from './button';
+import { cn } from '../../utils.js';
+import { Button } from './button.js';
 import { XIcon } from 'lucide-react';
 
 function Sheet({ ...props }: React.ComponentProps<typeof HeadlessSheet>) {
@@ -32,10 +32,7 @@ function SheetPortal({ ...props }: React.ComponentProps<typeof HeadlessSheetPort
   return <HeadlessSheetPortal {...props} />;
 }
 
-function SheetOverlay({
-  className,
-  ...props
-}: React.ComponentProps<typeof HeadlessSheetOverlay>) {
+function SheetOverlay({ className, ...props }: React.ComponentProps<typeof HeadlessSheetOverlay>) {
   return (
     <HeadlessSheetOverlay
       data-slot='sheet-overlay'

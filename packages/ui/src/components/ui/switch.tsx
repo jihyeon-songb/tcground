@@ -6,7 +6,7 @@ import {
   type SwitchProps as HeadlessSwitchProps,
 } from '@tcground/headless';
 
-import { cn } from '../../utils';
+import { cn } from '../../utils.js';
 
 function Switch({
   className,

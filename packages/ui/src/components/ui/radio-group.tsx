@@ -8,7 +8,7 @@ import {
   type RadioGroupItemProps as HeadlessRadioGroupItemProps,
 } from '@tcground/headless';
 
-import { cn } from '../../utils';
+import { cn } from '../../utils.js';
 
 function RadioGroup({ className, ...props }: HeadlessRadioGroupProps) {
   return (

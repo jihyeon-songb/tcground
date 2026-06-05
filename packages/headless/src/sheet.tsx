@@ -12,5 +12,5 @@ export {
   DialogContent as SheetContent,
   DialogTitle as SheetTitle,
   DialogDescription as SheetDescription,
-} from './dialog';
-export type { DialogProps as SheetProps } from './dialog';
+} from './dialog.js';
+export type { DialogProps as SheetProps } from './dialog.js';

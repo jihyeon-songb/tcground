@@ -47,7 +47,10 @@ function mergeSlotProps(slotProps: AnyProps, childProps: AnyProps) {
     const isHandler = /^on[A-Z]/.test(propName);
 
     if (isHandler && typeof slotPropValue === 'function' && typeof childPropValue === 'function') {
-      overrideProps[propName] = composeEventHandlers(childPropValue as never, slotPropValue as never);
+      overrideProps[propName] = composeEventHandlers(
+        childPropValue as never,
+        slotPropValue as never,
+      );
       continue;
     }
 

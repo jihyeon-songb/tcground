@@ -5,7 +5,7 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 
-import { composeEventHandlers, composeRefs, PrimitiveSlot } from './primitive';
+import { composeEventHandlers, composeRefs, PrimitiveSlot } from './primitive.js';
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -143,7 +143,8 @@ function Dialog({
   const setOpen = React.useCallback(
     (nextOpen: boolean) => {
       if (nextOpen) {
-        const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        const activeElement =
+          document.activeElement instanceof HTMLElement ? document.activeElement : null;
         rememberActiveElement(activeElement);
       }
 
@@ -327,7 +328,13 @@ function DialogContent({
       const restoreTarget = context.previousActiveElementRef.current ?? context.triggerRef.current;
       window.requestAnimationFrame(() => restoreTarget?.focus());
     };
-  }, [context.contentRef, context.modal, context.open, context.previousActiveElementRef, context.triggerRef]);
+  }, [
+    context.contentRef,
+    context.modal,
+    context.open,
+    context.previousActiveElementRef,
+    context.triggerRef,
+  ]);
 
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {

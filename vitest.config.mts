@@ -8,7 +8,10 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
     alias: {
-      '@tcground/headless': fileURLToPath(new URL('./packages/headless/src/index.ts', import.meta.url)),
+      '@tcground/ui': fileURLToPath(new URL('./packages/ui/src/index.ts', import.meta.url)),
+      '@tcground/headless': fileURLToPath(
+        new URL('./packages/headless/src/index.ts', import.meta.url),
+      ),
     },
   },
   test: {

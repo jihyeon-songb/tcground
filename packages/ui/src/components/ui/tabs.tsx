@@ -12,7 +12,7 @@ import {
   type TabsTriggerProps,
 } from '@tcground/headless';
 
-import { cn } from '../../utils';
+import { cn } from '../../utils.js';
 
 function Tabs({ className, ...props }: TabsProps) {
   return (

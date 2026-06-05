@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-import { composeEventHandlers, PrimitiveSlot } from './primitive';
+import { composeEventHandlers, PrimitiveSlot } from './primitive.js';
 
 interface ButtonProps extends React.ComponentPropsWithoutRef<'button'> {
   asChild?: boolean;

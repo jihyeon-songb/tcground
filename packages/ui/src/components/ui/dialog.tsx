@@ -14,8 +14,8 @@ import {
 } from '@tcground/headless';
 import { XIcon } from 'lucide-react';
 
-import { cn } from '../../utils';
-import { Button } from './button';
+import { cn } from '../../utils.js';
+import { Button } from './button.js';
 
 function DialogOverlay({ className, ...props }: React.ComponentProps<'div'>) {
   return (

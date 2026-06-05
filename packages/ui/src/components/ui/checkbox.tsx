@@ -6,7 +6,7 @@ import {
   type CheckboxProps as HeadlessCheckboxProps,
 } from '@tcground/headless';
 
-import { cn } from '../../utils';
+import { cn } from '../../utils.js';
 import { CheckIcon } from 'lucide-react';
 
 function Checkbox({ className, ...props }: HeadlessCheckboxProps) {
