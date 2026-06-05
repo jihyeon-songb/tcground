@@ -17,13 +17,13 @@ import {
   type CatalogCardDetail,
 } from '@/lib/tcg-catalog';
 import { formatPrice } from '@/lib/tcg-data';
-import { PriceHistoryChart } from './PriceHistoryChart';
-import { CardRating } from './CardRating';
+import { PriceHistoryChart } from './_components/PriceHistoryChart';
+import { CardRating } from './_components/CardRating';
 
 export const dynamic = 'force-dynamic';
 
 // Re-exported for tests that exercise the pure geometry helper against `./page`.
-export { buildChartGeometry } from './price-chart';
+export { buildChartGeometry } from './_lib/price-chart';
 
 type ChangeTone = 'up' | 'down' | 'flat';
 

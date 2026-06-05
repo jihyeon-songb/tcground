@@ -4,8 +4,8 @@ import { useId, useState, useTransition } from 'react';
 import Link from 'next/link';
 import type { CardRatingSummary } from '@/lib/tcg-catalog';
 import { formatRating } from '@/lib/tcg-data';
-import { submitCardRating } from './_actions/rate-card';
-import { RATING_STARS, ratingCountLabel, starFills } from './card-rating';
+import { submitCardRating } from '../_actions/rate-card';
+import { RATING_STARS, ratingCountLabel, starFills } from '../_lib/card-rating';
 
 interface CardRatingProps {
   cardId: string;

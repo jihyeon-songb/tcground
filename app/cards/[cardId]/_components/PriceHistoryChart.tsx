@@ -10,7 +10,7 @@ import {
   buildChartGeometry,
   filterSeriesByPeriod,
   type ChartPeriod,
-} from './price-chart';
+} from '../_lib/price-chart';
 
 interface PriceHistoryChartProps {
   /** Coherent trend series drawn as the line (asking, or sold when asking is absent). */
