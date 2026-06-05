@@ -1,14 +1,19 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { Skeleton } from '@tcground/ui';
 import { PageFooter } from '@/components/tcg/layout/PageFooter';
 import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
 import { getPokemonCategoryPageData } from '@/lib/tcg-catalog';
-import { buildCategoryHref, parseCategoryFilters } from './_lib/category-search-params';
+import {
+  buildCategoryHref,
+  type CardView,
+  type CategoryFilters,
+  parseCategoryFilters,
+} from './_lib/category-search-params';
 import { CategoryBreadcrumb } from './_components/CategoryBreadcrumb';
 import { PokemonCategoryContent } from './_components/PokemonCategoryContent';
 import { UnknownCategoryEmptyState } from './_components/UnknownCategoryEmptyState';
-
-export const dynamic = 'force-dynamic';
 
 const KNOWN_CATEGORY_LABELS: Record<string, string> = {
   pokemon: '포켓몬',
@@ -56,17 +61,12 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   const { categoryId } = await params;
   const filters = parseCategoryFilters(await searchParams);
-  const { query, rarities, setSlugs, sort, page, view } = filters;
+  const { query, view } = filters;
   const breadcrumbLabel = KNOWN_CATEGORY_LABELS[categoryId] ?? null;
 
   if (!breadcrumbLabel) {
     notFound();
   }
-
-  const pokemonData =
-    categoryId === 'pokemon'
-      ? await getPokemonCategoryPageData({ query, rarities, setSlugs, sort, page })
-      : null;
 
   const currentPath = buildCategoryHref(`/categories/${categoryId}`, filters);
 
@@ -81,13 +81,44 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         <CategoryBreadcrumb label={breadcrumbLabel} />
 
         {categoryId === 'pokemon' ? (
-          <PokemonCategoryContent data={pokemonData} productsHref={currentPath} view={view} />
+          // Re-suspend whenever the filters change so a skeleton shows during the
+          // fetch instead of the page freezing on the previous results.
+          <Suspense key={currentPath} fallback={<PokemonCategorySkeleton />}>
+            <PokemonCategorySection filters={filters} productsHref={currentPath} view={view} />
+          </Suspense>
         ) : (
           <UnknownCategoryEmptyState label={breadcrumbLabel} />
         )}
       </main>
 
       <PageFooter />
+    </div>
+  );
+}
+
+async function PokemonCategorySection({
+  filters,
+  productsHref,
+  view,
+}: {
+  filters: CategoryFilters;
+  productsHref: string;
+  view: CardView;
+}) {
+  const { query, rarities, setSlugs, sort, page } = filters;
+  const data = await getPokemonCategoryPageData({ query, rarities, setSlugs, sort, page });
+  return <PokemonCategoryContent data={data} productsHref={productsHref} view={view} />;
+}
+
+function PokemonCategorySkeleton() {
+  return (
+    <div className='mt-6 space-y-6'>
+      <Skeleton className='h-12 w-full rounded-lg' />
+      <div className='grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4'>
+        {Array.from({ length: 12 }).map((_, index) => (
+          <Skeleton key={index} className='aspect-[3/4] w-full rounded-xl' />
+        ))}
+      </div>
     </div>
   );
 }

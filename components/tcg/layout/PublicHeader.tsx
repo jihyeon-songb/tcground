@@ -1,10 +1,11 @@
+import { Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Button } from '@tcground/ui';
-import { getAuthEntryHref } from '@/lib/auth/redirect';
-import { createClient } from '@/lib/supabase/server';
 import { HomeSearchForm } from '@/components/tcg/search/HomeSearchForm';
-import { logout } from '@/components/tcg/auth/logout-action';
+import {
+  HeaderAuthActions,
+  HeaderAuthActionsFallback,
+} from '@/components/tcg/layout/HeaderAuthActions';
 
 type HeaderSearchOptions =
   | {
@@ -25,8 +26,7 @@ const NAV_ITEMS = [
   { label: '인기', href: '/cards' },
 ] as const;
 
-export async function PublicHeader({ currentPath, search = false }: PublicHeaderProps) {
-  const isAuthenticated = await getIsAuthenticated();
+export function PublicHeader({ currentPath, search = false }: PublicHeaderProps) {
   const activePath = getActivePath(currentPath);
 
   return (
@@ -76,41 +76,12 @@ export async function PublicHeader({ currentPath, search = false }: PublicHeader
       ) : null}
 
       <div className='flex items-center gap-4'>
-        {isAuthenticated ? (
-          <form action={logout}>
-            <Button
-              type='submit'
-              className='px-6'
-            >
-              로그아웃
-            </Button>
-          </form>
-        ) : (
-          <>
-            <Link
-              className='hidden font-normal whitespace-nowrap text-muted-foreground hover:text-tcg-red md:block'
-              href={getAuthEntryHref('/login', currentPath)}
-            >
-              로그인
-            </Link>
-            <Button asChild className='px-6'>
-              <Link href={getAuthEntryHref('/signup', currentPath)}>가입하기</Link>
-            </Button>
-          </>
-        )}
+        <Suspense fallback={<HeaderAuthActionsFallback />}>
+          <HeaderAuthActions currentPath={currentPath} />
+        </Suspense>
       </div>
     </header>
   );
-}
-
-async function getIsAuthenticated() {
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase.auth.getClaims();
-    return !error && Boolean(data?.claims);
-  } catch {
-    return false;
-  }
 }
 
 function getActivePath(currentPath: string) {

@@ -1,12 +1,12 @@
+import { Suspense } from 'react';
 import { ArrowRight, Flame, type LucideIcon, Sailboat, Shapes, Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Skeleton } from '@tcground/ui';
 import { PageFooter } from '@/components/tcg/layout/PageFooter';
 import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
 import { getTcgCategoryOverview, type TcgCategoryOverview } from '@/lib/tcg-catalog';
-
-export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'TCGround | 카테고리',
@@ -51,10 +51,7 @@ const CATEGORY_VISUALS: Record<
   },
 };
 
-export default async function CategoriesPage() {
-  const categories = await getCategoriesForPage();
-  const totals = summarizeCategories(categories);
-
+export default function CategoriesPage() {
   return (
     <div className='flex min-h-screen flex-col bg-muted text-foreground'>
       <PublicHeader currentPath='/categories' search={{ desktopOnly: true }} />
@@ -74,10 +71,14 @@ export default async function CategoriesPage() {
             </p>
           </div>
 
-          <CategorySummary totals={totals} />
+          <Suspense fallback={<CategorySummarySkeleton />}>
+            <CategorySummarySection />
+          </Suspense>
         </section>
 
-        <CategoryOverviewList categories={categories} />
+        <Suspense fallback={<CategoryOverviewSkeleton />}>
+          <CategoryOverviewSection />
+        </Suspense>
       </main>
 
       <PageFooter
@@ -98,6 +99,30 @@ async function getCategoriesForPage(): Promise<TcgCategoryOverview[]> {
     console.error('Failed to load category overview', error);
     return [];
   }
+}
+
+async function CategorySummarySection() {
+  const categories = await getCategoriesForPage();
+  return <CategorySummary totals={summarizeCategories(categories)} />;
+}
+
+async function CategoryOverviewSection() {
+  const categories = await getCategoriesForPage();
+  return <CategoryOverviewList categories={categories} />;
+}
+
+function CategorySummarySkeleton() {
+  return <Skeleton className='h-[220px] w-full rounded-lg' />;
+}
+
+function CategoryOverviewSkeleton() {
+  return (
+    <div className='grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4'>
+      {Array.from({ length: 4 }).map((_, index) => (
+        <Skeleton key={index} className='min-h-[380px] w-full rounded-xl' />
+      ))}
+    </div>
+  );
 }
 
 export function CategoryOverviewList({

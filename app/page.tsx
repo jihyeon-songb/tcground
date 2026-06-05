@@ -1,14 +1,14 @@
+import { Suspense } from 'react';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Skeleton } from '@tcground/ui';
 import { HomeSearchForm } from '@/components/tcg/search/HomeSearchForm';
 import { PageFooter } from '@/components/tcg/layout/PageFooter';
 import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
 import { getFeaturedPokemonCards, type PokemonCatalogCard } from '@/lib/tcg-catalog';
 import { formatPrice } from '@/lib/tcg-data';
-
-export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'TCGround - Curated Discovery for Collectors',
@@ -36,9 +36,7 @@ const categoryTiles = [
   },
 ];
 
-export default async function Home() {
-  const trendingCards = await getTrendingCards();
-
+export default function Home() {
   return (
     <div className='flex min-h-screen flex-col bg-background text-foreground'>
       <PublicHeader currentPath='/' />
@@ -112,7 +110,9 @@ export default async function Home() {
             </Link>
           </div>
 
-          <TrendingCardsGrid cards={trendingCards} />
+          <Suspense fallback={<TrendingCardsSkeleton />}>
+            <TrendingCardsSection />
+          </Suspense>
         </section>
 
         <section className='mb-16 px-5'>
@@ -137,6 +137,21 @@ export default async function Home() {
       </main>
 
       <PageFooter />
+    </div>
+  );
+}
+
+async function TrendingCardsSection() {
+  const cards = await getTrendingCards();
+  return <TrendingCardsGrid cards={cards} />;
+}
+
+function TrendingCardsSkeleton() {
+  return (
+    <div className='grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4'>
+      {Array.from({ length: 8 }).map((_, index) => (
+        <Skeleton key={index} className='aspect-[3/4] w-full rounded-xl' />
+      ))}
     </div>
   );
 }

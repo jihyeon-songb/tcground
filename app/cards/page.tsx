@@ -1,19 +1,17 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
+import { Skeleton } from '@tcground/ui';
 import { PageFooter } from '@/components/tcg/layout/PageFooter';
 import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
 import { getFeaturedPokemonCards, type PokemonCatalogCard } from '@/lib/tcg-catalog';
 import { FeaturedCardsGrid } from './_components/FeaturedCardsGrid';
-
-export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'TCGround | 인기 카드',
   description: '현재 TCGround에서 우선 추적하는 인기 카드와 가격 요약을 확인하세요.',
 };
 
-export default async function CardsPage() {
-  const cards = await getCardsPageFeaturedCards();
-
+export default function CardsPage() {
   return (
     <div className='flex min-h-screen flex-col bg-background text-foreground'>
       <PublicHeader currentPath='/cards' search={{ desktopOnly: true }} />
@@ -31,7 +29,9 @@ export default async function CardsPage() {
           </p>
         </section>
 
-        <FeaturedCardsGrid cards={cards} />
+        <Suspense fallback={<FeaturedCardsSkeleton />}>
+          <FeaturedCardsSection />
+        </Suspense>
       </main>
 
       <PageFooter
@@ -41,6 +41,21 @@ export default async function CardsPage() {
           { title: '법적 고지', links: ['개인정보 처리방침', '이용약관', '채용정보'] },
         ]}
       />
+    </div>
+  );
+}
+
+async function FeaturedCardsSection() {
+  const cards = await getCardsPageFeaturedCards();
+  return <FeaturedCardsGrid cards={cards} />;
+}
+
+function FeaturedCardsSkeleton() {
+  return (
+    <div className='grid grid-cols-2 gap-5 md:grid-cols-3 lg:grid-cols-4'>
+      {Array.from({ length: 8 }).map((_, index) => (
+        <Skeleton key={index} className='aspect-[3/4] w-full rounded-xl' />
+      ))}
     </div>
   );
 }

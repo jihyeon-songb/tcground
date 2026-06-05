@@ -1,9 +1,21 @@
+import { unstable_cache } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { createPublicClient } from '@/lib/supabase/public';
 import { isAskingSource } from './pricing/price-source.types';
 
 type ChangeTone = 'up' | 'down' | 'flat';
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Cache tags + revalidation window for public catalog reads. The price cron runs
+ * once a day (see `vercel.json`), so an hour-long window keeps navigation fast
+ * while staying well within freshness needs. `revalidateTag(PRICES_CACHE_TAG)`
+ * from the cron route refreshes everything immediately after collection.
+ */
+export const CATALOG_CACHE_TAG = 'catalog';
+export const PRICES_CACHE_TAG = 'prices';
+const CATALOG_REVALIDATE_SECONDS = 3600;
 
 export type CardEdition = 'kr' | 'jp' | 'na';
 
@@ -350,8 +362,51 @@ const POKEMON_CARD_LIST_SELECT = [
 export async function getTcgCategoryOverview(
   options: TcgCategoryOverviewOptions = {},
 ): Promise<TcgCategoryOverview[]> {
-  const supabase = options.client ?? (await createClient());
+  if (options.client) return loadTcgCategoryOverview(options.client);
+  return tcgCategoryOverviewCached();
+}
 
+const tcgCategoryOverviewCached = unstable_cache(
+  () => loadTcgCategoryOverview(createPublicClient()),
+  ['tcg-category-overview'],
+  { tags: [CATALOG_CACHE_TAG, PRICES_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
+);
+
+interface TcgCategoryCountsRow {
+  game_id: string;
+  card_count: number | string | null;
+  set_count: number | string | null;
+  snapshot_count: number | string | null;
+}
+
+/**
+ * Fetches per-game card/set/snapshot counts in a single aggregate query
+ * (`get_tcg_category_counts` RPC). Returns `null` when the function is not
+ * available yet (e.g. the migration hasn't been applied), so the caller can fall
+ * back to the slower full-table count path.
+ */
+async function fetchTcgCategoryCounts(supabase: SupabaseClient): Promise<{
+  cardCounts: GameCountRow[];
+  setCounts: GameCountRow[];
+  snapshotCounts: GameCountRow[];
+} | null> {
+  const { data, error } = await supabase.rpc('get_tcg_category_counts');
+  if (error || !data) return null;
+
+  const rows = data as TcgCategoryCountsRow[];
+  return {
+    cardCounts: rows.map((row) => ({ game_id: row.game_id, count: Number(row.card_count ?? 0) })),
+    setCounts: rows.map((row) => ({ game_id: row.game_id, count: Number(row.set_count ?? 0) })),
+    snapshotCounts: rows.map((row) => ({
+      game_id: row.game_id,
+      count: Number(row.snapshot_count ?? 0),
+    })),
+  };
+}
+
+async function loadTcgCategoryOverview(
+  supabase: SupabaseClient,
+): Promise<TcgCategoryOverview[]> {
   const gameResult = await supabase
     .from('tcg_games')
     .select('id, slug, name, name_ko, description')
@@ -360,6 +415,24 @@ export async function getTcgCategoryOverview(
   throwIfSupabaseError(gameResult.error);
 
   const games = (gameResult.data ?? []) as TcgCategoryOverviewGameRow[];
+
+  // Preferred path: a single aggregate query returns every count, so we never
+  // read the full (and ever-growing) snapshot/card/printing tables just to size
+  // them. Falls back to the JS count path when the RPC isn't deployed yet.
+  const rpcCounts = await fetchTcgCategoryCounts(supabase);
+  if (rpcCounts) {
+    return mapTcgCategoryOverviewRows({
+      games,
+      cards: [],
+      sets: [],
+      printings: [],
+      snapshots: [],
+      cardCounts: rpcCounts.cardCounts,
+      setCounts: rpcCounts.setCounts,
+      snapshotCounts: rpcCounts.snapshotCounts,
+    });
+  }
+
   const gameIds = games.map((game) => game.id);
 
   const [cardResult, setResult, printingResult, snapshotResult, cardCounts, setCounts] =
@@ -394,6 +467,7 @@ export function mapTcgCategoryOverviewRows({
   sets,
   cardCounts: exactCardCounts,
   setCounts: exactSetCounts,
+  snapshotCounts: exactSnapshotCounts,
   printings,
   snapshots,
 }: {
@@ -402,6 +476,7 @@ export function mapTcgCategoryOverviewRows({
   sets: readonly CardSetGameCountRow[];
   cardCounts?: readonly GameCountRow[];
   setCounts?: readonly GameCountRow[];
+  snapshotCounts?: readonly GameCountRow[];
   printings: readonly PrintingCardJoinRow[];
   snapshots: readonly PriceSnapshotPrintingJoinRow[];
 }): TcgCategoryOverview[] {
@@ -435,6 +510,7 @@ export function mapTcgCategoryOverviewRows({
     if (!gameId) continue;
     priceSnapshotCounts.set(gameId, (priceSnapshotCounts.get(gameId) ?? 0) + 1);
   }
+  applyExactCounts(priceSnapshotCounts, exactSnapshotCounts);
 
   const defaultSlugs = new Set<string>(DEFAULT_TCG_CATEGORY_BASE.map((category) => category.slug));
   const gamesBySlug = new Map(games.map((game) => [game.slug, game] as const));
@@ -476,8 +552,43 @@ export function mapTcgCategoryOverviewRows({
 export async function getPokemonCategoryPageData(
   options: PokemonCategoryQueryOptions = {},
 ): Promise<PokemonCategoryPageData | null> {
+  if (options.client) return loadPokemonCategoryPageData(options.client, options);
+  return pokemonCategoryPageDataCached(
+    options.query ?? '',
+    options.rarities ?? [],
+    options.setSlugs ?? [],
+    options.sort ?? 'best',
+    options.page ?? 1,
+    options.pageSize ?? DEFAULT_POKEMON_PAGE_SIZE,
+  );
+}
+
+const pokemonCategoryPageDataCached = unstable_cache(
+  (
+    query: string,
+    rarities: readonly string[],
+    setSlugs: readonly string[],
+    sort: PokemonSort,
+    page: number,
+    pageSize: number,
+  ) =>
+    loadPokemonCategoryPageData(createPublicClient(), {
+      query,
+      rarities,
+      setSlugs,
+      sort,
+      page,
+      pageSize,
+    }),
+  ['pokemon-category-page'],
+  { tags: [CATALOG_CACHE_TAG, PRICES_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
+);
+
+async function loadPokemonCategoryPageData(
+  supabase: SupabaseClient,
+  options: PokemonCategoryQueryOptions = {},
+): Promise<PokemonCategoryPageData | null> {
   const {
-    client,
     query = '',
     rarities,
     setSlugs,
@@ -485,7 +596,6 @@ export async function getPokemonCategoryPageData(
     pageSize = DEFAULT_POKEMON_PAGE_SIZE,
     sort = 'best',
   } = options;
-  const supabase = client ?? (await createClient());
   const trimmedQuery = query.trim();
   const selectedRarities = normalizeStringList(rarities);
   const selectedSetSlugs = normalizeStringList(setSlugs);
@@ -785,8 +895,20 @@ export async function getFeaturedPokemonCards(
   options: FeaturedPokemonCardsOptions = {},
 ): Promise<PokemonCatalogCard[]> {
   const { client, limit = 8 } = options;
-  const supabase = client ?? (await createClient());
+  if (client) return loadFeaturedPokemonCards(client, limit);
+  return featuredPokemonCardsCached(limit);
+}
 
+const featuredPokemonCardsCached = unstable_cache(
+  (limit: number) => loadFeaturedPokemonCards(createPublicClient(), limit),
+  ['featured-pokemon-cards'],
+  { tags: [CATALOG_CACHE_TAG, PRICES_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
+);
+
+async function loadFeaturedPokemonCards(
+  supabase: SupabaseClient,
+  limit: number,
+): Promise<PokemonCatalogCard[]> {
   const { data: gameData, error: gameError } = await supabase
     .from('tcg_games')
     .select('id')
@@ -871,8 +993,23 @@ export async function getCardDetailBySlug(
   client?: SupabaseClient,
   options: { edition?: CardEdition } = {},
 ): Promise<CatalogCardDetail | null> {
-  const supabase = client ?? (await createClient());
+  const edition = options.edition ?? 'kr';
+  if (client) return loadCardDetailBySlug(client, slug, edition);
+  return cardDetailBySlugCached(slug, edition);
+}
 
+const cardDetailBySlugCached = unstable_cache(
+  (slug: string, edition: CardEdition) =>
+    loadCardDetailBySlug(createPublicClient(), slug, edition),
+  ['card-detail-by-slug'],
+  { tags: [CATALOG_CACHE_TAG, PRICES_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
+);
+
+async function loadCardDetailBySlug(
+  supabase: SupabaseClient,
+  slug: string,
+  edition: CardEdition,
+): Promise<CatalogCardDetail | null> {
   const { data, error } = await supabase
     .from('cards')
     .select(
@@ -897,12 +1034,12 @@ export async function getCardDetailBySlug(
   if (!data) return null;
 
   const detailRow = data as unknown as CardDetailRow;
-  const printing = selectPrintingForEdition(detailRow, options.edition ?? 'kr');
+  const printing = selectPrintingForEdition(detailRow, edition);
   const printingId = printing?.id ?? detailRow.id;
 
   const snapshotData = await fetchSnapshotRowsForPrinting(supabase, printingId);
 
-  return mapCardDetailRow(detailRow, snapshotData, { edition: options.edition ?? 'kr' });
+  return mapCardDetailRow(detailRow, snapshotData, { edition });
 }
 
 interface CardRatingSummaryRow {
