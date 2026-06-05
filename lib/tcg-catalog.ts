@@ -372,6 +372,38 @@ const tcgCategoryOverviewCached = unstable_cache(
   { tags: [CATALOG_CACHE_TAG, PRICES_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
 );
 
+interface TcgCategoryCountsRow {
+  game_id: string;
+  card_count: number | string | null;
+  set_count: number | string | null;
+  snapshot_count: number | string | null;
+}
+
+/**
+ * Fetches per-game card/set/snapshot counts in a single aggregate query
+ * (`get_tcg_category_counts` RPC). Returns `null` when the function is not
+ * available yet (e.g. the migration hasn't been applied), so the caller can fall
+ * back to the slower full-table count path.
+ */
+async function fetchTcgCategoryCounts(supabase: SupabaseClient): Promise<{
+  cardCounts: GameCountRow[];
+  setCounts: GameCountRow[];
+  snapshotCounts: GameCountRow[];
+} | null> {
+  const { data, error } = await supabase.rpc('get_tcg_category_counts');
+  if (error || !data) return null;
+
+  const rows = data as TcgCategoryCountsRow[];
+  return {
+    cardCounts: rows.map((row) => ({ game_id: row.game_id, count: Number(row.card_count ?? 0) })),
+    setCounts: rows.map((row) => ({ game_id: row.game_id, count: Number(row.set_count ?? 0) })),
+    snapshotCounts: rows.map((row) => ({
+      game_id: row.game_id,
+      count: Number(row.snapshot_count ?? 0),
+    })),
+  };
+}
+
 async function loadTcgCategoryOverview(
   supabase: SupabaseClient,
 ): Promise<TcgCategoryOverview[]> {
@@ -383,6 +415,24 @@ async function loadTcgCategoryOverview(
   throwIfSupabaseError(gameResult.error);
 
   const games = (gameResult.data ?? []) as TcgCategoryOverviewGameRow[];
+
+  // Preferred path: a single aggregate query returns every count, so we never
+  // read the full (and ever-growing) snapshot/card/printing tables just to size
+  // them. Falls back to the JS count path when the RPC isn't deployed yet.
+  const rpcCounts = await fetchTcgCategoryCounts(supabase);
+  if (rpcCounts) {
+    return mapTcgCategoryOverviewRows({
+      games,
+      cards: [],
+      sets: [],
+      printings: [],
+      snapshots: [],
+      cardCounts: rpcCounts.cardCounts,
+      setCounts: rpcCounts.setCounts,
+      snapshotCounts: rpcCounts.snapshotCounts,
+    });
+  }
+
   const gameIds = games.map((game) => game.id);
 
   const [cardResult, setResult, printingResult, snapshotResult, cardCounts, setCounts] =
@@ -417,6 +467,7 @@ export function mapTcgCategoryOverviewRows({
   sets,
   cardCounts: exactCardCounts,
   setCounts: exactSetCounts,
+  snapshotCounts: exactSnapshotCounts,
   printings,
   snapshots,
 }: {
@@ -425,6 +476,7 @@ export function mapTcgCategoryOverviewRows({
   sets: readonly CardSetGameCountRow[];
   cardCounts?: readonly GameCountRow[];
   setCounts?: readonly GameCountRow[];
+  snapshotCounts?: readonly GameCountRow[];
   printings: readonly PrintingCardJoinRow[];
   snapshots: readonly PriceSnapshotPrintingJoinRow[];
 }): TcgCategoryOverview[] {
@@ -458,6 +510,7 @@ export function mapTcgCategoryOverviewRows({
     if (!gameId) continue;
     priceSnapshotCounts.set(gameId, (priceSnapshotCounts.get(gameId) ?? 0) + 1);
   }
+  applyExactCounts(priceSnapshotCounts, exactSnapshotCounts);
 
   const defaultSlugs = new Set<string>(DEFAULT_TCG_CATEGORY_BASE.map((category) => category.slug));
   const gamesBySlug = new Map(games.map((game) => [game.slug, game] as const));
