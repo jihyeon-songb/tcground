@@ -1,5 +1,7 @@
 # TCGround
 
+**라이브:** [tcground.vercel.app](https://tcground.vercel.app/)
+
 TCG(트레이딩 카드 게임) 카드의 **시세를 추적하고**, 컬렉터가 정보를 공유하는 커뮤니티 서비스입니다. 한국의 포켓몬·유희왕·매직 더 개더링 컬렉터가 카드를 사고팔기 전에 적정 가격을 확인하는 것을 목표로 합니다.
 
 > 현재 MVP: 검색 가능한 홈, 카테고리 탐색, 카드 상세(평균/최저/최고가·가격 변동 차트), 이메일 로그인/회원가입. 가격 추적 → 커뮤니티 → 중고 거래 → 경매로 단계적 확장 예정.
@@ -105,4 +107,4 @@ memory-bank/         # PRD·아키텍처·진행 로그 등 프로젝트 문서
 
 ## 배포
 
-[Vercel](https://vercel.com)에 배포합니다. 환경 변수와 `CRON_SECRET`을 프로젝트 설정에 등록하고, 가격 수집 크론은 [`vercel.json`](./vercel.json)에 정의되어 있습니다.
+[Vercel](https://vercel.com)에 배포되어 있습니다 → **[tcground.vercel.app](https://tcground.vercel.app/)**. 환경 변수와 `CRON_SECRET`을 프로젝트 설정에 등록하고, 가격 수집 크론은 [`vercel.json`](./vercel.json)에 정의되어 있습니다.
