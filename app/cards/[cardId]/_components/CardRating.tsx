@@ -124,7 +124,7 @@ export function CardRating({
               ))}
             </div>
             {error ? (
-              <p role='alert' className='text-sm text-[#c62828]'>
+              <p role='alert' className='text-sm text-destructive'>
                 {error}
               </p>
             ) : null}
@@ -134,7 +134,7 @@ export function CardRating({
             평점을 남기려면{' '}
             <Link
               href={`/login?next=/cards/${slug}`}
-              className='font-semibold text-tcg-red underline hover:text-[#8f0014]'
+              className='font-semibold text-tcg-red underline hover:text-tcg-red-dark'
             >
               로그인
             </Link>

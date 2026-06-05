@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { PokemonCatalogCard } from '@/lib/tcg-catalog';
 import { formatPrice } from '@/lib/tcg-data';
+import { changeChipClass, formatChangeRate } from '../_lib/price-change';
 
 export function FeaturedCardsGrid({ cards }: { cards: readonly PokemonCatalogCard[] }) {
   if (cards.length === 0) {
@@ -149,15 +150,4 @@ function EmptyFeaturedCardsState() {
       </Link>
     </section>
   );
-}
-
-function formatChangeRate(rate: number) {
-  if (rate > 0) return `+${rate.toFixed(1)}%`;
-  return `${rate.toFixed(1)}%`;
-}
-
-function changeChipClass(tone: 'up' | 'down' | 'flat'): string {
-  if (tone === 'up') return 'bg-surface-container text-[#1e8e3e]';
-  if (tone === 'down') return 'bg-surface-container text-[#d93025]';
-  return 'bg-surface-container text-muted-foreground';
 }
