@@ -2,6 +2,8 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CatalogCardDetail } from '@/lib/tcg-catalog';
 import CardDetailPage, { CardDetailContent, buildChartGeometry } from './page';
+import { CardRating } from './_components/CardRating';
+import { CardDetailScrollReset } from './_components/CardDetailScrollReset';
 import type { PricePoint } from '@/lib/tcg-catalog';
 
 const getCardDetailBySlugMock = vi.hoisted(() => vi.fn());
@@ -30,14 +32,7 @@ describe('CardDetailContent', () => {
   });
 
   it('renders DB detail view model fields', () => {
-    render(
-      <CardDetailContent
-        card={createCardDetail()}
-        ratingSummary={{ average: 4.2, count: 12 }}
-        viewerRating={null}
-        isAuthenticated={false}
-      />,
-    );
+    render(<CardDetailContent card={createCardDetail()} />);
 
     expect(screen.getByRole('heading', { name: '리자몽 ex' })).toBeTruthy();
     expect(screen.getByRole('heading', { name: '포켓몬 카드 151' })).toBeTruthy();
@@ -47,12 +42,19 @@ describe('CardDetailContent', () => {
   });
 
   it('shows the public rating average and a sign-in prompt for guests', () => {
+    const card = createCardDetail();
     render(
       <CardDetailContent
-        card={createCardDetail()}
-        ratingSummary={{ average: 4.2, count: 12 }}
-        viewerRating={null}
-        isAuthenticated={false}
+        card={card}
+        ratingSlot={
+          <CardRating
+            cardId={card.cardId}
+            slug={card.slug}
+            summary={{ average: 4.2, count: 12 }}
+            viewerRating={null}
+            isAuthenticated={false}
+          />
+        }
       />,
     );
 
@@ -63,14 +65,7 @@ describe('CardDetailContent', () => {
   });
 
   it('renders edition selector links with Korean selected by default', () => {
-    render(
-      <CardDetailContent
-        card={createCardDetail()}
-        ratingSummary={{ average: null, count: 0 }}
-        viewerRating={null}
-        isAuthenticated={false}
-      />,
-    );
+    render(<CardDetailContent card={createCardDetail()} />);
 
     const korean = screen.getByRole('link', { name: '한국판' });
     const japanese = screen.getByRole('link', { name: '일본판' });
@@ -80,6 +75,27 @@ describe('CardDetailContent', () => {
     expect(korean.getAttribute('href')).toBe('/cards/kr-004-charizard-ex-151');
     expect(japanese.getAttribute('href')).toBe('/cards/kr-004-charizard-ex-151?edition=jp');
     expect(american.getAttribute('href')).toBe('/cards/kr-004-charizard-ex-151?edition=na');
+  });
+});
+
+describe('CardDetailScrollReset', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('scrolls the detail page to the top when the card path changes', () => {
+    Object.defineProperty(window, 'scrollTo', {
+      configurable: true,
+      value: vi.fn(),
+    });
+
+    const { rerender } = render(<CardDetailScrollReset currentPath='/cards/first' />);
+
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'auto' });
+
+    rerender(<CardDetailScrollReset currentPath='/cards/second' />);
+
+    expect(window.scrollTo).toHaveBeenCalledTimes(2);
   });
 });
 

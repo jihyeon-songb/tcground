@@ -239,6 +239,24 @@
 - [ ] Storybook 기본 카탈로그 구축 후, AI 에이전트가 실제 stories/docs를 참조할 수 있도록 Storybook MCP(`@storybook/addon-mcp`) 도입 여부를 검토한다. (후속)
 - [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build-storybook` 검증.
 
+### 4.7 카테고리 목록 뒤로가기 스크롤 복원
+
+- 영향 파일: `app/categories/[categoryId]/_components/CardResults.tsx`, `app/categories/[categoryId]/page.test.tsx`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: 카테고리 카드 목록의 클라이언트 무한 스크롤 상태와 현재 스크롤 위치를 세션 단위로 저장하고, 같은 필터/정렬/보기 URL로 돌아왔을 때 목록과 스크롤을 복원한다. 상세 페이지 구현과 데이터 조회 계약은 변경하지 않는다.
+- [x] 상세 페이지 이동 전 현재 목록 상태와 scrollY 저장.
+- [x] 뒤로가기 복귀 시 저장된 목록/loaded page/scrollY 복원.
+- [x] 필터·정렬·보기·페이지가 바뀐 경우 이전 복원 상태를 섞지 않도록 key 분리.
+- [x] 회귀 테스트와 품질 게이트 실행.
+
+### 4.8 카테고리/상세 스크롤 복원 조건 보강
+
+- 영향 파일: `app/categories/[categoryId]/_components/CardResults.tsx`, `app/categories/[categoryId]/_components/CardResultCards.tsx`, `app/categories/[categoryId]/page.test.tsx`, `app/cards/[cardId]/_components/CardDetailScrollReset.tsx`, `app/cards/[cardId]/page.tsx`, `app/cards/[cardId]/page.test.tsx`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: 저장된 카테고리 목록 상태는 카테고리 카드 클릭 후 브라우저 뒤로가기로 돌아올 때만 1회 복원한다. 일반 카테고리 진입과 상세 페이지 진입은 top에서 시작하도록 보정한다.
+- [x] 카테고리 목록 복원을 1회성 restore marker가 있을 때만 수행.
+- [x] 카드 링크 일반 좌클릭만 restore marker를 남기고 modifier/new-tab 클릭은 제외.
+- [x] 상세 페이지 진입 시 `scrollY=0`으로 보정.
+- [x] 일반 카테고리 진입, 상세 진입, 뒤로가기 복원 회귀 테스트와 Playwright 검증 수행.
+
 ### 4.7 MVP 헤더 메뉴 정리와 목록 라우트 추가
 
 - 영향 파일: `components/tcg/PublicHeader.tsx`, `components/tcg/PublicHeader.test.tsx`, `app/categories/page.tsx`, `app/categories/page.test.tsx`, `app/cards/page.tsx`, `app/cards/page.test.tsx`, `lib/tcg-data.ts`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/architecture.md`.

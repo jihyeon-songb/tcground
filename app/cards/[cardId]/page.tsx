@@ -1,3 +1,4 @@
+import { Suspense, type ReactNode } from 'react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -13,12 +14,12 @@ import {
   getPriceTrendSeries,
   getViewerRating,
   parseCardEdition,
-  type CardRatingSummary,
   type CatalogCardDetail,
 } from '@/lib/tcg-catalog';
 import { formatPrice } from '@/lib/tcg-data';
 import { PriceHistoryChart } from './_components/PriceHistoryChart';
 import { CardRating } from './_components/CardRating';
+import { CardDetailScrollReset } from './_components/CardDetailScrollReset';
 import { changeChipClass, formatChangeRate, TrendIcon } from '../_lib/price-change';
 
 // Re-exported for tests that exercise the pure geometry helper against `./page`.
@@ -58,28 +59,28 @@ export default async function CardDetailPage({ params, searchParams }: CardDetai
     notFound();
   }
 
-  const supabase = await createClient();
-  const [ratingSummary, viewerRating, claims] = await Promise.all([
-    getCardRatingSummary(card.cardId, supabase),
-    getViewerRating(card.cardId, supabase),
-    supabase.auth.getClaims(),
-  ]);
-  const isAuthenticated = Boolean(claims.data?.claims?.sub);
   const currentPath =
     card.selectedEdition === 'kr'
       ? `/cards/${cardId}`
       : `/cards/${cardId}?edition=${card.selectedEdition}`;
 
   return (
-    <div className='flex min-h-screen flex-col bg-background text-foreground'>
+    <div className='bg-background text-foreground flex min-h-screen flex-col'>
       <PublicHeader currentPath={currentPath} search={{ desktopOnly: true }} />
 
       <main className='mx-auto w-full max-w-[1440px] flex-grow px-5 pt-6 pb-16 md:px-16'>
+        <CardDetailScrollReset currentPath={currentPath} />
+        {/* The card body comes from the cached catalog read, so it streams
+            immediately. The rating block depends on per-request auth (cookies),
+            so it renders inside its own Suspense boundary and never blocks the
+            cached content from painting. */}
         <CardDetailContent
           card={card}
-          ratingSummary={ratingSummary}
-          viewerRating={viewerRating}
-          isAuthenticated={isAuthenticated}
+          ratingSlot={
+            <Suspense fallback={<CardRatingSkeleton />}>
+              <CardRatingSection cardId={card.cardId} slug={card.slug} />
+            </Suspense>
+          }
         />
       </main>
 
@@ -88,35 +89,66 @@ export default async function CardDetailPage({ params, searchParams }: CardDetai
   );
 }
 
-interface CardDetailContentProps {
-  card: CatalogCardDetail;
-  ratingSummary: CardRatingSummary;
-  viewerRating: number | null;
-  isAuthenticated: boolean;
+async function CardRatingSection({ cardId, slug }: { cardId: string; slug: string }) {
+  const supabase = await createClient();
+  const [ratingSummary, viewerRating, claims] = await Promise.all([
+    getCardRatingSummary(cardId, supabase),
+    getViewerRating(cardId, supabase),
+    supabase.auth.getClaims(),
+  ]);
+  const isAuthenticated = Boolean(claims.data?.claims?.sub);
+
+  return (
+    <CardRating
+      cardId={cardId}
+      slug={slug}
+      summary={ratingSummary}
+      viewerRating={viewerRating}
+      isAuthenticated={isAuthenticated}
+    />
+  );
 }
 
-export function CardDetailContent({
-  card,
-  ratingSummary,
-  viewerRating,
-  isAuthenticated,
-}: CardDetailContentProps) {
+function CardRatingSkeleton() {
+  return (
+    <section aria-hidden className='bg-card flex flex-col gap-4 rounded-2xl p-8'>
+      <div className='bg-muted h-3 w-28 animate-pulse rounded' />
+      <div className='flex items-center gap-4'>
+        <div className='bg-muted h-10 w-16 animate-pulse rounded' />
+        <div className='bg-muted h-6 w-32 animate-pulse rounded' />
+      </div>
+      <div className='border-border border-t pt-4'>
+        <div className='bg-muted h-8 w-48 animate-pulse rounded' />
+      </div>
+    </section>
+  );
+}
+
+interface CardDetailContentProps {
+  card: CatalogCardDetail;
+  /** Auth-dependent rating block, streamed in via a Suspense boundary. */
+  ratingSlot?: ReactNode;
+}
+
+export function CardDetailContent({ card, ratingSlot }: CardDetailContentProps) {
   // Draw the trend line from the asking series when we have it, otherwise from
   // the coherent sold series — so a sold-only history is still a real line, not
   // scattered dots. Overlay sold points only when they're distinct from the line.
   const trendSeries = getPriceTrendSeries(card.priceHistory);
-  const overlaySold =
-    card.priceHistory.askingSeries.length > 0 ? card.priceHistory.soldPoints : [];
+  const overlaySold = card.priceHistory.askingSeries.length > 0 ? card.priceHistory.soldPoints : [];
   // When the trend is a graded fallback (e.g. KREAM PSA 10 체결가), label the
   // price as that grade instead of the default raw 시세 so the user isn't misled.
   const priceGradeLabel = card.priceHistory.gradeLabel ?? 'Raw';
 
   return (
     <>
-      <nav aria-label='Breadcrumb' className='mb-8 flex items-center gap-2 text-sm text-muted-foreground'>
+      <nav
+        aria-label='Breadcrumb'
+        className='text-muted-foreground mb-8 flex items-center gap-2 text-sm'
+      >
         <Link
           href={card.backHref}
-          className='inline-flex items-center gap-1 font-semibold transition-colors hover:text-tcg-red'
+          className='hover:text-tcg-red inline-flex items-center gap-1 font-semibold transition-colors'
         >
           <ArrowLeft className='size-[18px]' aria-hidden />
           {card.backLabel}
@@ -134,29 +166,29 @@ export function CardDetailContent({
               {card.chips.map((chip) => (
                 <span
                   key={chip}
-                  className='rounded-full bg-muted px-3 py-1 text-sm leading-none font-semibold text-foreground'
+                  className='bg-muted text-foreground rounded-full px-3 py-1 text-sm leading-none font-semibold'
                 >
                   {chip}
                 </span>
               ))}
             </div>
-            <h1 className='mb-2 text-4xl leading-[1.1] font-extrabold text-foreground md:text-[48px]'>
+            <h1 className='text-foreground mb-2 text-4xl leading-[1.1] font-extrabold md:text-[48px]'>
               {card.cardName}
             </h1>
-            <h2 className='text-2xl leading-[1.2] font-bold text-muted-foreground md:text-[32px]'>
+            <h2 className='text-muted-foreground text-2xl leading-[1.2] font-bold md:text-[32px]'>
               {card.setLabel}
             </h2>
           </div>
 
           <EditionSelector card={card} />
 
-          <div className='flex flex-col gap-4 rounded-2xl bg-card p-8'>
+          <div className='bg-card flex flex-col gap-4 rounded-2xl p-8'>
             <div className='flex flex-col gap-1'>
-              <span className='text-sm leading-none font-semibold tracking-wider text-muted-foreground uppercase'>
+              <span className='text-muted-foreground text-sm leading-none font-semibold tracking-wider uppercase'>
                 평균 거래가
               </span>
               <div className='flex flex-wrap items-baseline gap-3'>
-                <span className='text-4xl leading-[1.1] font-extrabold text-foreground tabular-nums md:text-[48px]'>
+                <span className='text-foreground text-4xl leading-[1.1] font-extrabold tabular-nums md:text-[48px]'>
                   {formatPrice(card.price.avgPrice, card.price.currency)}
                 </span>
                 <span
@@ -169,51 +201,37 @@ export function CardDetailContent({
                 </span>
               </div>
             </div>
-            <div className='mt-4 flex flex-wrap gap-8 border-t border-border pt-4'>
+            <div className='border-border mt-4 flex flex-wrap gap-8 border-t pt-4'>
               <div className='flex flex-col gap-1'>
-                <span className='text-base text-muted-foreground'>최저가 ({priceGradeLabel})</span>
-                <span className='text-2xl leading-[1.2] font-bold text-foreground tabular-nums md:text-[28px]'>
+                <span className='text-muted-foreground text-base'>최저가 ({priceGradeLabel})</span>
+                <span className='text-foreground text-2xl leading-[1.2] font-bold tabular-nums md:text-[28px]'>
                   {formatPrice(card.price.minPrice, card.price.currency)}
                 </span>
               </div>
               <div className='flex flex-col gap-1'>
-                <span className='text-base text-muted-foreground'>최고가 ({priceGradeLabel})</span>
-                <span className='text-2xl leading-[1.2] font-bold text-foreground tabular-nums md:text-[28px]'>
+                <span className='text-muted-foreground text-base'>최고가 ({priceGradeLabel})</span>
+                <span className='text-foreground text-2xl leading-[1.2] font-bold tabular-nums md:text-[28px]'>
                   {formatPrice(card.price.maxPrice, card.price.currency)}
                 </span>
               </div>
             </div>
           </div>
 
-          <dl className='grid grid-cols-2 gap-3 rounded-2xl bg-card p-6 md:grid-cols-4'>
+          <dl className='bg-card grid grid-cols-2 gap-3 rounded-2xl p-6 md:grid-cols-4'>
             <InfoItem label='시장' value={card.printing.region} />
             <InfoItem label='언어' value={card.printing.language.toUpperCase()} />
             <InfoItem label='세트 코드' value={card.printing.setCode} />
             <InfoItem label='카드 번호' value={card.printing.collectorNumber} />
           </dl>
 
-          <CardRating
-            cardId={card.cardId}
-            slug={card.slug}
-            summary={ratingSummary}
-            viewerRating={viewerRating}
-            isAuthenticated={isAuthenticated}
-          />
+          {ratingSlot}
 
           <div className='mt-2 flex flex-wrap gap-4'>
-            <Button
-              type='button'
-              size='cta'
-              className='hover:scale-[1.02]'
-            >
+            <Button type='button' size='cta' className='hover:scale-[1.02]'>
               <CirclePlus className='size-5' aria-hidden />
               관심 카드 추가
             </Button>
-            <Button
-              type='button'
-              variant='outline'
-              size='cta'
-            >
+            <Button type='button' variant='outline' size='cta'>
               <Bell className='size-5' aria-hidden />
               가격 알림 설정
             </Button>
@@ -226,11 +244,11 @@ export function CardDetailContent({
             gradeLabel={card.priceHistory.gradeLabel}
           />
 
-          <p className='mt-2 flex items-center gap-2 text-sm leading-[1.5] text-muted-foreground'>
+          <p className='text-muted-foreground mt-2 flex items-center gap-2 text-sm leading-[1.5]'>
             <Info className='size-4 shrink-0' aria-hidden />
             {card.price.sourceLabel}
           </p>
-          <p className='text-sm leading-[1.5] text-muted-foreground'>
+          <p className='text-muted-foreground text-sm leading-[1.5]'>
             마지막 업데이트: {card.price.lastUpdatedAt}
           </p>
         </div>
@@ -244,11 +262,11 @@ function EditionSelector({ card }: { card: CatalogCardDetail }) {
     <section aria-labelledby='edition-selector-heading' className='flex flex-col gap-3'>
       <h3
         id='edition-selector-heading'
-        className='text-sm leading-none font-semibold tracking-wider text-muted-foreground uppercase'
+        className='text-muted-foreground text-sm leading-none font-semibold tracking-wider uppercase'
       >
         판본
       </h3>
-      <div className='inline-flex w-fit rounded-lg border border-border bg-card p-1'>
+      <div className='border-border bg-card inline-flex w-fit rounded-lg border p-1'>
         {card.editionOptions.map((option) => {
           const className = `inline-flex min-w-20 items-center justify-center rounded-md px-4 py-2 text-sm font-bold transition-colors ${
             option.isSelected
@@ -261,7 +279,7 @@ function EditionSelector({ card }: { card: CatalogCardDetail }) {
               <span
                 key={option.value}
                 aria-disabled='true'
-                className='inline-flex min-w-20 items-center justify-center rounded-md px-4 py-2 text-sm font-bold text-muted-foreground'
+                className='text-muted-foreground inline-flex min-w-20 items-center justify-center rounded-md px-4 py-2 text-sm font-bold'
               >
                 {option.label}
               </span>
@@ -291,7 +309,7 @@ function editionHref(slug: string, edition: string): string {
 function CardArtPanel({ card }: { card: CatalogCardDetail }) {
   if (card.imageUrl) {
     return (
-      <div className='mx-auto w-full max-w-md overflow-hidden rounded-[32px] bg-card'>
+      <div className='bg-card mx-auto w-full max-w-md overflow-hidden rounded-[32px]'>
         <Image
           alt={`${card.cardName} 카드`}
           src={card.imageUrl}
@@ -305,23 +323,23 @@ function CardArtPanel({ card }: { card: CatalogCardDetail }) {
   }
 
   return (
-    <div className='mx-auto flex aspect-[2.5/3.5] w-full max-w-md flex-col justify-between overflow-hidden rounded-[32px] bg-surface-container p-8'>
+    <div className='bg-surface-container mx-auto flex aspect-[2.5/3.5] w-full max-w-md flex-col justify-between overflow-hidden rounded-[32px] p-8'>
       <div className='flex items-center justify-between gap-3'>
-        <span className='rounded-full bg-card/80 px-3 py-1 text-xs font-bold text-muted-foreground'>
+        <span className='bg-card/80 text-muted-foreground rounded-full px-3 py-1 text-xs font-bold'>
           {card.printing.sampleId}
         </span>
-        <span className='rounded-full bg-tcg-red px-3 py-1 text-xs font-bold text-primary-foreground'>
+        <span className='bg-tcg-red text-primary-foreground rounded-full px-3 py-1 text-xs font-bold'>
           {card.rarity}
         </span>
       </div>
       <div>
-        <p className='text-sm font-semibold tracking-wider text-muted-foreground uppercase'>
+        <p className='text-muted-foreground text-sm font-semibold tracking-wider uppercase'>
           Korean Pokemon
         </p>
-        <p className='mt-3 text-5xl leading-[1.05] font-extrabold text-foreground'>
+        <p className='text-foreground mt-3 text-5xl leading-[1.05] font-extrabold'>
           {card.cardName}
         </p>
-        <p className='mt-4 text-base font-semibold text-muted-foreground'>{card.collectorNumber}</p>
+        <p className='text-muted-foreground mt-4 text-base font-semibold'>{card.collectorNumber}</p>
       </div>
     </div>
   );
@@ -330,10 +348,10 @@ function CardArtPanel({ card }: { card: CatalogCardDetail }) {
 function InfoItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className='text-xs font-semibold tracking-wider text-muted-foreground uppercase'>{label}</dt>
-      <dd className='mt-1 text-base font-bold text-foreground'>{value}</dd>
+      <dt className='text-muted-foreground text-xs font-semibold tracking-wider uppercase'>
+        {label}
+      </dt>
+      <dd className='text-foreground mt-1 text-base font-bold'>{value}</dd>
     </div>
   );
 }
-
-
