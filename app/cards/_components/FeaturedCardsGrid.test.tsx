@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { PokemonCatalogCard } from '@/lib/tcg-catalog';
-import { FeaturedCardsGrid } from './page';
+import { FeaturedCardsGrid } from './FeaturedCardsGrid';
 
 describe('FeaturedCardsGrid', () => {
   afterEach(() => {
