@@ -79,12 +79,17 @@ export default async function Home() {
 
             <Link
               href='/categories/one-piece'
-              className='relative flex aspect-[4/5] cursor-pointer items-center justify-center overflow-hidden rounded-2xl bg-[#e6e8ea]'
+              className='group relative aspect-[4/5] cursor-pointer overflow-hidden rounded-2xl bg-gradient-to-br from-[#113042] via-[#1b6a7a] to-[#e2b05f]'
             >
-              <span className='material-symbols-outlined absolute top-1/3 mb-4 block w-full text-center text-[70px] leading-none text-[#bb001a]'>
-                sailing
-              </span>
-              <h3 className='absolute bottom-6 left-6 text-[32px] leading-[1.2] font-bold text-[#191c1e]'>
+              <Image
+                alt='One Piece Card Game'
+                fill
+                sizes='(min-width: 1024px) 25vw, (min-width: 768px) 50vw, 100vw'
+                className='absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105'
+                src='/categories/one-piece.jpg'
+              />
+              <div className='absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent' />
+              <h3 className='absolute bottom-6 left-6 text-[32px] leading-[1.2] font-bold text-white'>
                 원피스
               </h3>
             </Link>

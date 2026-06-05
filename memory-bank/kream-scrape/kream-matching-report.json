@@ -1,0 +1,2178 @@
+{
+  "generatedAt": "2026-06-05T06:42:27.724Z",
+  "source": "https://kream.co.kr/search?keyword=포켓몬카드 한글판&footer=home",
+  "productsScraped": 246,
+  "productsWithTrades": 176,
+  "tradeRows": 446,
+  "matched": [
+    {
+      "productId": "803225",
+      "title": "포켓몬 TCG 이브이 ex SAR 테라스탈 페스타 ex (한글판)",
+      "modelNumber": "SV8A223-187",
+      "sampleId": "PKMKR-BS2024019223",
+      "trades": 1
+    },
+    {
+      "productId": "804730",
+      "title": "포켓몬 TCG 파이리 AR 포켓몬 카드 151 (한글판)",
+      "modelNumber": "SV2A168-165",
+      "sampleId": "PKMKR-BS2023014168",
+      "trades": 1
+    }
+  ],
+  "unmatched": [
+    {
+      "productId": "69960",
+      "title": "포켓몬 TCG 블래키 V SR 이브이 히어로즈 (한글판)",
+      "modelNumber": "S6A085-069",
+      "parsedModel": {
+        "set": "s6a",
+        "collector": "085/069"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70085",
+      "title": "포켓몬 TCG 리피아 VMAX HR 이브이 히어로즈 (한글판)",
+      "modelNumber": "S6A089-069",
+      "parsedModel": {
+        "set": "s6a",
+        "collector": "089/069"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "907059",
+      "title": "포켓몬 TCG 명희의 격려 SAR 메가 확장팩 니힐제로 (한글판)",
+      "modelNumber": "M3115-080",
+      "parsedModel": {
+        "set": "m3",
+        "collector": "115/080"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70152",
+      "title": "포켓몬 TCG 피카츄 AR 25주년 기념 컬랙션 (한글판)",
+      "modelNumber": "S8A001-028",
+      "parsedModel": {
+        "set": "s8a",
+        "collector": "001/028"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "81201",
+      "title": "포켓몬 TCG 찬란한 리자몽 K 포켓몬 고 (한글판)",
+      "modelNumber": "S10B-011-071",
+      "parsedModel": {
+        "set": "s10b",
+        "collector": "011/071"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "69940",
+      "title": "포켓몬 TCG 피카츄 VMAX UR VMAX 클라이맥스 (한글판)",
+      "modelNumber": "S8B279-184",
+      "parsedModel": {
+        "set": "s8b",
+        "collector": "279/184"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70000",
+      "title": "포켓몬 TCG 아르세우스 V SR 스타버스 (한글판)",
+      "modelNumber": "S9112-100",
+      "parsedModel": {
+        "set": "s9",
+        "collector": "112/100"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "805477",
+      "title": "포켓몬 TCG 피카츄 AR VSTAR 유니버스 (한글판)",
+      "modelNumber": "S12A205-172",
+      "parsedModel": {
+        "set": "s12a",
+        "collector": "205/172"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70109",
+      "title": "포켓몬 TCG 블래키 VMAX CSR VMAX 클라이맥스 (한글판)",
+      "modelNumber": "S8B245-184",
+      "parsedModel": {
+        "set": "s8b",
+        "collector": "245/184"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "901601",
+      "title": "포켓몬 TCG 메가 리자몽Ｘ ex MA 메가 드림 ex (한글판)",
+      "modelNumber": "M2A223-193",
+      "parsedModel": {
+        "set": "m2a",
+        "collector": "223/193"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "805880",
+      "title": "포켓몬 TCG 팬텀 CHR 다크판타스마 (한글판)",
+      "modelNumber": "S10A074-071",
+      "parsedModel": {
+        "set": "s10a",
+        "collector": "074/071"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "805879",
+      "title": "포켓몬 TCG 피카츄 CHR 다크판타스마 (한글판)",
+      "modelNumber": "S10A073-071",
+      "parsedModel": {
+        "set": "s10a",
+        "collector": "073/071"
+      },
+      "trades": 4,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70123",
+      "title": "포켓몬 TCG 피카츄 CHR 드림리그 (한글판)",
+      "modelNumber": "SM11B054-049",
+      "parsedModel": {
+        "set": "sm11b",
+        "collector": "054/049"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "802921",
+      "title": "포켓몬 TCG 호브의 자시안 ex SAR 배틀파트너즈 (한글판)",
+      "modelNumber": "SV9128-100",
+      "parsedModel": {
+        "set": "sv9",
+        "collector": "128/100"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "805483",
+      "title": "포켓몬 TCG 리자몽 V SAR VSTAR 유니버스 (한글판)",
+      "modelNumber": "S12A211-172",
+      "parsedModel": {
+        "set": "s12a",
+        "collector": "211/172"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70090",
+      "title": "포켓몬 TCG 리자몽 VSTAR HR 스타버스 (한글판)",
+      "modelNumber": "S9118-100",
+      "parsedModel": {
+        "set": "s9",
+        "collector": "118/100"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "901600",
+      "title": "포켓몬 TCG 메가리자몽X ex SR 메가 확장팩 인페르노 X (한글판)",
+      "modelNumber": "M2094-080",
+      "parsedModel": {
+        "set": "m2",
+        "collector": "094/080"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "69989",
+      "title": "포켓몬 TCG 릴리에 SR GX 배틀 부스트 (한글판)",
+      "modelNumber": "SM4+119-114",
+      "parsedModel": {
+        "set": "sm4+",
+        "collector": "119/114"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70080",
+      "title": "포켓몬 TCG 블래키 VMAX HR 이브이 히어로즈 (한글판)",
+      "modelNumber": "S6A095-069",
+      "parsedModel": {
+        "set": "s6a",
+        "collector": "095/069"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "804212",
+      "title": "포켓몬 TCG 피카츄 S 샤이니트레저 ex (한글판)",
+      "modelNumber": "SV4A236-190",
+      "parsedModel": {
+        "set": "sv4a",
+        "collector": "236/190"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "944199",
+      "title": "포켓몬 TCG 메가 가디안 ex MUR 메가심포니아 (한글판)",
+      "modelNumber": "M1S092-063",
+      "parsedModel": {
+        "set": "m1s",
+        "collector": "092/063"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "75301",
+      "title": "포켓몬 TCG 뮤츠 VSTAR HR 포켓몬 고 (한글판)",
+      "modelNumber": "S10B084-071",
+      "parsedModel": {
+        "set": "s10b",
+        "collector": "084/071"
+      },
+      "trades": 4,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "805209",
+      "title": "포켓몬 TCG 찬란한 리자몽 K VSTAR 유니버스 (한글판)",
+      "modelNumber": "S12A015-172",
+      "parsedModel": {
+        "set": "s12a",
+        "collector": "015/172"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70005",
+      "title": "포켓몬 TCG 주혜 SR 스페이스 저글러 (한글판)",
+      "modelNumber": "S10P079-067",
+      "parsedModel": {
+        "set": "s10p",
+        "collector": "079/067"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "69948",
+      "title": "포켓몬 TCG 리자몽 VMAX SSR 샤이니스타 V (한글판)",
+      "modelNumber": "S4A308-190",
+      "parsedModel": {
+        "set": "s4a",
+        "collector": "308/190"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70030",
+      "title": "포켓몬 TCG 피카츄 ex SR 베이스팩 20주년 기념 (한글판)",
+      "modelNumber": "CP6107-100",
+      "parsedModel": {
+        "set": "cp6",
+        "collector": "107/100"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70079",
+      "title": "포켓몬 TCG 글레이시아 VMAX HR 이브이 히어로즈 (한글판)",
+      "modelNumber": "S6A091-069",
+      "parsedModel": {
+        "set": "s6a",
+        "collector": "091/069"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70110",
+      "title": "포켓몬 TCG 연격 우라오스 VMAX CSR VMAX 클라이맥스 (한글판)",
+      "modelNumber": "S8B241-184",
+      "parsedModel": {
+        "set": "s8b",
+        "collector": "241/184"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "802224",
+      "title": "포켓몬 TCG 릴리에의 결심 SR 메가브레이브 (한글판)",
+      "modelNumber": "M1L085-063",
+      "parsedModel": {
+        "set": "m1l",
+        "collector": "085/063"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "849750",
+      "title": "포켓몬 TCG 삐삐 R 베이스 팩 20주년 기념 (한글판)",
+      "modelNumber": "CP6063-100",
+      "parsedModel": {
+        "set": "cp6",
+        "collector": "063/100"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "75300",
+      "title": "포켓몬 TCG 뮤츠 VSTAR UR 포켓몬 고 (한글판)",
+      "modelNumber": "S10B091-071",
+      "parsedModel": {
+        "set": "s10b",
+        "collector": "091/071"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70129",
+      "title": "포켓몬 TCG 리자몽 25주년 기념 컬랙션 프로모 팩 (한글판)",
+      "modelNumber": "S8A-P001-025",
+      "parsedModel": {
+        "set": "s8ap",
+        "collector": "001/025"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70132",
+      "title": "포켓몬 TCG 피카츄 25주년 기념 컬랙션 프로모 팩 (한글판)",
+      "modelNumber": "S8A-P007-025",
+      "parsedModel": {
+        "set": "s8ap",
+        "collector": "007/025"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "907058",
+      "title": "포켓몬 TCG 나옹 ex SAR 메가 확장팩 니힐제로 (한글판)",
+      "modelNumber": "M3114-080",
+      "parsedModel": {
+        "set": "m3",
+        "collector": "114/080"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "907006",
+      "title": "포켓몬 TCG 메가팬텀 ex MA 메가드림 ex (한글판)",
+      "modelNumber": "M2A230-193",
+      "parsedModel": {
+        "set": "m2a",
+        "collector": "230/193"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70023",
+      "title": "포켓몬 TCG 오리진 디아루가 V SR 타임 게이저 (한글판)",
+      "modelNumber": "S10D075-067",
+      "parsedModel": {
+        "set": "s10d",
+        "collector": "075/067"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70133",
+      "title": "포켓몬 TCG 피카츄 V 25주년 기념 골든박스 (한글판)",
+      "modelNumber": "S8A-G001-015",
+      "parsedModel": {
+        "set": "s8ag",
+        "collector": "001/015"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70440",
+      "title": "포켓몬 TCG 님피아 VMAX CSR VMAX 클라이맥스 (한글판)",
+      "modelNumber": "S8B232-184",
+      "parsedModel": {
+        "set": "s8b",
+        "collector": "232/184"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "805484",
+      "title": "포켓몬 TCG 리자몽 VSTAR SAR VSTAR 유니버스 (한글판)",
+      "modelNumber": "S12A212-172",
+      "parsedModel": {
+        "set": "s12a",
+        "collector": "212/172"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70149",
+      "title": "포켓몬 TCG 팬텀 VMAX 소드&실드 하이 클래스 덱 팬텀 VMAX (한글판)",
+      "modelNumber": "SGG020-019",
+      "parsedModel": {
+        "set": "sgg",
+        "collector": "020/019"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "805341",
+      "title": "포켓몬 TCG 레쿠쟈 VMAX RRR VSTAR 유니버스 (한글판)",
+      "modelNumber": "S12A108-172",
+      "parsedModel": {
+        "set": "s12a",
+        "collector": "108/172"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70185",
+      "title": "포켓몬 TCG 에브이 V SR 이브이 히어로즈 (한글판)",
+      "modelNumber": "S6A081-069",
+      "parsedModel": {
+        "set": "s6a",
+        "collector": "081/069"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "802602",
+      "title": "포켓몬 TCG 레시라무 ex SAR 화이트플레어 (한글판)",
+      "modelNumber": "SV11W168-086",
+      "parsedModel": {
+        "set": "sv11w",
+        "collector": "168/086"
+      },
+      "trades": 4,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "69957",
+      "title": "포켓몬 TCG 레쿠쟈 V SR 창공스트림 (한글판)",
+      "modelNumber": "S7R076-067",
+      "parsedModel": {
+        "set": "s7r",
+        "collector": "076/067"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70124",
+      "title": "포켓몬 TCG 리자몽 CHR VMAX 클라이맥스 (한글판)",
+      "modelNumber": "S8B187-184",
+      "parsedModel": {
+        "set": "s8b",
+        "collector": "187/184"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70060",
+      "title": "포켓몬 TCG 피카츄 VMAX P 소드&실드 프로모 카드 (한글판)",
+      "modelNumber": "PROMO142-S-P",
+      "parsedModel": null,
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "69961",
+      "title": "포켓몬 TCG 망나뇽 V SR 창공스트림 (한글판)",
+      "modelNumber": "S7R074-067",
+      "parsedModel": {
+        "set": "s7r",
+        "collector": "074/067"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70130",
+      "title": "포켓몬 TCG 이상해꽃 25주년 기념 컬랙션 프로모 팩 (한글판)",
+      "modelNumber": "S8A-P002-025",
+      "parsedModel": {
+        "set": "s8ap",
+        "collector": "002/025"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "802906",
+      "title": "포켓몬 TCG N의 레시라무 AR 배틀파트너즈 (한글판)",
+      "modelNumber": "SV9109-100",
+      "parsedModel": {
+        "set": "sv9",
+        "collector": "109/100"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70098",
+      "title": "포켓몬 TCG 블래키 VMAX HR 이브이 히어로즈 (한글판)",
+      "modelNumber": "S6A094-069",
+      "parsedModel": {
+        "set": "s6a",
+        "collector": "094/069"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70131",
+      "title": "포켓몬 TCG 거북왕 25주년 기념 컬랙션 프로모 팩 (한글판)",
+      "modelNumber": "S8A-P003-025",
+      "parsedModel": {
+        "set": "s8ap",
+        "collector": "003/025"
+      },
+      "trades": 4,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "907019",
+      "title": "포켓몬 TCG 성호의 메타그로스 ex SAR 메가드림 ex (한글판)",
+      "modelNumber": "M2A245-193",
+      "parsedModel": {
+        "set": "m2a",
+        "collector": "245/193"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "804748",
+      "title": "포켓몬 TCG 민화의 초대 SR 포켓몬 카드 151 (한글판)",
+      "modelNumber": "SV2A197-165",
+      "parsedModel": {
+        "set": "sv2a",
+        "collector": "197/165"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70144",
+      "title": "포켓몬 TCG 리자몽 R 베이스팩 20주년 기념 (한글판)",
+      "modelNumber": "CP6011-100",
+      "parsedModel": {
+        "set": "cp6",
+        "collector": "011/100"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70143",
+      "title": "포켓몬 TCG 뮤 ex 25주년 기념 컬랙션 프로모 팩 (한글판)",
+      "modelNumber": "S8A-P014-025",
+      "parsedModel": {
+        "set": "s8ap",
+        "collector": "014/025"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "802923",
+      "title": "포켓몬 TCG 모야모의 찌리배리 ex UR 배틀파트너즈 (한글판)",
+      "modelNumber": "SV9130-100",
+      "parsedModel": {
+        "set": "sv9",
+        "collector": "130/100"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "904524",
+      "title": "포켓몬 TCG 제르네아스 R 메가 확장팩 닌자스피너 (한글판)",
+      "modelNumber": "M4042-083",
+      "parsedModel": {
+        "set": "m4",
+        "collector": "042/083"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70186",
+      "title": "포켓몬 TCG 오리진 펄기아 V SR 스페이스 저글러 (한글판)",
+      "modelNumber": "S10P071-067",
+      "parsedModel": {
+        "set": "s10p",
+        "collector": "071/067"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "69933",
+      "title": "포켓몬 TCG 아르세우스 VSTAR UR 스타버스 (한글판)",
+      "modelNumber": "S9125-100",
+      "parsedModel": {
+        "set": "s9",
+        "collector": "125/100"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70139",
+      "title": "포켓몬 TCG 뮤 P 극장판 뮤츠의 역습 프로모 카드 (한글판)",
+      "modelNumber": "PROMONO151",
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "82638",
+      "title": "포켓몬 TCG 기라티나 VSTAR UR 로스트어비스 (한글판)",
+      "modelNumber": "S11125-100",
+      "parsedModel": {
+        "set": "s11",
+        "collector": "125/100"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "69983",
+      "title": "포켓몬 TCG 리자몽 GX SR 어둠을 밝힌 무지개 (한글판)",
+      "modelNumber": "SM3H053-051",
+      "parsedModel": {
+        "set": "sm3h",
+        "collector": "053/051"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70161",
+      "title": "포켓몬 TCG 뮤츠 ex 25주년 기념 컬랙션 프로모 팩 (한글판)",
+      "modelNumber": "S8A-P022-025",
+      "parsedModel": {
+        "set": "s8ap",
+        "collector": "022/025"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "804967",
+      "title": "포켓몬 TCG 잉어킹 AR 트리플렛비트 (한글판)",
+      "modelNumber": "SV1A080-073",
+      "parsedModel": {
+        "set": "sv1a",
+        "collector": "080/073"
+      },
+      "trades": 4,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70162",
+      "title": "포켓몬 TCG M 레쿠쟈 ex 25주년 기념 컬랙션 프로모 팩 (한글판)",
+      "modelNumber": "S8A-P024-025",
+      "parsedModel": {
+        "set": "s8ap",
+        "collector": "024/025"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70136",
+      "title": "포켓몬 TCG 제크로무 25주년 기념 컬랙션 프로모 팩 (한글판)",
+      "modelNumber": "S8A-P021-025",
+      "parsedModel": {
+        "set": "s8ap",
+        "collector": "021/025"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "906558",
+      "title": "포켓몬 TCG 빛나 SR 메가 확장팩 인페르노 X (한글판)",
+      "modelNumber": "M2107-080",
+      "parsedModel": {
+        "set": "m2",
+        "collector": "107/080"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755999",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 스페셜 점보 카드 세트 리자몽 ex 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70055",
+      "title": "포켓몬 TCG 통째로 삼켜진 피카츄 P 소드&실드 프로모 카드 (한글판)",
+      "modelNumber": "PROMO120-S-P",
+      "parsedModel": null,
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70172",
+      "title": "포켓몬 TCG 레쿠쟈 EX P XY 프로모 카드 (한글판)",
+      "modelNumber": "PROMO078-XY-P",
+      "parsedModel": null,
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70135",
+      "title": "포켓몬 TCG 빛나는 잉어킹 25주년 기념 컬랙션 프로모 팩 (한글판)",
+      "modelNumber": "S8A-P010-025",
+      "parsedModel": {
+        "set": "s8ap",
+        "collector": "010/025"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70134",
+      "title": "포켓몬 TCG 블래키 25주년 기념 컬랙션 프로모 팩 (한글판)",
+      "modelNumber": "S8A-P012-025",
+      "parsedModel": {
+        "set": "s8ap",
+        "collector": "012/025"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "69972",
+      "title": "포켓몬 TCG 마리 SR 실드 (한글판)",
+      "modelNumber": "S1H067-060",
+      "parsedModel": {
+        "set": "s1h",
+        "collector": "067/060"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756049",
+      "title": "포켓몬 TCG 소드&실드 스페셜 카드 세트 풀의 리피아 VSTAR 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "806544",
+      "title": "포켓몬 TCG 피카츄 V CSR VMAX 클라이맥스 (한글판)",
+      "modelNumber": "S8B222-184",
+      "parsedModel": {
+        "set": "s8b",
+        "collector": "222/184"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70137",
+      "title": "포켓몬 TCG 레시라무 25주년 기념 컬랙션 프로모 팩 (한글판)",
+      "modelNumber": "S8A-P020-025",
+      "parsedModel": {
+        "set": "s8ap",
+        "collector": "020/025"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "803783",
+      "title": "포켓몬 TCG 세류 SR 크림슨헤이즈 (한글판)",
+      "modelNumber": "SV5A086-066",
+      "parsedModel": {
+        "set": "sv5a",
+        "collector": "086/066"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "802452",
+      "title": "포켓몬 TCG 치라미 AR 블랙볼트 (한글판)",
+      "modelNumber": "SV11B157-086",
+      "parsedModel": {
+        "set": "sv11b",
+        "collector": "157/086"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "802411",
+      "title": "포켓몬 TCG 두빅굴 AR 블랙볼트 (한글판)",
+      "modelNumber": "SV11B109-086",
+      "parsedModel": {
+        "set": "sv11b",
+        "collector": "109/086"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755866",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 스페셜 덱 세트 ex 이상해꽃 리자몽 거북왕 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755893",
+      "title": "포켓몬 TCG 썬&문 스타터 세트 물의 샤미드 GX, 박스 초판 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "937106",
+      "title": "포켓몬 TCG 이브이 2026 코리안리그 프로모 카드 (한글판)",
+      "modelNumber": "PROMO-015-M-P",
+      "parsedModel": null,
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755859",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 배틀 마스터 덱 테라스탈 리자몽 ex 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755894",
+      "title": "포켓몬 TCG 썬&문 스타터 세트 번개의 쥬피썬더 GX 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755877",
+      "title": "포켓몬 TCG 소드&실드 스타트 덱 100 피카츄 V & 이브이 V 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756052",
+      "title": "포켓몬 TCG 소드&실드 스페셜 카드 세트 얼음의 글레이시아 VSTAR 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756114",
+      "title": "포켓몬 TCG 썬&문 스페셜 점보 카드 세트 명탐정 피카츄 리자몽 GX 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "917061",
+      "title": "포켓몬 TCG 마티에르 SR MEGA 확장팩 닌자스피너 (한글판)",
+      "modelNumber": "M4111-083",
+      "parsedModel": {
+        "set": "m4",
+        "collector": "111/083"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "802606",
+      "title": "포켓몬 TCG 투희 SAR 화이트플레어 (한글판)",
+      "modelNumber": "SV11W173-086",
+      "parsedModel": {
+        "set": "sv11w",
+        "collector": "173/086"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756054",
+      "title": "포켓몬 TCG 소드&실드 포켓몬 고 스페셜 점보 카드 세트 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755988",
+      "title": "포켓몬 TCG 메가 확장팩 메가브레이브 포켓몬 카드샵 세트 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756029",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 스페셜 점보 카드 세트 오거폰 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755892",
+      "title": "포켓몬 TCG 썬&문 스타터 세트 불꽃의 부스터 GX, 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755868",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 스타터 세트 테라스탈 라우드본 ex 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755869",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 60장 랜덤 ex 스타트 덱 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756061",
+      "title": "포켓몬 TCG 소드&실드 25주년 애니버서리 컬랙션 스페셜 세트 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756043",
+      "title": "포켓몬 TCG 소드&실드 점보 카드 컬렉션 라티아스 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756067",
+      "title": "포켓몬 TCG 소드&실드 스페셜 카드 세트 자시안 V-UNION 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755852",
+      "title": "포켓몬 TCG 스타터 세트 메가 메가 팬텀 ex 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756041",
+      "title": "포켓몬 TCG 소드&실드 점보 카드 컬렉션 라프라스 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756137",
+      "title": "포켓몬 TCG 썬&문 배틀 강화 BOX 울트라문 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756013",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 컬렉션 세트 테라스탈 페스타 ex 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755990",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 확장팩 세트 블랙볼트 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756117",
+      "title": "포켓몬 TCG 썬&문 스페셜 점보 카드 세트 명탐정 피카츄 뮤츠 GX 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756045",
+      "title": "포켓몬 TCG 소드&실드 점보 카드 컬렉션 뮤 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756007",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 스페셜 세트 모야모 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755871",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 스타터 세트 ex 피카츄 스페셜 세트 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 4,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755867",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 스타터 세트 테라스탈 뮤츠 ex 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756057",
+      "title": "포켓몬 TCG 소드&실드 포켓몬 고 카드 앨범 세트 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "906562",
+      "title": "포켓몬 TCG 로토무 ex SAR 메가 확장팩 인페르노 X (한글판)",
+      "modelNumber": "M2112-080",
+      "parsedModel": {
+        "set": "m2",
+        "collector": "112/080"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756073",
+      "title": "포켓몬 TCG 소드&실드 백은의 랜스&칠흑의 가이스트 BOX 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "805617",
+      "title": "포켓몬 TCG 루기아 V SR 패러다임트리거 (한글판)",
+      "modelNumber": "S12110-098",
+      "parsedModel": {
+        "set": "s12",
+        "collector": "110/098"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756149",
+      "title": "포켓몬 TCG 썬&문 뱃지 세트 솔가레오 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755989",
+      "title": "포켓몬 TCG 메가 확장팩 메가심포니아 포켓몬 카드샵 세트 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755872",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 스타터 세트 ex 꾸왁스&따라큐 ex 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755857",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 스타트 덱 제네레이션스 스페셜 배틀 세트 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756011",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 플레이매트 세트 테라스탈 페스타 ex 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756001",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 피카츄 프레젠트 박스 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 4,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755975",
+      "title": "포켓몬 TCG BW 배틀 강화 60장 덱 제크로무 EX 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756070",
+      "title": "포켓몬 TCG 소드&실드 스페셜 키트 마천퍼펙트&창공스트림 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70150",
+      "title": "포켓몬 TCG 나쁜 갸라도스 25주년 기념 컬랙션 프로모 팩 (한글판)",
+      "modelNumber": "S8A-P005-025",
+      "parsedModel": {
+        "set": "s8ap",
+        "collector": "005/025"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755987",
+      "title": "포켓몬 TCG 메가 프리미엄 트레이너 박스 MEGA 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "937107",
+      "title": "포켓몬 TCG 포켓패드 2026 코리안 리그 프로모 카드 (한글판)",
+      "modelNumber": "PROMO-032-M-P",
+      "parsedModel": null,
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755879",
+      "title": "포켓몬 TCG 소드&실드 스타터 세트 VSTAR 다크라이 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755854",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 스타터 세트 ex 마리의 모르페코&오롱털 ex 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 4,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "52319",
+      "title": "포켓몬 TCG 소드&실드 25주년 골든 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756047",
+      "title": "포켓몬 TCG 소드&실드 미스터리 박스 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 4,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755971",
+      "title": "포켓몬 TCG BW 배틀 체인지덱 비크티니 덱 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756003",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 컬렉션 파일 세트 릴리에 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 4,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756009",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 배틀 강화 BOX 배틀파트너즈 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755995",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 블랙볼트 화이트플레어 카드 앨범 세트 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755992",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 확장팩 세트 화이트플레어 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756005",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 컬렉션 파일 세트 N 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70182",
+      "title": "포켓몬 TCG 삐 25주년 기념 컬랙션 프로모 팩 (한글판)",
+      "modelNumber": "S8A-P009-025",
+      "parsedModel": {
+        "set": "s8ap",
+        "collector": "009/025"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70108",
+      "title": "포켓몬 TCG 무한다이노 VMAX CSR VMAX 클라이맥스 (한글판)",
+      "modelNumber": "S8B247-184",
+      "parsedModel": {
+        "set": "s8b",
+        "collector": "247/184"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70106",
+      "title": "포켓몬 TCG 따라큐 VMAX CSR VMAX 클라이맥스 (한글판)",
+      "modelNumber": "S8B234-184",
+      "parsedModel": {
+        "set": "s8b",
+        "collector": "234/184"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70105",
+      "title": "포켓몬 TCG 따라큐 V CSR VMAX 클라이맥스 (한글판)",
+      "modelNumber": "S8B233-184",
+      "parsedModel": {
+        "set": "s8b",
+        "collector": "233/184"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70024",
+      "title": "포켓몬 TCG 유채의 활기 SR 타임 게이저 (한글판)",
+      "modelNumber": "S10D077-067",
+      "parsedModel": {
+        "set": "s10d",
+        "collector": "077/067"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70014",
+      "title": "포켓몬 TCG 가라르 파이어 V SR 쌍벽의 파이터 (한글판)",
+      "modelNumber": "S5A078-070",
+      "parsedModel": {
+        "set": "s5a",
+        "collector": "078/070"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70009",
+      "title": "포켓몬 TCG 소니아 SR VMAX 라이징 (한글판)",
+      "modelNumber": "S1A077-070",
+      "parsedModel": {
+        "set": "s1a",
+        "collector": "077/070"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70007",
+      "title": "포켓몬 TCG 가라르의 동료들 SR VMAX 클라이맥스 (한글판)",
+      "modelNumber": "S8B255-184",
+      "parsedModel": {
+        "set": "s8b",
+        "collector": "255/184"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "69978",
+      "title": "포켓몬 TCG 우리 SR VMAX 클라이맥스 (한글판)",
+      "modelNumber": "S8B273-184",
+      "parsedModel": {
+        "set": "s8b",
+        "collector": "273/184"
+      },
+      "trades": 5,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "69977",
+      "title": "포켓몬 TCG 게노세크트 V SR 퓨전아츠 (한글판)",
+      "modelNumber": "S8109-100",
+      "parsedModel": {
+        "set": "s8",
+        "collector": "109/100"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "69967",
+      "title": "포켓몬 TCG 부스터 V SR 이브이 히어로즈 (한글판)",
+      "modelNumber": "S6A073-069",
+      "parsedModel": {
+        "set": "s6a",
+        "collector": "073/069"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "69959",
+      "title": "포켓몬 TCG 님피아 V SR 이브이 히어로즈 (한글판)",
+      "modelNumber": "S6A083-069",
+      "parsedModel": {
+        "set": "s6a",
+        "collector": "083/069"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "69956",
+      "title": "포켓몬 TCG 마리 SR 샤이니스타 V (한글판)",
+      "modelNumber": "S4A193-190",
+      "parsedModel": {
+        "set": "s4a",
+        "collector": "193/190"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "69953",
+      "title": "포켓몬 TCG 레쿠쟈 GX SSR GX 울트라샤이니 (한글판)",
+      "modelNumber": "SM8B240-150",
+      "parsedModel": {
+        "set": "sm8b",
+        "collector": "240/150"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "870719",
+      "title": "포켓몬 TCG M리자몽 ex RR 와일드 블레이즈 (한글판)",
+      "modelNumber": "XY2055-080",
+      "parsedModel": {
+        "set": "xy2",
+        "collector": "055/080"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70083",
+      "title": "포켓몬 TCG 레쿠쟈 VMAX HR 창공스트림 (한글판)",
+      "modelNumber": "S7R082-067",
+      "parsedModel": {
+        "set": "s7r",
+        "collector": "082/067"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756017",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 이브이 덱 케이스 세트 테라스탈 페스타 ex 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 4,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "830857",
+      "title": "포켓몬 TCG 피카츄 V-UNION RRR 25주년 기념 컬렉션 Set of 4 (한글판)",
+      "modelNumber": "S8A-025-028-028",
+      "parsedModel": {
+        "set": "s8a025",
+        "collector": "028/028"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "872106",
+      "title": "포켓몬 TCG 피카츄&제크로무 GX RR 태그볼트 (한글판)",
+      "modelNumber": "SM9031-095",
+      "parsedModel": {
+        "set": "sm9",
+        "collector": "031/095"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "806492",
+      "title": "포켓몬 TCG 피카츄 V-UNION RRR 25주년 기념 컬렉션 (한글판)",
+      "modelNumber": "S8A-028-028",
+      "parsedModel": {
+        "set": "s8a",
+        "collector": "028/028"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "806986",
+      "title": "포켓몬 TCG 메가가디안 ex RR 메가드림 ex (한글판)",
+      "modelNumber": "M2A071",
+      "parsedModel": null,
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756025",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 ex 스페셜 세트 ver.2 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "806423",
+      "title": "포켓몬 TCG 레쿠쟈 VMAX RRR VMAX 클라이맥스 (한글판)",
+      "modelNumber": "S8B120-184",
+      "parsedModel": {
+        "set": "s8b",
+        "collector": "120/184"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "849715",
+      "title": "포켓몬 TCG 피카츄 C 베이스 팩 20주년 기념 (한글판)",
+      "modelNumber": "CP6035-100",
+      "parsedModel": {
+        "set": "cp6",
+        "collector": "035/100"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "802733",
+      "title": "포켓몬 TCG 로켓단의 니드킹 ex SAR 로켓단의 영광 (한글판)",
+      "modelNumber": "SV10126-098",
+      "parsedModel": {
+        "set": "sv10",
+        "collector": "126/098"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "69951",
+      "title": "포켓몬 TCG 리자몽 GX SSR GX 울트라샤이니 (한글판)",
+      "modelNumber": "SM8B209-150",
+      "parsedModel": {
+        "set": "sm8b",
+        "collector": "209/150"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "70166",
+      "title": "포켓몬 TCG 뮤츠 GX STAR 빛나는 전설 (한글판)",
+      "modelNumber": "SM3+082-072",
+      "parsedModel": {
+        "set": "sm3+",
+        "collector": "082/072"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "904504",
+      "title": "포켓몬 TCG 메가개굴닌자 ex RR 메가 확장팩 닌자스피너 (한글판)",
+      "modelNumber": "M4022-083",
+      "parsedModel": {
+        "set": "m4",
+        "collector": "022/083"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "755997",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 스페셜 키트 로켓단의 영광 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "904542",
+      "title": "포켓몬 TCG 메가드래캄 ex RR 메가 확장팩 닌자스피너 (한글판)",
+      "modelNumber": "M4063-083",
+      "parsedModel": {
+        "set": "m4",
+        "collector": "063/083"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "846762",
+      "title": "포켓몬 TCG 따라큐 CHR 드림리그 (한글판)",
+      "modelNumber": "SM11B058-049",
+      "parsedModel": {
+        "set": "sm11b",
+        "collector": "058/049"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "805500",
+      "title": "포켓몬 TCG 다크라이 VSTAR SAR VSTAR 유니버스 (한글판)",
+      "modelNumber": "S12A228-172",
+      "parsedModel": {
+        "set": "s12a",
+        "collector": "228/172"
+      },
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "802262",
+      "title": "포켓몬 TCG 메가썬더볼트 ex RR 메가심포니아 (한글판)",
+      "modelNumber": "M1S032-063",
+      "parsedModel": {
+        "set": "m1s",
+        "collector": "032/063"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "806487",
+      "title": "포켓몬 TCG 공중날기 피카츄 V RR 25주년 기념 컬렉션 (한글판)",
+      "modelNumber": "S8A021-028",
+      "parsedModel": {
+        "set": "s8a",
+        "collector": "021/028"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "802911",
+      "title": "포켓몬 TCG 릴리에의 삐삐 ex SR 배틀파트너즈 (한글판)",
+      "modelNumber": "SV9115-100",
+      "parsedModel": {
+        "set": "sv9",
+        "collector": "115/100"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756135",
+      "title": "포켓몬 TCG 썬&문 배틀 강화 BOX 울트라썬 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 2,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "756080",
+      "title": "포켓몬 TCG 소드&실드 카드 박스 세트 연격 박스 (한글판)",
+      "modelNumber": null,
+      "parsedModel": null,
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "805482",
+      "title": "포켓몬 TCG 리피아 VSTAR SAR VSTAR 유니버스 (한글판)",
+      "modelNumber": "S12A210-172",
+      "parsedModel": {
+        "set": "s12a",
+        "collector": "210/172"
+      },
+      "trades": 3,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "804580",
+      "title": "포켓몬 TCG 그란돈 AR 레이징서프 (한글판)",
+      "modelNumber": "SV3A069-062",
+      "parsedModel": {
+        "set": "sv3a",
+        "collector": "069/062"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "802817",
+      "title": "포켓몬 TCG 난천의 한카리아스 ex UR 열풍의 아레나 (한글판)",
+      "modelNumber": "SV9A091-063",
+      "parsedModel": {
+        "set": "sv9a",
+        "collector": "091/063"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    },
+    {
+      "productId": "805915",
+      "title": "포켓몬 TCG 리자몽 R 포켓몬 고 (한글판)",
+      "modelNumber": "S10B010-071",
+      "parsedModel": {
+        "set": "s10b",
+        "collector": "010/071"
+      },
+      "trades": 1,
+      "reason": "catalog_not_found"
+    }
+  ],
+  "emptyOrBlocked": [
+    {
+      "productId": "901602",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 메가리자몽X ex SAR 메가 확장팩 인페르노 X (한글판)360,000원관심 213 · 리뷰 2 · 거래 22",
+      "tradeCount": 22
+    },
+    {
+      "productId": "907016",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 메가팬텀 ex SAR 메가드림 ex (한글판)370,000원관심 28 · 거래 4",
+      "tradeCount": 4
+    },
+    {
+      "productId": "917064",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 메가개굴닌자 ex SAR MEGA 확장팩 닌자스피너 (한글판)130,000원관심 66 · 거래 3",
+      "tradeCount": 3
+    },
+    {
+      "productId": "804754",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 뮤 ex SAR 포켓몬 카드 151 (한글판)130,000원관심 64 · 리뷰 3 · 거래 9",
+      "tradeCount": 9
+    },
+    {
+      "productId": "907020",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 메가망나뇽 ex SAR 메가드림 ex (한글판)160,000원관심 35 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "803217",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 님피아 ex SAR 테라스탈 페스타 ex (한글판)119,000원관심 69 · 리뷰 1 · 거래 9",
+      "tradeCount": 9
+    },
+    {
+      "productId": "803786",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 개굴닌자 ex SAR 크림슨헤이즈 (한글판)300,000원관심 39 · 거래 4",
+      "tradeCount": 4
+    },
+    {
+      "productId": "907010",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 피카츄 ex SAR 메가드림 ex (한글판)170,000원관심 25 · 리뷰 1 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "804751",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 리자몽 ex SAR 포켓몬 카드 151 (한글판)400,000원관심 97 · 리뷰 2 · 거래 9",
+      "tradeCount": 9
+    },
+    {
+      "productId": "805531",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 오리진 디아루가 VSTAR UR VSTAR 유니버스 (한글판)200,000원관심 52 · 거래 6",
+      "tradeCount": 6
+    },
+    {
+      "productId": "802229",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 릴리에의 결심 SAR 메가브레이브 (한글판)119,000원관심 86 · 리뷰 2 · 거래 5",
+      "tradeCount": 5
+    },
+    {
+      "productId": "805532",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 기라티나 VSTAR UR VSTAR 유니버스 (한글판)130,000원관심 90 · 거래 8",
+      "tradeCount": 8
+    },
+    {
+      "productId": "69958",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 뮤 V SR 퓨전아츠 (한글판)200,000원관심 19 · 거래 2",
+      "tradeCount": 2
+    },
+    {
+      "productId": "803213",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 글레이시아 ex SAR 테라스탈 페스타 ex (한글판)70,000원관심 35 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "803208",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 리피아 ex SAR 테라스탈 페스타 ex (한글판)80,000원관심 17 · 거래 5",
+      "tradeCount": 5
+    },
+    {
+      "productId": "911456",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 메가 개굴닌자 ex MUR 닌자 스피너 (한글판)280,000원관심 67 · 리뷰 3 · 거래 6",
+      "tradeCount": 6
+    },
+    {
+      "productId": "70001",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 리자몽 V SR 스타버스 (한글판)70,000원관심 58 · 거래 5",
+      "tradeCount": 5
+    },
+    {
+      "productId": "805533",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 아르세우스 VSTAR UR VSTAR 유니버스 (한글판)190,000원관심 66 · 거래 4",
+      "tradeCount": 4
+    },
+    {
+      "productId": "803226",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 이브이 ex SAR 테라스탈 페스타 ex (한글판)115,000원관심 27 · 거래 2",
+      "tradeCount": 2
+    },
+    {
+      "productId": "865589",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 피카츄 RR 포켓심쿵 컬렉션 (한글판)700,000원관심 18 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "70076",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 레쿠쟈 VMAX HR 창공스트림 (한글판)600,000원관심 103 · 리뷰 1 · 거래 20",
+      "tradeCount": 20
+    },
+    {
+      "productId": "802732",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 로켓단의 뮤츠 ex SAR 로켓단의 영광 (한글판)200,000원관심 42 · 리뷰 1 · 거래 6",
+      "tradeCount": 6
+    },
+    {
+      "productId": "804308",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 뮤 ex SAR 샤이니트레저 ex (한글판)890,000원관심 103 · 거래 4",
+      "tradeCount": 4
+    },
+    {
+      "productId": "906975",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 고라파덕 AR 메가드림 ex (한글판)50,000원관심 24 · 리뷰 1 · 거래 2",
+      "tradeCount": 2
+    },
+    {
+      "productId": "804732",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 꼬부기 AR 포켓몬 카드 151 (한글판)60,000원관심 11 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "901954",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 메가리자몽 X ex MUR 인페르노 X (한글판)600,000원관심 102 · 리뷰 2 · 거래 4",
+      "tradeCount": 4
+    },
+    {
+      "productId": "69949",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 리자몽 V SSR 샤이니스타 V (한글판)149,000원관심 91 · 거래 12",
+      "tradeCount": 12
+    },
+    {
+      "productId": "802919",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 릴리에의 삐삐 ex SAR 배틀파트너즈 (한글판)79,000원관심 49 · 거래 8",
+      "tradeCount": 8
+    },
+    {
+      "productId": "804753",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 썬더 ex SAR 포켓몬 카드 151 (한글판)150,000원관심 11 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "79041",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 기라티나 V SR 로스트어비스 (한글판)420,000원관심 250 · 리뷰 3 · 거래 26",
+      "tradeCount": 26
+    },
+    {
+      "productId": "804310",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 리자몽 ex SAR 샤이니트레저 ex (한글판)670,000원관심 56 · 거래 4",
+      "tradeCount": 4
+    },
+    {
+      "productId": "70078",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG 뮤 VMAX HR 퓨전아츠 (한글판)300,000원관심 28 · 리뷰 1 · 거래 5",
+      "tradeCount": 5
+    },
+    {
+      "productId": "802737",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 로켓단의 뮤츠 ex UR 로켓단의 영광 (한글판)150,000원관심 14 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "805530",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 오리진 펄기아 VSTAR UR VSTAR 유니버스 (한글판)200,000원관심 43 · 거래 2",
+      "tradeCount": 2
+    },
+    {
+      "productId": "69925",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 뮤 UR 25주년 기념 컬랙션 (한글판)250,000원관심 59 · 거래 7",
+      "tradeCount": 7
+    },
+    {
+      "productId": "70102",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 피카츄 VMAX CSR CSR VMAX 클라이맥스 (한글판)358,000원관심 40 · 거래 6",
+      "tradeCount": 6
+    },
+    {
+      "productId": "70107",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 레쿠쟈 VMAX CSR VMAX 클라이맥스 (한글판)75,000원관심 40 · 거래 8",
+      "tradeCount": 8
+    },
+    {
+      "productId": "802813",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 난천의 한카리아스 ex SAR 열풍의 아레나 (한글판)120,000원관심 31 · 거래 5",
+      "tradeCount": 5
+    },
+    {
+      "productId": "70077",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 님피아 VMAX HR 이브이 히어로즈 (한글판)340,000원관심 41 · 거래 7",
+      "tradeCount": 7
+    },
+    {
+      "productId": "75299",
+      "title": "KREAM | 한정판 거래의 FLEX",
+      "searchText": "Pokemon TCG포켓몬 TCG 뮤츠 V SR 포켓몬 고 (한글판)120,000원관심 30 · 거래 9",
+      "tradeCount": 9
+    },
+    {
+      "productId": "802202",
+      "title": "포켓몬 TCG 마티스의 거래 U 메가브레이브 (한글판)",
+      "searchText": "Pokemon TCG포켓몬 TCG 마티스의 거래 U 메가브레이브 (한글판)20,000원거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "802200",
+      "title": "포켓몬 TCG 파이팅공 U 메가브레이브 (한글판)",
+      "searchText": "Pokemon TCG포켓몬 TCG 파이팅공 U 메가브레이브 (한글판)20,000원거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "802195",
+      "title": "포켓몬 TCG 영구스 C 메가브레이브 (한글판)",
+      "searchText": "Pokemon TCG포켓몬 TCG 영구스 C 메가브레이브 (한글판)20,000원거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "802160",
+      "title": "포켓몬 TCG 에이스번 R 메가브레이브 (한글판)",
+      "searchText": "Pokemon TCG포켓몬 TCG 에이스번 R 메가브레이브 (한글판)25,000원관심 1 · 거래 2",
+      "tradeCount": 2
+    },
+    {
+      "productId": "904495",
+      "title": "포켓몬 TCG 마폭시 R 메가 확장팩 닌자스피너 (한글판)",
+      "searchText": "Pokemon TCG포켓몬 TCG 마폭시 R 메가 확장팩 닌자스피너 (한글판)20,000원관심 3 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "802192",
+      "title": "포켓몬 TCG 깨비참 C 메가브레이브 (한글판)",
+      "searchText": "Pokemon TCG포켓몬 TCG 깨비참 C 메가브레이브 (한글판)-거래 2",
+      "tradeCount": 2
+    },
+    {
+      "productId": "802193",
+      "title": "포켓몬 TCG 깨비드릴조 C 메가브레이브 (한글판)",
+      "searchText": "Pokemon TCG포켓몬 TCG 깨비드릴조 C 메가브레이브 (한글판)20,000원거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "802191",
+      "title": "포켓몬 TCG 타부자고 U 메가브레이브 (한글판)",
+      "searchText": "Pokemon TCG포켓몬 TCG 타부자고 U 메가브레이브 (한글판)20,000원거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "756015",
+      "title": "포켓몬 TCG 스칼렛&바이올렛 확장팩 세트 테라스탈 페스타 ex 박스 (한글판)",
+      "searchText": "스칼렛&바이올렛 시리즈Pokemon TCG포켓몬 TCG 스칼렛&바이올렛 확장팩 세트 테라스탈 페스타 ex 박스 (한글판)48,000원관심 638 · 리뷰 2 · 거래 540빠른배송6/8(월) 도착 예정",
+      "tradeCount": 540
+    },
+    {
+      "productId": "802183",
+      "title": "포켓몬 TCG 땃쭈르 C 메가브레이브 (한글판)",
+      "searchText": "Pokemon TCG포켓몬 TCG 땃쭈르 C 메가브레이브 (한글판)20,000원거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "870633",
+      "title": "포켓몬 TCG 나옹 ex RR 메가 확장팩 니힐제로 (한글판)",
+      "searchText": "Pokemon TCG포켓몬 TCG 나옹 ex RR 메가 확장팩 니힐제로 (한글판)-관심 19 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "870624",
+      "title": "포켓몬 TCG 이벨타르 ex RR 메가 확장팩 니힐제로 (한글판)",
+      "searchText": "Pokemon TCG포켓몬 TCG 이벨타르 ex RR 메가 확장팩 니힐제로 (한글판)-관심 6 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "806963",
+      "title": "포켓몬 TCG 피카츄 ex RR 메가드림 ex (한글판)",
+      "searchText": "Pokemon TCG포켓몬 TCG 피카츄 ex RR 메가드림 ex (한글판)-관심 22 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "907057",
+      "title": "포켓몬 TCG 메가지가르데 ex SAR 메가 확장팩 니힐제로 (한글판)",
+      "searchText": "Pokemon TCG포켓몬 TCG 메가지가르데 ex SAR 메가 확장팩 니힐제로 (한글판)-관심 6 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "69973",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG 관광객 SR 태그 팀 GX 태그올스타즈 (한글판)-관심 19 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "805883",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG 잠만보 CHR 다크판타스마 (한글판)-관심 8 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "934334",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG 알로라 나시 ex 포켓몬 원더 아일랜드 인 제주 프로모 카드 (한글판)-관심 2 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "931698",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG 게노세크트 ex MEGA 스타트 덱 100 배틀컬렉션 (한글판)-관심 1 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "931680",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG 성호의 무장조 MEGA 스타트 덱 100 배틀컬렉션 (한글판)-거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "931670",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG 이벨타르 MEGA 스타트 덱 100 배틀컬렉션 (한글판)-거래 2",
+      "tradeCount": 2
+    },
+    {
+      "productId": "931572",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG 난천의 한바이트 MEGA 스타트 덱 100 배틀컬렉션 (한글판)-거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "931444",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG 썬더볼트 MEGA 스타트 덱 100 배틀컬렉션 (한글판)-거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "931439",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG 에레키블 ex MEGA 스타트 덱 100 배틀컬렉션 (한글판)-관심 2 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "931407",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG 큐레무 ex MEGA 스타트 덱 100 배틀컬렉션 (한글판)-거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "931360",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG 이슬의 잉어킹 MEGA 스타트 덱 100 배틀컬렉션 (한글판)-관심 1 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "931245",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG 샤로다 ex MEGA 스타트 덱 100 배틀컬렉션 (한글판)-거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "930216",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG 마스카나 미러 스칼렛&바이올렛 스타터 세트 ex 나오하&루카리오 ex (한글판)-거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "930003",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG 블래키&다크라이 GX 썬&문 스타터 세트 태그 팀 GX 블래키&다크라이 (한글판)-거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "929193",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG M레쿠쟈 ex XY 메가 배틀 덱 M레쿠쟈 ex (한글판)-관심 4 · 거래 1",
+      "tradeCount": 1
+    },
+    {
+      "productId": "929123",
+      "title": "",
+      "searchText": "Pokemon TCG포켓몬 TCG 리자몽 ex XY 메가 배틀 덱 M리자몽 ex (한글판)-관심 4 · 거래 1",
+      "tradeCount": 1
+    }
+  ]
+}

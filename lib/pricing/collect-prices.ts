@@ -23,6 +23,12 @@ import {
   isBunjangCollectionEnabled,
   BUNJANG_MARKET,
 } from './bunjang/bunjang-config';
+import { collectJoongnaSnapshots } from './joongna/joongna-adapter';
+import {
+  JOONGNA_MARKET,
+  JOONGNA_SOURCE_NAME,
+  isJoongnaCollectionEnabled,
+} from './joongna/joongna-config';
 import { collectKreamTrades, resolveKreamProductByName } from './kream/kream-adapter';
 import { KREAM_SOURCE_NAME, isKreamCollectionEnabled, KREAM_MARKET } from './kream/kream-config';
 import type { MatchTarget } from './match-confidence';
@@ -439,6 +445,25 @@ function buildSourceRunners(snapshotDate: string, fetchImpl?: typeof fetch): Sou
         ),
     },
     {
+      sourceName: JOONGNA_SOURCE_NAME,
+      market: JOONGNA_MARKET,
+      kind: 'asking',
+      // Public search HTML is accessible without a browser, but this source is
+      // still explicit opt-in because marketplace reuse rights must be reviewed.
+      delayMs: 1000,
+      enabled: isJoongnaCollectionEnabled,
+      collect: (card) =>
+        collectJoongnaSnapshots(
+          buildJoongnaKeyword(card),
+          {
+            cardPrintingId: card.cardPrintingId,
+            snapshotDate,
+            target: buildMatchTarget(card, 'ko'),
+          },
+          { snapshotDate },
+        ),
+    },
+    {
       sourceName: GUARDIAN_SOURCE_NAME,
       market: GUARDIAN_MARKET,
       kind: 'asking',
@@ -668,6 +693,15 @@ async function runSourceBatch(
 
 function buildKoreanKeyword(card: CardQuery): string {
   return [card.cardName, card.collectorNumber].filter(Boolean).join(' ');
+}
+
+/**
+ * Joongna search is brittle with collector numbers such as `201/165`; those
+ * often return zero results. Search by Korean card name, then let the adapter's
+ * match scorer decide whether set/number context is strong enough.
+ */
+function buildJoongnaKeyword(card: CardQuery): string {
+  return card.cardName;
 }
 
 /** eBay keyword biased toward the English (or Japanese) printing + number. */

@@ -1,7 +1,51 @@
 # TROUBLE SHOOTING
 
 > PRD에 없던 엣지 케이스, 예외 상황, source 리스크 기록.
-> 마지막 갱신: 2026-06-05 (eBay scrape parser/challenge 진단)
+> 마지막 갱신: 2026-06-05 (KREAM 카탈로그 매칭 보강)
+
+## KREAM 로그인 수동 수집 중 상세 접근/카탈로그 매칭 한계
+
+### 문제
+
+2026-06-05 로그인된 Playwright 세션에서 KREAM `포켓몬카드 한글판` 검색 결과를 수집했다. 검색 결과에서는 product link 2,045개와 거래 표시 상품 272개가 확인됐지만, 상세 수집 중 다음 한계가 있었다.
+
+- 검색 페이지 DOM에 유지된 거래 상품은 246개였고, 이 중 176개 상품에서 체결 446건을 읽었다.
+- 최신/상위 상품 일부는 상세 HTML fetch가 상품 상세가 아니라 `KREAM | 한정판 거래의 FLEX` 기본 페이지를 반환했다.
+- 일부 직접 상세 접근은 HTTP 500 또는 `/login` 리다이렉트로 바뀌어 추가 수집이 중단됐다.
+- KREAM 모델번호는 `S6A085-069`, `M1L090-063` 같은 일본/국제 세트 코드 기반인 반면, 현재 CSV 카탈로그는 공식 한국 `PKMKR-BS...`와 일부 `SV*`/`S*` 코드가 섞여 있어 모델번호만으로는 176개 중 2개만 확실히 매칭됐다.
+
+### 처리
+
+- 확실히 매칭된 `803225` 이브이 ex SAR 테라스탈 페스타 ex `SV8A223-187` PSA 10 130000원(2026-05-08), `804730` 파이리 AR 포켓몬 카드 151 `SV2A168-165` BRG 9 영문 50000원(2026-05-13)만 `manual_kream` CSV 행으로 추가했다.
+- 수집 산출물은 `memory-bank/kream-scrape/kream-search-links.json`, `memory-bank/kream-scrape/kream-product-details.json`, `memory-bank/kream-scrape/kream-matching-report.json`에 보존했다.
+- 카탈로그 미등록/미매칭 174개 상품 444건과 접근 실패 70개 상품은 `memory-bank/kream-worklist-inbox.md`에 보류 상태로 기록했다.
+- 재로그인 후 Playwright로 상위 30개 상품 상세를 직접 열어 196건을 읽었고, Supabase `card_printings` 조회로 sample_id를 확정할 수 있는 18개 상품 115건을 재매칭했다. 이 중 CSV에 이미 있던 58건은 중복으로 건너뛰고 57건을 추가했다.
+- 최초에 2건만 CSV에 들어간 직접 원인은 KREAM 모델번호를 기존 CSV에 이미 있던 카드 메타데이터와만 대조했기 때문이다. MEGA 신세트와 구세대 S/SM/CP 계열은 CSV에 sample metadata가 없어 확실 매칭에서 제외됐다.
+- `79041` 기라티나 V는 worklist에서 110/100 vs 111/100 모호 상태였지만, KREAM 모델번호 `S11111-100`과 Supabase 조회 결과를 대조해 `collector_number=111/100`, `external_ids.card_num=BS2022014110`, `sample_id=PKMKR-BS2022014110`으로 확정했다.
+- 남은 unresolved 160개 중 현대 세트 후보(`M*`, `SV*`, `S10~S12`, `S6~S9`) 80개를 Supabase MCP로 재조회했다. `card_printings.set_code`, `collector_number`, `language='ko'`, `region='KR'`이 모두 일치한 14개 상품 25건만 `memory-bank/kream-scrape/kream-supabase-resolved-modern-inbox-20260605.json`을 거쳐 CSV에 승격했다.
+- 이번 재대조에서 DB에 없는 시크릿/프로모/구세대 프린팅, KREAM 세트코드와 Supabase 세트코드가 일치하지 않는 후보, 상품 박스/세트류는 CSV에 넣지 않았다. 확인된 행만 추가한 뒤 `scripts/collect-prices.ts --csv --dry-run`으로 `parsed=294`, `resolved=294`, `snapshots=281`을 확인했다.
+
+### 재발 방지
+
+- KREAM 수집은 한 번에 200개 이상 상세를 반복하지 않고, 로그인 상태를 확인하면서 40개 이하 배치로 나눈다.
+- 최신 MEGA/구세대 S·SM·CP 계열 카탈로그가 보강되기 전에는 KREAM 수집 결과를 CSV에 강제 매칭하지 않는다.
+- KREAM unresolved를 재대조할 때는 `set_code + collector_number + ko/KR`이 모두 맞는 행만 확정으로 본다. 카드명만 맞거나 collector number만 맞는 후보는 worklist에 남긴다.
+- KREAM product id와 모델번호를 `card_printings.external_ids` 또는 별도 매핑 파일에 축적한 뒤, 확실한 `sample_id`가 있을 때만 `manual_kream` evidence로 승격한다.
+- `/login` 리다이렉트가 발생하면 즉시 수집을 중단하고 재로그인 후 남은 product id만 재시도한다.
+- 중복 방지는 `source_item_id`, `sold_price`, `sold_at` 날짜, `grade_company`, `grade_value`, `variant` 조합으로 확인한다. 같은 KREAM product의 같은 가격/등급/일자 체결은 재실행 시 추가하지 않는다.
+
+## 중고나라 검색어/필터링 이슈
+
+### 문제
+
+2026-06-05 중고나라 공개 검색 페이지는 `keyword=리자몽 ex 201/165`처럼 collector number를 포함하면 결과가 0건이 되는 경우가 있었다. 반면 `keyword=리자몽 ex`는 결과가 나오지만 세트/해외판/메가리자몽/포켓 앱 카드/박스/일괄 판매가 많이 섞인다.
+
+### 처리
+
+- `joongna` source는 검색어를 카드명 중심으로 만들고, snapshot 생성 단계에서 `computeMatchConfidence`로 카드명/세트/번호 일치도를 본다.
+- 중고나라 전용 제외어로 박스, 팩, 미개봉, 일괄, 각개, 세트, 해외판, 포켓 앱 카드, 서플라이성 행을 제외한다.
+- `joongna`는 `asking` source로만 분류하고 `aggregation_method='joongna_asking_median'`으로 저장한다. 실거래가 또는 sold evidence로 승격하지 않는다.
+- 원문 HTML 전체, 판매자/스토어 식별 정보, 위치 정보는 저장하지 않고 상품 seq 기반 URL, 제목, 가격만 snapshot 집계에 사용한다.
 
 ## eBay scrape 전체 실행 브라우저 context 종료
 

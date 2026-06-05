@@ -154,6 +154,8 @@ export const ASKING_SOURCE_NAMES: ReadonlySet<string> = new Set([
   'ebay_browse',
   'bunjang',
   'manual_bunjang',
+  'joongna',
+  'manual_joongna',
 ]);
 
 /** True when a snapshot/observation source name is an asking-price source. */

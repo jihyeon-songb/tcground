@@ -81,5 +81,6 @@ function makeCard({
       currency: 'KRW',
       sampleCount: 0,
     },
+    priceSnapshotCount: 0,
   };
 }

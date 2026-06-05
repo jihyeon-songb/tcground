@@ -347,5 +347,6 @@ function createCard(index: number): PokemonCatalogCard {
       currency: 'KRW',
       sampleCount: 0,
     },
+    priceSnapshotCount: 0,
   };
 }

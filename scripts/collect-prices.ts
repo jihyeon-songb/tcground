@@ -7,6 +7,7 @@
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --browse
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --kream    # needs KREAM_COLLECTION_ENABLED
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --bunjang  # needs BUNJANG_COLLECTION_ENABLED
+ *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --joongna  # needs JOONGNA_COLLECTION_ENABLED
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --ebay-scrape # needs EBAY_SCRAPE_ENABLED
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --csv
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --csv-asking
@@ -15,7 +16,7 @@
  *   add --offset N --limit N to verify/retry a catalog window.
  *   add --source-batch-size N to write one run record per source batch.
  *
- * Source flags (--browse/--guardian/--kream/--bunjang/--ebay-scrape) restrict the
+ * Source flags (--browse/--guardian/--kream/--bunjang/--joongna/--ebay-scrape) restrict the
  * run to those sources; with none, every *enabled* source runs (same as cron).
  * `--csv` imports verified sold rows from memory-bank/price-source-validation.csv;
  * `--csv-asking` imports asking rows. `--fx` fetches/stores Korea Eximbank FX
@@ -55,6 +56,7 @@ import type { ParsedPriceObservation } from '../lib/pricing/price-source.types';
 const SOURCE_FLAGS: Record<string, string> = {
   '--browse': 'ebay_browse',
   '--bunjang': 'bunjang',
+  '--joongna': 'joongna',
   '--guardian': 'guardian_tcg',
   '--kream': 'kream',
   '--ebay-scrape': 'ebay_scrape',

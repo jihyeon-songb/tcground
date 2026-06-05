@@ -36,6 +36,7 @@ const CATEGORY_VISUALS: Record<
   },
   'one-piece': {
     label: 'One Piece',
+    imageUrl: '/categories/one-piece.jpg',
     fallbackClass: 'from-[#113042] via-[#1b6a7a] to-[#e2b05f]',
     icon: 'sailing',
   },

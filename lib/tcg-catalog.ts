@@ -183,6 +183,8 @@ export interface PokemonCatalogCard {
   imageUrl: string | null;
   /** Real snapshot-derived price summary, or null when the card has no price data. */
   price: PriceDisplay | null;
+  /** Number of price-snapshot records backing this card; drives the recommended ("추천순") order. */
+  priceSnapshotCount: number;
 }
 
 export interface AvailableSetOption {
@@ -309,7 +311,6 @@ interface GameCountRow {
 interface RecommendedSnapshotCandidateRow {
   card_printing_id: string | null;
   snapshot_date: string;
-  sample_count: number | null;
 }
 
 interface PrintingCardIdRow {
@@ -672,45 +673,25 @@ type BuildPokemonCardQuery = (
 async function getRecommendedPricedCardIds(supabase: SupabaseClient): Promise<string[]> {
   const { data, error } = await supabase
     .from('card_price_snapshots')
-    .select('card_printing_id, snapshot_date, sample_count')
+    .select('card_printing_id, snapshot_date')
     .not('card_printing_id', 'is', null)
-    .order('sample_count', { ascending: false })
     .order('snapshot_date', { ascending: false })
     .limit(RECOMMENDED_CANDIDATE_FETCH_LIMIT);
 
   throwIfSupabaseError(error);
 
-  const bestByPrinting = new Map<
-    string,
-    { printingId: string; sampleCount: number; snapshotDate: string }
-  >();
-
+  // Count price-snapshot records per printing; the recommended order surfaces
+  // cards with the most price data (시세 데이터 건수) first.
+  const snapshotCountByPrinting = new Map<string, number>();
   for (const row of (data ?? []) as RecommendedSnapshotCandidateRow[]) {
     if (!row.card_printing_id) continue;
-    const sampleCount = row.sample_count ?? 0;
-    const existing = bestByPrinting.get(row.card_printing_id);
-    if (
-      !existing ||
-      sampleCount > existing.sampleCount ||
-      (sampleCount === existing.sampleCount && row.snapshot_date > existing.snapshotDate)
-    ) {
-      bestByPrinting.set(row.card_printing_id, {
-        printingId: row.card_printing_id,
-        sampleCount,
-        snapshotDate: row.snapshot_date,
-      });
-    }
+    snapshotCountByPrinting.set(
+      row.card_printing_id,
+      (snapshotCountByPrinting.get(row.card_printing_id) ?? 0) + 1,
+    );
   }
 
-  const printingIds = Array.from(bestByPrinting.values())
-    .sort(
-      (a, b) =>
-        b.sampleCount - a.sampleCount ||
-        b.snapshotDate.localeCompare(a.snapshotDate) ||
-        a.printingId.localeCompare(b.printingId),
-    )
-    .map((entry) => entry.printingId);
-
+  const printingIds = Array.from(snapshotCountByPrinting.keys());
   if (printingIds.length === 0) return [];
 
   const cardIdByPrinting = new Map<string, string>();
@@ -727,16 +708,17 @@ async function getRecommendedPricedCardIds(supabase: SupabaseClient): Promise<st
     }
   }
 
-  const seenCardIds = new Set<string>();
-  const recommendedCardIds: string[] = [];
-  for (const printingId of printingIds) {
+  // A card may span multiple printings, so sum each card's snapshot records.
+  const snapshotCountByCard = new Map<string, number>();
+  for (const [printingId, count] of snapshotCountByPrinting) {
     const cardId = cardIdByPrinting.get(printingId);
-    if (!cardId || seenCardIds.has(cardId)) continue;
-    seenCardIds.add(cardId);
-    recommendedCardIds.push(cardId);
+    if (!cardId) continue;
+    snapshotCountByCard.set(cardId, (snapshotCountByCard.get(cardId) ?? 0) + count);
   }
 
-  return recommendedCardIds;
+  return Array.from(snapshotCountByCard.entries())
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([cardId]) => cardId);
 }
 
 async function fetchCardRowsByIdsInOrder(
@@ -825,10 +807,25 @@ export async function getFeaturedPokemonCards(
   throwIfSupabaseError(cardError);
 
   const rows = (cardData ?? []) as unknown as PokemonCatalogCardRow[];
+
+  // Order by recommendation ("추천순") — cards with the most price-snapshot
+  // records first — so the featured grid surfaces the same top cards as the
+  // catalog's default sort, with slug order as the tiebreaker/fallback.
+  const recommendedCardIds = await getRecommendedPricedCardIds(supabase);
+  const recommendationRank = new Map(
+    recommendedCardIds.map((cardId, index) => [cardId, index] as const),
+  );
+  const orderedRows = [...rows].sort((a, b) => {
+    const aRank = recommendationRank.get(a.id) ?? Number.POSITIVE_INFINITY;
+    const bRank = recommendationRank.get(b.id) ?? Number.POSITIVE_INFINITY;
+    if (aRank !== bRank) return aRank - bRank;
+    return a.slug.localeCompare(b.slug);
+  });
+
   // Pick the featured subset first (image filter + limit), then load prices only
   // for those few printings instead of the whole catalog.
   const featured = selectFeaturedPokemonCards(
-    rows.map((row) => mapCatalogCardRow(row)),
+    orderedRows.map((row) => mapCatalogCardRow(row)),
     limit,
   );
   const rowBySlug = new Map(rows.map((row) => [row.slug, row] as const));
@@ -1082,12 +1079,15 @@ export function sortPokemonCatalogCardsByRecommendation(
 }
 
 function compareRecommendedCards(a: PokemonCatalogCard, b: PokemonCatalogCard): number {
+  // Recommended order ("추천순") surfaces cards with the most price data first:
+  // rank by how many price-snapshot records back each card (시세 데이터 건수).
+  const snapshotDelta = b.priceSnapshotCount - a.priceSnapshotCount;
+  if (snapshotDelta !== 0) return snapshotDelta;
+
+  // Among cards with the same record count, prefer ones that yield a usable price.
   const aHasPrice = a.price !== null;
   const bHasPrice = b.price !== null;
   if (aHasPrice !== bHasPrice) return aHasPrice ? -1 : 1;
-
-  const sampleDelta = (b.price?.sampleCount ?? 0) - (a.price?.sampleCount ?? 0);
-  if (sampleDelta !== 0) return sampleDelta;
 
   return a.slug.localeCompare(b.slug);
 }
@@ -1445,6 +1445,7 @@ function formatSourceName(sourceName: string): string {
     case 'bunjang':
       return '번개장터';
     case 'manual_joongna':
+    case 'joongna':
       return '중고나라';
     case 'aggregate':
       return '수동 evidence';
@@ -1499,6 +1500,7 @@ function mapCatalogCardRow(
     sampleId,
     imageUrl: selectCatalogCardImage(row, printing),
     price,
+    priceSnapshotCount: snapshots.length,
   };
 }
 

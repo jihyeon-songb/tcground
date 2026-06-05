@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-06-05 (eBay scrape parser/challenge 진단)
+> 마지막 갱신: 2026-06-05 (KREAM Supabase 재대조 보강)
 
 ## 현재 기준 PRD
 
@@ -97,6 +97,7 @@
 - 제약: 실거래가 소스(PriceCharting/eBay/KREAM/번개/중고나라)는 Claude 환경(WebFetch)에서 전부 차단되므로 **수집은 한국 IP 로컬에서 사용자가 실행**한다. 가격 조작 금지(증거 없는 행은 만들지 않는다).
 - 현재 baseline(2026-06-04, Supabase `tcground` 조회): ko/KR 프린팅 3,668개 중 snapshot 보유 34개, total snapshot 113, observation 107. 기존 snapshot `source_name`은 구식 `aggregate`라 `--csv` 재import 시 소스별로 갱신된다.
 - 2026-06-05 batch/progress 변경: eBay scrape 전체 실행이 browser context 종료로 `partial/0`이었으므로, `--offset`, `--limit`, `--source-batch-size` 옵션을 추가해 50~100장 단위로 실행/기록/재시도 가능하게 바꿨다. 이어 offset 0~49, 50~99가 모두 succeeded/0이어서 단순 재시도 대신 parser/challenge를 점검했고, eBay live HTML의 `s-card` markup과 HTTP 200 browser verification page를 처리하도록 `lib/pricing/ebay/scrape-adapter.ts`를 보강했다. 영향 파일은 `scripts/collect-prices.ts`, `lib/pricing/collect-prices.ts`, `lib/pricing/collect-prices.test.ts`, `lib/pricing/ebay/scrape-adapter.ts`, `lib/pricing/ebay/scrape-adapter.test.ts`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`로 제한했다.
+- 2026-06-05 중고나라 변경: `joongna` 자동 asking source를 추가했다. 공개 search page hydration 데이터에서 상품 `seq`/title/price만 최소 추출하고, 카드명 검색 + 세트/번호 confidence + 중고나라 전용 제외어로 단일 카드 호가만 `joongna_asking_median` snapshot에 저장한다. 영향 파일은 `lib/pricing/joongna/**`, `lib/pricing/collect-prices.ts`, `scripts/collect-prices.ts`, `lib/pricing/price-source.types.ts`, `lib/tcg-catalog.ts`, `.env.example`, 관련 테스트, memory-bank 문서로 제한한다.
 
 사전 준비
 - 한국/거주용 IP(VPN) 연결 — KREAM·eBay-scrape 차단 회피 필수.
@@ -104,6 +105,7 @@
 - (asking 전체 실데이터 시) `.env.local`을 `EBAY_ENV=production` + production `EBAY_CLIENT_ID/SECRET`로 교체. 현재 `EBAY_ENV=sandbox`라 Browse API 접근은 되지만 실제 listing snapshot은 기대하지 않는다.
 - `--fx`(KRW 환산) 사용 시 `.env.local`에 `KOREA_EXIM_FX_API_KEY` 필요. 현재 키 설정 후 CSV+FX 재적재는 완료됐다.
 - enable 상태(2026-06-05 확인): `KREAM_COLLECTION_ENABLED=true`, `BUNJANG_COLLECTION_ENABLED=true`, `EBAY_SCRAPE_ENABLED=true`, `GUARDIAN_API_KEY` 설정, `EBAY_MARKETPLACE_INSIGHTS_ENABLED=false`.
+- 중고나라 자동 asking 수집은 실행 시 `JOONGNA_COLLECTION_ENABLED=true`를 임시로 주입한다. 기본 `.env.example`은 `false`이며, 실거래가가 아니라 판매중 호가 보조 trend로만 표시한다.
 
 실행 (쓰기 전 항상 `--dry-run` 먼저)
 - [ ] 기존 검증 CSV evidence + asking import:
@@ -126,7 +128,20 @@
   결과: `cardsProcessed=50`, `ebay_scrape` succeeded, batch metadata(`cardStart=50`, `cardEnd=99`, `sourceBatchSize=50`)가 `price_collection_runs.metadata`에 기록됨. 매칭된 sold observation/snapshot은 0건.
 - [x] eBay scrape 0건 원인 점검:
   live HTML probe 결과 기존 `s-item` selector가 현재 `s-card` search result markup을 읽지 못했고, eBay browser verification page가 HTTP 200으로 내려와 빈 결과처럼 처리될 수 있었다. `s-card` 파서와 challenge detection을 추가했으며, 수정 후 `--ebay-scrape --dry-run --offset 50 --limit 2 --source-batch-size 2`는 verification page를 `failed`로 기록한다.
+- [x] 중고나라 자동 asking source 추가:
+  `lib/pricing/joongna/joongna-adapter.ts`와 `--joongna` CLI flag를 추가했다. `--joongna --dry-run --offset 0 --limit 20 --source-batch-size 20` 결과 `cardsProcessed=20`, `status=succeeded`, dry-run snapshot 1개가 생성됐다. `리자몽 ex 201/165`처럼 collector number를 붙인 검색어는 중고나라 결과가 0이라 중고나라 source만 카드명 중심 검색을 사용하고, 실제 snapshot 여부는 매칭 confidence와 제외어 필터가 결정한다.
+- [ ] 중고나라 전체 asking 수집:
+  `JOONGNA_COLLECTION_ENABLED=true node --env-file=.env.local --import tsx scripts/collect-prices.ts --joongna --source-batch-size 100`
+  100장 단위로 `price_collection_runs` batch를 기록한다.
 - [ ] (선택) 단일 소스 재시도: `--kream` / `--ebay-scrape` / `--browse`. 실패 batch만 재시도할 때는 `--offset <batch start> --limit <batch size> --source-batch-size <batch size>`를 같이 쓴다.
+- [x] 로그인 Playwright 기반 KREAM 수동 evidence 수집 1차:
+  `포켓몬카드 한글판` 검색 결과에서 product link 2,045개, 거래 표시 상품 272개를 확인했다. 현재 DOM에 유지된 246개를 상세 수집해 176개 상품의 체결 446건을 `memory-bank/kream-scrape/kream-product-details.json`에 저장했다. 기존 카탈로그와 확실히 매칭된 2건(`803225` 이브이 ex SAR 223/187, `804730` 파이리 AR 168/165)은 `price-source-validation.csv`에 `manual_kream`으로 추가했고, 174개 상품 444건은 카탈로그 미등록/미매칭으로 `memory-bank/kream-scrape/kream-matching-report.json`/`kream-worklist-inbox.md`에 보류했다. 70개 상품은 상세 HTML 기본 페이지/HTTP 500/로그인 리다이렉트로 재로그인 후 재수집이 필요하다.
+- [x] 재로그인 후 KREAM 직접 상세 보강:
+  상위 30개 product detail page를 Playwright 로그인 세션에서 직접 열어 체결 196건을 확인했다. Supabase `card_printings`와 매칭된 18개 상품 115건 중 기존 CSV 중복 58건을 제외하고 57건을 `manual_kream` evidence로 추가했다. 사용자 입력 예시인 `802229` 릴리에의 결심 SAR 090/063 5건을 포함하며, `79041` 기라티나 V는 Supabase 조회로 `111/100`, `PKMKR-BS2022014110`을 확정한 뒤 반영했다. 결과 리포트는 `memory-bank/kream-scrape/kream-direct-matching-report.json`에 저장했다.
+- [x] KREAM 보류 상품 Supabase 재대조 보강:
+  사용자 요청에 따라 메가개굴닌자 계열과 레쿠쟈 VMAX HR은 제외했다. `memory-bank/kream-scrape/kream-matching-report.json`의 보류 상품 중 Supabase `card_printings`와 세트코드/번호가 일치한 14개 상품을 구조화 inbox(`memory-bank/kream-scrape/kream-supabase-resolved-inbox-20260605.json`)로 만들고, 기존 CSV 중복인 잉어킹 4건을 제외한 13개 상품 24건을 `manual_kream` evidence로 추가했다.
+- [x] KREAM 남은 미해소 상품 현대 세트 우선 재대조:
+  기존 `manual_kream` CSV product id를 제외한 `kream-matching-report.json` unresolved 160개 중 `M*`, `SV*`, `S10~S12`, `S6~S9` 후보 80개를 Supabase MCP로 재조회했다. `set_code + collector_number + ko/KR printing`이 일치한 14개 상품을 구조화 inbox(`memory-bank/kream-scrape/kream-supabase-resolved-modern-inbox-20260605.json`)로 만들고, 중복 없이 25건을 `manual_kream` evidence로 추가했다. DB에 시크릿/프로모/구세대 프린팅이 없거나 세트코드가 일치하지 않는 후보는 CSV에 넣지 않았다.
 
 우선 카드 부족분 (raw sold < 3, 2026-06-04 기준 28장) — 자동 sold 수집이 우선 채울 대상
 - `KR-020`(테라파고스 ex 237/187), `KR-028`(푸크린 ex 189/165), `KR-029`(리자몽 ex 139/108), `KR-032`(가디안 ex 348/190), `KR-033`(미라이돈 ex 358/190), `KR-034`(코라이돈 ex 360/190), `KR-035`(파오젠 ex 357/190), `KR-038`(코라이돈 ex 103/078), `KR-040`(코라이돈 ex 106/078), `KR-041`~`KR-046`(로켓단의 영광 SV10), `KR-047`~`KR-051`(블랙볼트/화이트플레어 SV11W·SV11B), `KR-052`~`KR-054`(SV9), `KR-055`·`KR-056`(오거폰 SV6), `KR-057`·`KR-058`(SV5a), `KR-059`·`KR-060`(SV7).
@@ -136,6 +151,9 @@
 - [x] Supabase 읽기로 dry-run 후 row count 유지 확인: `card_price_snapshots=112`, `price_observations=109`, `price_collection_runs=2`, `exchange_rates=1449`.
 - [x] 실제 쓰기 실행 후 Supabase 읽기로 `card_price_snapshots`/`price_collection_runs` 증가·소스별 status 확인. 최종 count: `card_price_snapshots=138`, `price_observations=109`, `price_collection_runs=4`, `exchange_rates=1449`. source별 snapshot: `pricecharting_ebay_sold=64`, `ebay_sold=30`, `bunjang=26`, `manual_bunjang=10`, `manual_joongna=5`, `manual_kream=3`.
 - [x] eBay scrape batch 재시도 후 Supabase count 확인: `price_observations where source_name='ebay_scrape' = 0`, `card_price_snapshots where source_name='ebay_scrape' = 0`. 최신 `price_collection_runs` 2개는 offset 0~49와 50~99 모두 `status=succeeded`, `observations_inserted=0`, `snapshots_created=0`, metadata에 batch 범위와 `aborted=false` 기록.
+- [x] KREAM direct evidence CSV 검증: data row 259개, 27컬럼, malformed 0개, sold 245개, `manual_kream` sold 139개. 같은 `/private/tmp/kream-direct-inbox.json` 재실행 dry-run은 `new rows: 0`, `skipped(dup): 115`로 중복 방지가 동작한다.
+- [x] KREAM Supabase 재대조 CSV 검증: data row 283개, 27컬럼, malformed 0개, `manual_kream` sold 163개. `kream-supabase-resolved-inbox-20260605.json` 재실행 dry-run은 `new rows: 0`, `skipped(dup): 28`이고, `scripts/collect-prices.ts --csv --dry-run`은 `parsed=269`, `resolved=269`, `snapshots=258`이다.
+- [x] KREAM 현대 세트 재대조 CSV 검증: data row 308개, 27컬럼, malformed 0개, `manual_kream` sold 188개. `kream-supabase-resolved-modern-inbox-20260605.json` 재실행 dry-run은 `new rows: 0`, `skipped(dup): 25`이고, `scripts/collect-prices.ts --csv --dry-run`은 `parsed=294`, `resolved=294`, `snapshots=281`이다. `pnpm lint`(기존 `packages/headless/dist` warning 7개), `pnpm exec tsc --noEmit`, `pnpm test --run`(269/269)이 통과했다.
 - [x] `pnpm dev` 후 `/categories/pokemon`·우선 카드 상세에서 실가격/차트 표시 확인. 2026-06-05 `next dev -p 3003`에서 `/categories/pokemon`과 `/cards/sv2a-bs2023014201-리자몽-ex` 렌더, 한국판 기본값, 판본 선택, 가격/표본/차트 영역, 콘솔 에러 없음 확인.
 
 ### 4. UI 구현
