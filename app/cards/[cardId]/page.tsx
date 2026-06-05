@@ -21,8 +21,6 @@ import { PriceHistoryChart } from './_components/PriceHistoryChart';
 import { CardRating } from './_components/CardRating';
 import { changeChipClass, formatChangeRate, TrendIcon } from '../_lib/price-change';
 
-export const dynamic = 'force-dynamic';
-
 // Re-exported for tests that exercise the pure geometry helper against `./page`.
 export { buildChartGeometry } from './_lib/price-chart';
 
