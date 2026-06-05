@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-06-03 (카테고리 추천순 가격 데이터 우선 정렬)
+> 마지막 갱신: 2026-06-05 (eBay scrape parser/challenge 진단)
 
 ## 현재 기준 PRD
 
@@ -12,7 +12,6 @@
 - `memory-bank/prd/category.md`
 - `memory-bank/prd/product-detail.md`
 - `memory-bank/prd/headless-ui.md`
-- `memory-bank/prd/price-data.md`
 
 ## 단계별 계획
 
@@ -91,28 +90,53 @@
 - [x] `lastSoldDate`, `lastSoldPrice`, `totalSoldQuantity`, condition, item/itemSales ID, item URL, seller/user 관련 필드 저장 최소화 정책 확정. → 가격·일자·상태·등급·item id/url·축소 raw_payload만 저장하고 seller/user 식별 정보는 저장하지 않도록 확정·구현.
 - [ ] 승인 후 `price_observations` import adapter와 collection run logging 구현. → Browse 기반 collection run logging은 구현(`collect-prices.ts`/cron). Marketplace Insights import adapter는 승인 전까지 scaffold(`EbayAccessNotGrantedError`)로 보류.
 
-### 4.15 eBay 가격 수집 + 일주일 가격 추적 차트
+### 3.5 한국판 전체 가격 수집 실행 (로컬 런북)
 
-- 영향 파일: `lib/pricing/**`, `lib/supabase/admin.ts`, `lib/tcg-catalog.ts`, `lib/tcg-data.ts`, `app/api/cron/collect-prices/route.ts`, `app/cards/[cardId]/page.tsx`, `scripts/collect-prices.ts`, `vercel.json`, `.env.example`, `.gitignore`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
-- 최소 변경 범위: 개인 개발자 제약상 sold API가 막혀 있으므로, 일별 시계열은 Browse API(판매중 호가) 일일 수집으로 누적하고 수동 CSV sold 실거래가를 차트 참조점으로 오버레이한다. 카드 상세의 정적 SVG 차트를 `card_price_snapshots` 실데이터 기반으로 교체한다. 시장/통화는 섞지 않는다.
-- [x] source-agnostic 어댑터 계약(`price-source.types.ts`)과 관측치→snapshot 집계(`aggregate.ts`, median 보정·신뢰도 임계값) 구현 + 단위 테스트.
-- [x] 수동 CSV import 파서(`csv-import.ts`, exclude_reason·단일 카드 규칙·printing 해소) + 단위 테스트.
-- [x] eBay OAuth(`ebay-oauth.ts`, client-credentials·토큰 캐시), Browse 어댑터(`browse-adapter.ts`), Marketplace Insights scaffold(`marketplace-insights-adapter.ts`) + fixture/단위 테스트.
-- [x] service-role 쓰기 클라이언트(`admin.ts`)와 일일 수집 오케스트레이션(`collect-prices.ts`) + Vercel Cron route(`CRON_SECRET` 검증) + `vercel.json` cron.
-- [x] 카드 상세 차트를 snapshot 시계열(asking 추세선 + sold 오버레이 + 빈 상태)로 교체, 통화별 표시.
-- [x] `.env.example`/`.gitignore` env 키 추가, `architecture.md`·`implementation-plan.md`·`progress.md` 갱신.
-- [x] `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
-- [ ] (배포 후) Vercel Cron 일 1회 가동으로 약 7일간 일별 asking series 누적 확인. Browse는 backfill 불가.
+- 영향 파일: `scripts/collect-prices.ts`, `lib/pricing/**`, `.env.local`(설정), `memory-bank/price-source-validation.csv`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`.
+- 목적: `card_price_snapshots`에 실데이터를 적재해 목록/상세의 "시세 정보 없음"을 실제 가격으로 전환한다. 범위 = 우선 카드 sold evidence + 자동 전체 asking 2트랙.
+- 제약: 실거래가 소스(PriceCharting/eBay/KREAM/번개/중고나라)는 Claude 환경(WebFetch)에서 전부 차단되므로 **수집은 한국 IP 로컬에서 사용자가 실행**한다. 가격 조작 금지(증거 없는 행은 만들지 않는다).
+- 현재 baseline(2026-06-04, Supabase `tcground` 조회): ko/KR 프린팅 3,668개 중 snapshot 보유 34개, total snapshot 113, observation 107. 기존 snapshot `source_name`은 구식 `aggregate`라 `--csv` 재import 시 소스별로 갱신된다.
+- 2026-06-05 batch/progress 변경: eBay scrape 전체 실행이 browser context 종료로 `partial/0`이었으므로, `--offset`, `--limit`, `--source-batch-size` 옵션을 추가해 50~100장 단위로 실행/기록/재시도 가능하게 바꿨다. 이어 offset 0~49, 50~99가 모두 succeeded/0이어서 단순 재시도 대신 parser/challenge를 점검했고, eBay live HTML의 `s-card` markup과 HTTP 200 browser verification page를 처리하도록 `lib/pricing/ebay/scrape-adapter.ts`를 보강했다. 영향 파일은 `scripts/collect-prices.ts`, `lib/pricing/collect-prices.ts`, `lib/pricing/collect-prices.test.ts`, `lib/pricing/ebay/scrape-adapter.ts`, `lib/pricing/ebay/scrape-adapter.test.ts`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`로 제한했다.
 
-### 4.21 페이지 이동 성능 최적화
+사전 준비
+- 한국/거주용 IP(VPN) 연결 — KREAM·eBay-scrape 차단 회피 필수.
+- Playwright chromium 준비됨(`chromium-1223` 캐시). 없으면 `npx playwright install chromium`.
+- (asking 전체 실데이터 시) `.env.local`을 `EBAY_ENV=production` + production `EBAY_CLIENT_ID/SECRET`로 교체. 현재 `EBAY_ENV=sandbox`라 Browse API 접근은 되지만 실제 listing snapshot은 기대하지 않는다.
+- `--fx`(KRW 환산) 사용 시 `.env.local`에 `KOREA_EXIM_FX_API_KEY` 필요. 현재 키 설정 후 CSV+FX 재적재는 완료됐다.
+- enable 상태(2026-06-05 확인): `KREAM_COLLECTION_ENABLED=true`, `BUNJANG_COLLECTION_ENABLED=true`, `EBAY_SCRAPE_ENABLED=true`, `GUARDIAN_API_KEY` 설정, `EBAY_MARKETPLACE_INSIGHTS_ENABLED=false`.
 
-- 영향 파일: `app/categories/[categoryId]/page.tsx`, `lib/tcg-catalog.ts`, 관련 테스트, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, 필요 시 `memory-bank/trouble-shooting.md`.
-- 최소 변경 범위: `/categories/pokemon` 이동이 느린 1차 원인은 route metadata와 본문 렌더가 카테고리 전체 데이터를 반복 조회하고, 기본 `추천순(best)`이 전체 포켓몬 카드와 전체 primary printing snapshot을 읽은 뒤 서버에서 정렬하기 때문이다. 이번 작업은 PRD의 추천순 기준(가격 데이터 우선, 표본 수 우선)을 유지하되, 메타데이터는 정적 문구로 처리하고, 추천순 목록은 가격 snapshot이 있는 후보를 먼저 작은 집합으로 조회한 뒤 부족분만 slug 순 fallback으로 채운다.
-- [x] `generateMetadata`에서 `getPokemonCategoryPageData()` 호출 제거.
-- [x] `best` 정렬 조회를 전체 catalog chunk scan + 전체 snapshot chunk fetch에서 snapshot 후보 기반 조회 + fallback pagination으로 변경.
-- [x] 가격 데이터 후보와 fallback 후보가 중복되지 않도록 merge하고, 필터/검색/페이지네이션/이름 정렬 동작을 유지.
-- [x] 성능 회귀 테스트 또는 기존 `lib/tcg-catalog` 테스트 갱신. 기존 view model/route 테스트와 runtime 측정으로 검증.
-- [x] `pnpm exec vitest run lib/tcg-catalog.test.ts app/categories/[categoryId]/page.test.tsx`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
+실행 (쓰기 전 항상 `--dry-run` 먼저)
+- [ ] 기존 검증 CSV evidence + asking import:
+  `node --env-file=.env.local --import tsx scripts/collect-prices.ts --csv --csv-asking`
+  (dry-run 검증 완료: sold parsed=109/resolved=109/snapshots=107, asking 9/9/5)
+- [x] 검증용 제한 실행 옵션 추가:
+  `node --env-file=.env.local --import tsx scripts/collect-prices.ts --browse --dry-run --limit 5`
+  결과: `cardsProcessed=5`, `ebay_browse` succeeded, `snapshotsUpserted=0`(sandbox listing 없음).
+- [x] 활성 source 제한 dry-run:
+  `node --env-file=.env.local --import tsx scripts/collect-prices.ts --dry-run --limit 2`
+  결과: `ebay_browse`, `bunjang`, `ebay_scrape`는 실패 없이 종료, `guardian_tcg`는 한국 카드 표본 404, `kream`은 500으로 실패. 전체 status는 `partial`.
+- [ ] 자동 전체 수집(핵심): `node --env-file=.env.local --import tsx scripts/collect-prices.ts`
+  = enabled 소스 전부(eBay Browse asking 전 3,668 + KREAM/eBay-scrape sold). Playwright 자동 기동.
+  - 2026-06-05 production 전환 없이 `--bunjang --ebay-scrape` 실제 쓰기를 실행했다. Bunjang은 succeeded로 26개 snapshot을 생성했고, eBay scrape는 browser context 종료로 partial/0 observations/0 snapshots라 후속 batch/progress 재시도가 필요하다. KREAM은 제한 dry-run에서 5/5 500이라 제외했다.
+- [x] eBay scrape batch/progress 재시도 옵션 추가:
+  `node --env-file=.env.local --import tsx scripts/collect-prices.ts --ebay-scrape --offset 0 --limit 50 --source-batch-size 50`
+  결과: `cardsProcessed=50`, `ebay_scrape` succeeded, batch metadata(`cardStart=0`, `cardEnd=49`, `sourceBatchSize=50`)가 `price_collection_runs.metadata`에 기록됨. 매칭된 sold observation/snapshot은 0건.
+- [x] eBay scrape 다음 batch 실행:
+  `node --env-file=.env.local --import tsx scripts/collect-prices.ts --ebay-scrape --offset 50 --limit 50 --source-batch-size 50`
+  결과: `cardsProcessed=50`, `ebay_scrape` succeeded, batch metadata(`cardStart=50`, `cardEnd=99`, `sourceBatchSize=50`)가 `price_collection_runs.metadata`에 기록됨. 매칭된 sold observation/snapshot은 0건.
+- [x] eBay scrape 0건 원인 점검:
+  live HTML probe 결과 기존 `s-item` selector가 현재 `s-card` search result markup을 읽지 못했고, eBay browser verification page가 HTTP 200으로 내려와 빈 결과처럼 처리될 수 있었다. `s-card` 파서와 challenge detection을 추가했으며, 수정 후 `--ebay-scrape --dry-run --offset 50 --limit 2 --source-batch-size 2`는 verification page를 `failed`로 기록한다.
+- [ ] (선택) 단일 소스 재시도: `--kream` / `--ebay-scrape` / `--browse`. 실패 batch만 재시도할 때는 `--offset <batch start> --limit <batch size> --source-batch-size <batch size>`를 같이 쓴다.
+
+우선 카드 부족분 (raw sold < 3, 2026-06-04 기준 28장) — 자동 sold 수집이 우선 채울 대상
+- `KR-020`(테라파고스 ex 237/187), `KR-028`(푸크린 ex 189/165), `KR-029`(리자몽 ex 139/108), `KR-032`(가디안 ex 348/190), `KR-033`(미라이돈 ex 358/190), `KR-034`(코라이돈 ex 360/190), `KR-035`(파오젠 ex 357/190), `KR-038`(코라이돈 ex 103/078), `KR-040`(코라이돈 ex 106/078), `KR-041`~`KR-046`(로켓단의 영광 SV10), `KR-047`~`KR-051`(블랙볼트/화이트플레어 SV11W·SV11B), `KR-052`~`KR-054`(SV9), `KR-055`·`KR-056`(오거폰 SV6), `KR-057`·`KR-058`(SV5a), `KR-059`·`KR-060`(SV7).
+
+검증
+- [x] 제한 dry-run 수치 정상 출력.
+- [x] Supabase 읽기로 dry-run 후 row count 유지 확인: `card_price_snapshots=112`, `price_observations=109`, `price_collection_runs=2`, `exchange_rates=1449`.
+- [x] 실제 쓰기 실행 후 Supabase 읽기로 `card_price_snapshots`/`price_collection_runs` 증가·소스별 status 확인. 최종 count: `card_price_snapshots=138`, `price_observations=109`, `price_collection_runs=4`, `exchange_rates=1449`. source별 snapshot: `pricecharting_ebay_sold=64`, `ebay_sold=30`, `bunjang=26`, `manual_bunjang=10`, `manual_joongna=5`, `manual_kream=3`.
+- [x] eBay scrape batch 재시도 후 Supabase count 확인: `price_observations where source_name='ebay_scrape' = 0`, `card_price_snapshots where source_name='ebay_scrape' = 0`. 최신 `price_collection_runs` 2개는 offset 0~49와 50~99 모두 `status=succeeded`, `observations_inserted=0`, `snapshots_created=0`, metadata에 batch 범위와 `aborted=false` 기록.
+- [x] `pnpm dev` 후 `/categories/pokemon`·우선 카드 상세에서 실가격/차트 표시 확인. 2026-06-05 `next dev -p 3003`에서 `/categories/pokemon`과 `/cards/sv2a-bs2023014201-리자몽-ex` 렌더, 한국판 기본값, 판본 선택, 가격/표본/차트 영역, 콘솔 에러 없음 확인.
 
 ### 4. UI 구현
 
@@ -297,6 +321,19 @@
 - [x] PR2 기준 `pnpm build:docs`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
 - [x] PR3 기준 `pnpm build:docs`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
 
+### 4.15 eBay 가격 수집 + 일주일 가격 추적 차트
+
+- 영향 파일: `lib/pricing/**`, `lib/supabase/admin.ts`, `lib/tcg-catalog.ts`, `lib/tcg-data.ts`, `app/api/cron/collect-prices/route.ts`, `app/cards/[cardId]/page.tsx`, `scripts/collect-prices.ts`, `vercel.json`, `.env.example`, `.gitignore`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: 개인 개발자 제약상 sold API가 막혀 있으므로, 일별 시계열은 Browse API(판매중 호가) 일일 수집으로 누적하고 수동 CSV sold 실거래가를 차트 참조점으로 오버레이한다. 카드 상세의 정적 SVG 차트를 `card_price_snapshots` 실데이터 기반으로 교체한다. 시장/통화는 섞지 않는다.
+- [x] source-agnostic 어댑터 계약(`price-source.types.ts`)과 관측치→snapshot 집계(`aggregate.ts`, median 보정·신뢰도 임계값) 구현 + 단위 테스트.
+- [x] 수동 CSV import 파서(`csv-import.ts`, exclude_reason·단일 카드 규칙·printing 해소) + 단위 테스트.
+- [x] eBay OAuth(`ebay-oauth.ts`, client-credentials·토큰 캐시), Browse 어댑터(`browse-adapter.ts`), Marketplace Insights scaffold(`marketplace-insights-adapter.ts`) + fixture/단위 테스트.
+- [x] service-role 쓰기 클라이언트(`admin.ts`)와 일일 수집 오케스트레이션(`collect-prices.ts`) + Vercel Cron route(`CRON_SECRET` 검증) + `vercel.json` cron.
+- [x] 카드 상세 차트를 snapshot 시계열(asking 추세선 + sold 오버레이 + 빈 상태)로 교체, 통화별 표시.
+- [x] `.env.example`/`.gitignore` env 키 추가, `architecture.md`·`implementation-plan.md`·`progress.md` 갱신.
+- [x] `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
+- [ ] (배포 후) Vercel Cron 일 1회 가동으로 약 7일간 일별 asking series 누적 확인. Browse는 backfill 불가.
+
 ### 4.16 핵심 UI primitive 직접 구현 전환
 
 - 영향 파일: `packages/ui/src/components/ui/button.tsx`, `packages/ui/src/components/ui/primitive.tsx`, `packages/ui/src/components/ui/button.test.tsx`, `packages/ui/src/components/ui/tabs.tsx`, `packages/ui/src/components/ui/tabs.test.tsx`, `packages/ui/src/components/ui/dialog.tsx`, `packages/ui/src/components/ui/dialog.test.tsx`, `apps/docs/docs/components/tabs.mdx`, `apps/docs/docs/components/dialog.mdx`, `memory-bank/architecture.md`, `memory-bank/prd/headless-ui.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
@@ -329,6 +366,89 @@
 - [x] `dialog.tsx`를 `role`/`dismissOnOverlayClick` 옵션으로 일반화하고 AlertDialog(`role=alertdialog`, overlay 클릭 미닫힘) / Sheet를 그 위에 구성 + ui wrapper 전환.
 - [x] 신규 headless 단위 테스트 추가, `index.ts` export와 README Components 목록 갱신.
 - [x] `pnpm exec tsc --noEmit`, `pnpm exec vitest run`, `pnpm lint`, `pnpm --filter @tcground/headless build`, `pnpm build:ui`, `pnpm build:docs`, `pnpm build-storybook` 검증.
+
+### 4.19 `/categories` 대분류 실데이터 전환 및 이미지 타일 재설계
+
+- 영향 파일: `app/categories/page.tsx`, `app/categories/page.test.tsx`, `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `lib/tcg-data.ts`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: `/categories` 대분류 목록의 fake 숫자 데이터를 제거하고, 포켓몬/유희왕/원피스/매직 더 개더링 기본 대분류를 항상 노출한다. Supabase에 연결된 게임은 실제 `tcg_games`/`cards`/`card_sets`/`card_printings`/`card_price_snapshots` 집계값을 표시하고, 아직 데이터가 없는 기본 대분류는 카드/세트/가격 기록을 0으로 표시한다. 화면은 기존 흰색 정보 카드에서 관련 이미지 배경 타일 중심으로 재설계한다.
+- [x] `lib/tcg-catalog.ts`에 `getTcgCategoryOverview`와 기본 대분류 병합 view model 추가.
+- [x] `cards`/`card_sets` 집계는 Supabase row 반환 길이가 아니라 게임별 exact count 쿼리(`head: true`, `count: exact`)를 우선 사용.
+- [x] `lib/tcg-data.ts`의 fake `tcgCategories` 제거.
+- [x] `/categories`를 Supabase 집계 기반 서버 페이지로 전환하고, 조회 실패 시 빈 상태 fallback 제공.
+- [x] 포켓몬/유희왕/매직은 기존 카테고리 이미지를 재사용하고, 원피스는 임시 해상 visual fallback으로 표시.
+- [x] 대분류 카드에서 카드/세트/가격 기록 0 값을 그대로 노출.
+- [x] `app/categories/page.test.tsx`, `lib/tcg-catalog.test.ts` 갱신.
+- [x] `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
+- [x] dev 서버 `http://localhost:3000/categories`에서 4개 대분류 타일, 0 값, console error/warning 없음 확인.
+
+### 4.20 가격 데이터 신뢰도/환율/차트 운영 계획
+
+- 영향 파일: `memory-bank/prd/plan.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/db-schema.md`, `memory-bank/architecture.md`, `memory-bank/trouble-shooting.md`, `memory-bank/price-source-validation.csv`, `lib/pricing/**`, `lib/tcg-catalog.ts`, `app/cards/[cardId]/page.tsx`, `scripts/collect-prices.ts`, `scripts/sync-price-worklist.ts`, `.env.example`, `supabase/migrations/202606030001_add_fx_price_display.sql`, Supabase MCP/CLI migration 기록.
+- 최소 변경 범위: 한국판 카탈로그는 현재 약 3,600개로 충분하므로 증설하지 않는다. 가격 데이터는 sold/asking을 분리하고, 자동으로 확실히 가져올 수 있는 eBay Browse asking daily snapshot을 P0 trend source로 둔다. sold는 검증 가능한 수동 CSV 또는 승인된 partner/API source만 사용한다. USD 등 외화 가격은 원천 통화와 원천 금액을 보존하고 기준일 환율로 KRW 표시값을 계산한다.
+- [x] 제품 PRD의 데이터/가격 기준을 카탈로그 증설 제외, sold/asking 분리, FX 환산 필수 기준으로 갱신.
+- [x] FX 저장 모델 SQL 작성: `exchange_rates`와 `card_price_snapshots`의 source/display 가격, `fx_rate_date`, `fx_provider` 컬럼, manual evidence source의 product id 중복을 허용하는 `price_observations` unique index 교체를 `supabase/migrations/202606030001_add_fx_price_display.sql`에 추가.
+- [x] Supabase MCP migration `add_fx_price_display`로 FX/display 가격 확장을 원격 DB에 적용.
+- [x] 한국수출입은행 환율 OpenAPI 기준 일별 rate fetch/import 코드와 테스트 추가.
+- [x] `price_observations` 원천 통화 보존, `card_price_snapshots` source/display 가격 분리 코드 추가. 원격 DB가 FX 컬럼 적용 전이면 legacy snapshot upsert로 fallback한다.
+- [x] 카드 상세 차트/요약 view model이 display 가격, 환율 기준일, sold/asking 구분, source, sample count, 데이터 부족 상태를 노출하도록 갱신.
+- [x] `memory-bank/price-source-validation.csv` 수동 sold/asking 적재 실행: 1차로 현 원격 legacy schema 기준 sold 관측치 41건 insert, sold snapshot 43개 upsert, asking snapshot 6개 upsert. 2026-06-03 재적재에서 verified sold `parsed=109/resolved=109/snapshots=107`, asking `parsed=9/resolved=9/snapshots=5`를 확인하고, sold 관측치 66건 추가 insert, sold snapshot 107건, asking snapshot 5건을 upsert했다.
+- [x] `KOREA_EXIM_FX_API_KEY` 설정 후 `scripts/collect-prices.ts --csv --csv-asking --fx`로 KRW display snapshot을 재적재하고, 기존 `source_item_id` unique index 때문에 보류된 manual KREAM grade별 관측치 2건을 추가 적재.
+  - 실제 적재 중 영업일 fallback으로 같은 `rate_date`가 중복된 FX row가 한 batch에 들어와 exchange-rate upsert가 실패하던 문제를 `upsertExchangeRates` dedupe로 수정했다.
+  - observation 재적재 중 source item/url bucket 중복 필터가 새 unique index와 정확히 맞지 않아 insert가 실패하던 문제를 item/url 양쪽 identity와 timestamp/price 정규화 기준으로 수정했다.
+  - 최종 실행 결과 exchange-rate row 1,449개 upsert, sold observation 2건 추가, sold snapshot 107개 upsert, asking snapshot 5개 upsert. 원격 검증 결과 snapshot 112개 전부 display 가격 보유, FX 환산 snapshot 99개.
+- [x] priority 카드 50~100개 수동 sold CSV 보강 workflow와 검증 체크리스트 작성.
+  - `memory-bank/price-source-validation.csv`의 `sample_id`는 공식 한국 카드 번호 기반 `PKMKR-<card_num>`으로 통일한다. 기존 `KR-*` priority 번호는 `raw_payload_json.worklist_id`에 보존하는 alias이며, 검증 관측치가 확보된 sample은 실제 evidence 행으로 기록하고, 아직 부족한 sample만 `source_name=pending`, `exclude_reason=pending_evidence` 스켈레톤으로 둔다.
+  - `pending_evidence` 행은 파서/집계가 건너뛰는 후보 행이다. source URL/item ID, 거래일, 원천 가격/통화, 상태/variant, `confidence_score >= 0.8` 근거가 채워지면 pending 행을 제거하고 실제 evidence 행만 남긴다.
+  - 카드당 1차 목표는 raw sold 표본 3개 이상이다. 표본 3개 미만이거나 세트/번호/언어/상태가 충돌하면 “실거래 데이터 부족” 또는 observation only로 유지한다.
+  - 증거 수집 순서는 KREAM/번개/중고나라/eBay sold 공개 표본을 사람이 확인하고, 자동화는 eBay Browse asking daily snapshot과 승인된 partner/API source만 허용한다.
+- [ ] `KR-011`~`KR-060` 실제 sold 표본 보강.
+  - [x] `KR-011`~`KR-019`, `KR-021`~`KR-027`, `KR-030`, `KR-031`: PriceCharting 개별 eBay completed-sale 행 기준 카드당 raw sold 3건 기록.
+  - [x] `KR-036`, `KR-037`, `KR-039`: PriceCharting 개별 eBay completed-sale 행 기준 카드당 raw sold 3건 기록.
+  - [ ] `KR-020`, `KR-028`, `KR-029`, `KR-032`~`KR-035`, `KR-038`, `KR-040`~`KR-060`: 공개 source raw sold 3건 미만 또는 직접 확인 미완료로 pending 유지.
+- [x] 전체 한국판 포켓몬 카탈로그 pending worklist 확장.
+  - Supabase `card_printings` 기준 한국판 프린팅 3,668개 중 기존 CSV에서 카드 identity로 이미 커버된 476개를 제외하고 `PKMKR-<external_ids.card_num>` sample id의 `pending_evidence` 행 3,192개를 추가했다.
+  - `PKMKR-*` 행은 실제 sold evidence가 아니라 증빙 대기 행이다. `source_name=pending`, `exclude_reason=pending_evidence`라 parser/import/snapshot 집계에서 제외된다.
+  - `scripts/sync-price-worklist.ts`는 CSV와 원격 한국판 카탈로그를 대조해 누락된 `PKMKR-*` pending 행만 추가한다. 후속 실제 evidence row가 `PKMKR-*`를 사용할 수 있도록 `getSampleIdToPrintingId`가 `external_ids.card_num` fallback 매핑을 제공한다.
+- [x] `price-source-validation.csv` sample id canonicalization.
+  - 기존 `KR-001`~`KR-060` evidence/pending 행 152개를 `PKMKR-<card_num>`으로 변환하고, 기존 번호는 `raw_payload_json.worklist_id`로 보존했다.
+  - 실제 evidence가 없고 세트/번호/희귀도 잠정값이던 `KR-061`~`KR-110` pending skeleton 50개는 제거했다. 해당 카드는 전체 카탈로그 `PKMKR-*` pending backlog에서 공식 `card_num` 기준으로 추적한다.
+  - CSV 검증 결과 data row 3,344개, malformed row 0개, `KR-*` sample id 0개.
+- [x] 수동 CSV sold snapshot source 보존과 sold/asking 분류 정리.
+  - `scripts/collect-prices.ts --csv`는 sold 관측치를 source별로 집계해 `ebay_sold`, `pricecharting_ebay_sold`, `manual_kream`, `manual_bunjang` 같은 원천을 `card_price_snapshots.source_name`에 보존한다.
+  - 상세 차트는 `aggregation_method`를 우선해 `manual_asking_median`/`*_asking_median`은 asking trend, `median_filtered`는 sold series로 분류한다. 따라서 같은 `source_name=manual_bunjang`라도 판매중 호가와 판매완료 evidence가 섞이지 않는다.
+- [ ] 배포 후 eBay Browse daily collection이 최소 7일 이상 누적되는지 확인.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
+
+### 4.21 카테고리 추천순 가격 데이터 우선 정렬
+
+- 영향 파일: `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `memory-bank/prd/category.md`, `memory-bank/prd/search-results.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: `/categories/pokemon`의 기본 `추천순`은 이름/slug 순이 아니라 가격 데이터가 있는 카드를 먼저 보여준다. 가격 데이터가 있는 카드끼리는 최신 표시 가격의 `sampleCount`가 많은 순으로 정렬하고, 동률은 기존 slug 순서를 유지한다. 명시적 이름 정렬(`name-asc`, `name-desc`)은 기존 동작을 유지한다. 전체 후보/프린팅 snapshot 조회는 Supabase/Cloudflare URL 한도를 넘지 않도록 chunk 단위로 수행한다.
+- [x] PRD에 기본 추천순 기준 요약 반영.
+- [x] `getPokemonCategoryPageData`의 `best` 정렬을 가격 데이터 우선으로 변경.
+- [x] 정렬 회귀 테스트 추가.
+- [x] `pnpm exec vitest run lib/tcg-catalog.test.ts`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build`, Playwright `/categories/pokemon` 런타임 검증.
+
+### 4.21 페이지 이동 성능 최적화
+
+- 영향 파일: `app/categories/[categoryId]/page.tsx`, `lib/tcg-catalog.ts`, 관련 테스트, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, 필요 시 `memory-bank/trouble-shooting.md`.
+- 최소 변경 범위: `/categories/pokemon` 이동이 느린 1차 원인은 route metadata와 본문 렌더가 카테고리 전체 데이터를 반복 조회하고, 기본 `추천순(best)`이 전체 포켓몬 카드와 전체 primary printing snapshot을 읽은 뒤 서버에서 정렬하기 때문이다. 이번 작업은 PRD의 추천순 기준(가격 데이터 우선, 표본 수 우선)을 유지하되, 메타데이터는 정적 문구로 처리하고, 추천순 목록은 가격 snapshot이 있는 후보를 먼저 작은 집합으로 조회한 뒤 부족분만 slug 순 fallback으로 채운다.
+- [x] `generateMetadata`에서 `getPokemonCategoryPageData()` 호출 제거.
+- [x] `best` 정렬 조회를 전체 catalog chunk scan + 전체 snapshot chunk fetch에서 snapshot 후보 기반 조회 + fallback pagination으로 변경.
+- [x] 가격 데이터 후보와 fallback 후보가 중복되지 않도록 merge하고, 필터/검색/페이지네이션/이름 정렬 동작을 유지.
+- [x] 성능 회귀 테스트 또는 기존 `lib/tcg-catalog` 테스트 갱신. 기존 view model/route 테스트와 runtime 측정으로 검증.
+- [x] `pnpm exec vitest run lib/tcg-catalog.test.ts app/categories/[categoryId]/page.test.tsx`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
+
+### 4.22 카드 판본 기본값/상세 선택
+
+- 영향 파일: `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `app/cards/[cardId]/page.tsx`, `app/cards/[cardId]/page.test.tsx`, `app/categories/[categoryId]/CardResults.tsx`, `next.config.ts`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: 카드 목록/인기 카드의 기본 이미지는 한국판(`ko/KR`) printing 및 한국 포켓몬센터 이미지(`cards.image.pokemonkorea.co.kr`)를 우선 사용한다. 상품 상세는 기본 한국판으로 열고, 같은 카드에 일본판(`ja/JP`) 또는 미국판/북미판(`en/NA`) printing이 있으면 선택 UI를 노출한다. 선택 시 해당 `card_printing_id`의 이미지, 가격 요약, 가격 차트를 조회해 한국/일본/미국 시세가 섞이지 않게 한다.
+- [x] 목록/인기 카드 이미지 fallback 우선순위를 한국판 printing 기준으로 정리.
+- [x] 상세 route에서 `edition=kr|jp|na` 쿼리를 파싱하고 기본값을 `kr`로 둔다.
+- [x] 상세 view model에 판본 옵션과 선택 판본 정보를 추가.
+- [x] 선택 판본의 `card_printing_id` 기준으로 snapshot을 조회하고 차트/가격 요약을 계산.
+- [x] 판본 선택 UI와 회귀 테스트 추가.
+- [x] Supabase MCP로 기존 일본판 이미지 URL 8개를 한국 포켓몬센터 이미지 URL로 갱신하고 `cards`/`card_printings`를 검증.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
 
 ### 5. 품질 게이트
 
@@ -417,58 +537,6 @@
 - [x] `node_modules/@tcground/ui`가 workspace symlink가 아니라 `.pnpm/@tcground+ui@0.1.0...` registry 설치본을 가리키는지 확인.
 - [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
 
-### 4.19 `/categories` 대분류 실데이터 전환 및 이미지 타일 재설계
-
-- 영향 파일: `app/categories/page.tsx`, `app/categories/page.test.tsx`, `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `lib/tcg-data.ts`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
-- 최소 변경 범위: `/categories` 대분류 목록의 fake 숫자 데이터를 제거하고, 포켓몬/유희왕/원피스/매직 더 개더링 기본 대분류를 항상 노출한다. Supabase에 연결된 게임은 실제 `tcg_games`/`cards`/`card_sets`/`card_printings`/`card_price_snapshots` 집계값을 표시하고, 아직 데이터가 없는 기본 대분류는 카드/세트/가격 기록을 0으로 표시한다. 화면은 기존 흰색 정보 카드에서 관련 이미지 배경 타일 중심으로 재설계한다.
-- [x] `lib/tcg-catalog.ts`에 `getTcgCategoryOverview`와 기본 대분류 병합 view model 추가.
-- [x] `cards`/`card_sets` 집계는 Supabase row 반환 길이가 아니라 게임별 exact count 쿼리(`head: true`, `count: exact`)를 우선 사용.
-- [x] `lib/tcg-data.ts`의 fake `tcgCategories` 제거.
-- [x] `/categories`를 Supabase 집계 기반 서버 페이지로 전환하고, 조회 실패 시 빈 상태 fallback 제공.
-- [x] 포켓몬/유희왕/매직은 기존 카테고리 이미지를 재사용하고, 원피스는 임시 해상 visual fallback으로 표시.
-- [x] 대분류 카드에서 카드/세트/가격 기록 0 값을 그대로 노출.
-- [x] `app/categories/page.test.tsx`, `lib/tcg-catalog.test.ts` 갱신.
-- [x] `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
-- [x] dev 서버 `http://localhost:3000/categories`에서 4개 대분류 타일, 0 값, console error/warning 없음 확인.
-
-### 4.20 가격 데이터 신뢰도/환율/차트 운영 계획
-
-- 영향 파일: `memory-bank/prd/price-data.md`, `memory-bank/prd/plan.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/db-schema.md`, `memory-bank/architecture.md`, `memory-bank/trouble-shooting.md`, `memory-bank/price-source-validation.csv`, `lib/pricing/**`, `lib/tcg-catalog.ts`, `app/cards/[cardId]/page.tsx`, `scripts/collect-prices.ts`, `scripts/sync-price-worklist.ts`, `.env.example`, `supabase/migrations/202606030001_add_fx_price_display.sql`, Supabase MCP/CLI migration 기록.
-- 최소 변경 범위: 한국판 카탈로그는 현재 약 3,600개로 충분하므로 증설하지 않는다. 가격 데이터는 sold/asking을 분리하고, 자동으로 확실히 가져올 수 있는 eBay Browse asking daily snapshot을 P0 trend source로 둔다. sold는 검증 가능한 수동 CSV 또는 승인된 partner/API source만 사용한다. USD 등 외화 가격은 원천 통화와 원천 금액을 보존하고 기준일 환율로 KRW 표시값을 계산한다.
-- [x] 가격 데이터 전략 PRD(`memory-bank/prd/price-data.md`) 작성.
-- [x] 제품 PRD의 데이터/가격 기준을 카탈로그 증설 제외, sold/asking 분리, FX 환산 필수 기준으로 갱신.
-- [x] FX 저장 모델 SQL 작성: `exchange_rates`와 `card_price_snapshots`의 source/display 가격, `fx_rate_date`, `fx_provider` 컬럼, manual evidence source의 product id 중복을 허용하는 `price_observations` unique index 교체를 `supabase/migrations/202606030001_add_fx_price_display.sql`에 추가.
-- [ ] Supabase MCP/CLI로 FX migration을 원격 DB에 적용.
-- [x] 한국수출입은행 환율 OpenAPI 기준 일별 rate fetch/import 코드와 테스트 추가.
-- [x] `price_observations` 원천 통화 보존, `card_price_snapshots` source/display 가격 분리 코드 추가. 원격 DB가 FX 컬럼 적용 전이면 legacy snapshot upsert로 fallback한다.
-- [x] 카드 상세 차트/요약 view model이 display 가격, 환율 기준일, sold/asking 구분, source, sample count, 데이터 부족 상태를 노출하도록 갱신.
-- [x] `memory-bank/price-source-validation.csv` 수동 sold/asking 적재 실행: 1차로 현 원격 legacy schema 기준 sold 관측치 41건 insert, sold snapshot 43개 upsert, asking snapshot 6개 upsert. 2026-06-03 재적재에서 verified sold `parsed=109/resolved=109/snapshots=107`, asking `parsed=9/resolved=9/snapshots=5`를 확인하고, sold 관측치 66건 추가 insert, sold snapshot 107건, asking snapshot 5건을 upsert했다.
-- [ ] FX migration 적용 후 `scripts/collect-prices.ts --csv --csv-asking --fx`로 KRW display snapshot을 재적재하고, 기존 `source_item_id` unique index 때문에 보류된 manual KREAM grade별 관측치 2건을 추가 적재.
-- [x] priority 카드 50~100개 수동 sold CSV 보강 workflow와 검증 체크리스트 작성.
-  - `memory-bank/price-source-validation.csv`는 `KR-001`~`KR-110`까지 worklist를 가진다. 검증 관측치가 확보된 sample은 실제 evidence 행으로 기록하고, 아직 부족한 sample만 `source_name=pending`, `exclude_reason=pending_evidence` 스켈레톤으로 둔다.
-  - `pending_evidence` 행은 파서/집계가 건너뛰는 후보 행이다. source URL/item ID, 거래일, 원천 가격/통화, 상태/variant, `confidence_score >= 0.8` 근거가 채워지면 pending 행을 제거하고 실제 evidence 행만 남긴다.
-  - 카드당 1차 목표는 raw sold 표본 3개 이상이다. 표본 3개 미만이거나 세트/번호/언어/상태가 충돌하면 “실거래 데이터 부족” 또는 observation only로 유지한다.
-  - 증거 수집 순서는 KREAM/번개/중고나라/eBay sold 공개 표본을 사람이 확인하고, 자동화는 eBay Browse asking daily snapshot과 승인된 partner/API source만 허용한다.
-- [ ] `KR-011`~`KR-060` 실제 sold 표본 보강.
-  - [x] `KR-011`~`KR-019`, `KR-021`~`KR-027`, `KR-030`, `KR-031`: PriceCharting 개별 eBay completed-sale 행 기준 카드당 raw sold 3건 기록.
-  - [x] `KR-036`, `KR-037`, `KR-039`: PriceCharting 개별 eBay completed-sale 행 기준 카드당 raw sold 3건 기록.
-  - [ ] `KR-020`, `KR-028`, `KR-029`, `KR-032`~`KR-035`, `KR-038`, `KR-040`~`KR-060`: 공개 source raw sold 3건 미만 또는 직접 확인 미완료로 pending 유지.
-- [x] 전체 한국판 포켓몬 카탈로그 pending worklist 확장.
-  - Supabase `card_printings` 기준 한국판 프린팅 3,668개 중 기존 CSV에서 카드 identity로 이미 커버된 476개를 제외하고 `PKMKR-<external_ids.card_num>` sample id의 `pending_evidence` 행 3,192개를 추가했다.
-  - `PKMKR-*` 행은 실제 sold evidence가 아니라 증빙 대기 행이다. `source_name=pending`, `exclude_reason=pending_evidence`라 parser/import/snapshot 집계에서 제외된다.
-  - `scripts/sync-price-worklist.ts`는 CSV와 원격 한국판 카탈로그를 대조해 누락된 `PKMKR-*` pending 행만 추가한다. 후속 실제 evidence row가 `PKMKR-*`를 사용할 수 있도록 `getSampleIdToPrintingId`가 `external_ids.card_num` fallback 매핑을 제공한다.
-- [ ] 배포 후 eBay Browse daily collection이 최소 7일 이상 누적되는지 확인.
-- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
-
-### 4.21 카테고리 추천순 가격 데이터 우선 정렬
-
-- 영향 파일: `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `memory-bank/prd/category.md`, `memory-bank/prd/search-results.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
-- 최소 변경 범위: `/categories/pokemon`의 기본 `추천순`은 이름/slug 순이 아니라 가격 데이터가 있는 카드를 먼저 보여준다. 가격 데이터가 있는 카드끼리는 최신 표시 가격의 `sampleCount`가 많은 순으로 정렬하고, 동률은 기존 slug 순서를 유지한다. 명시적 이름 정렬(`name-asc`, `name-desc`)은 기존 동작을 유지한다. 전체 후보/프린팅 snapshot 조회는 Supabase/Cloudflare URL 한도를 넘지 않도록 chunk 단위로 수행한다.
-- [x] PRD에 기본 추천순 기준 요약 반영.
-- [x] `getPokemonCategoryPageData`의 `best` 정렬을 가격 데이터 우선으로 변경.
-- [x] 정렬 회귀 테스트 추가.
-- [x] `pnpm exec vitest run lib/tcg-catalog.test.ts`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build`, Playwright `/categories/pokemon` 런타임 검증.
-
 ## 다음 작업
 
-최우선 다음 단계는 Supabase MCP/CLI로 `supabase/migrations/202606030001_add_fx_price_display.sql`을 원격 DB에 적용한 뒤 `scripts/collect-prices.ts --csv --csv-asking --fx`로 KRW display snapshot과 manual KREAM grade별 관측치 2건을 재적재하는 것이다. 이후 `KR-020`, `KR-028`, `KR-029`, `KR-032`~`KR-035`, `KR-038`, `KR-040`~`KR-060` priority pending worklist에서 카드별 source URL/item ID가 있는 sold 증거를 수동으로 채운다. 전체 카탈로그는 `PKMKR-*` pending backlog로 보유하되, 증거가 확보된 카드만 실제 evidence 행으로 승격한다. eBay Browse daily asking series가 배포 후 최소 7일 이상 누적되는지 확인한다. Marketplace Insights(sold) 자동 수집과 국내 source 자동화는 접근 승인/재사용 권한 확인 전까지 보류한다. 이후 카드 상세의 "관심 카드 추가"/"가격 알림" placeholder 버튼을 `favorite_cards` 기반 실제 기능으로 구현한다.
+최우선 다음 단계는 `raw_payload_json.worklist_id` 기준 `KR-020`, `KR-028`, `KR-029`, `KR-032`~`KR-035`, `KR-038`, `KR-040`~`KR-060` priority pending worklist에서 카드별 source URL/item ID가 있는 sold 증거를 수동으로 채우는 것이다. CSV `sample_id`와 전체 카탈로그 pending backlog는 `PKMKR-*`로 보유하되, 증거가 확보된 카드만 실제 evidence 행으로 승격한다. eBay Browse daily asking series가 배포 후 최소 7일 이상 누적되는지 확인한다. Marketplace Insights(sold) 자동 수집과 국내 source 자동화는 접근 승인/재사용 권한 확인 전까지 보류한다. 이후 카드 상세의 "관심 카드 추가"/"가격 알림" placeholder 버튼을 `favorite_cards` 기반 실제 기능으로 구현한다.

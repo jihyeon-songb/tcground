@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
         hostname: 'lh3.googleusercontent.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'images.pokemontcg.io',
+        pathname: '/**',
+      },
     ],
     formats: ['image/webp'],
     imageSizes: [64, 96, 128, 256, 384],

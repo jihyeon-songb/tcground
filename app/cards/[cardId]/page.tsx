@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@tcground/ui';
+import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
 import { createClient } from '@/lib/supabase/server';
@@ -10,6 +11,7 @@ import {
   getCardRatingSummary,
   getPriceTrendSeries,
   getViewerRating,
+  parseCardEdition,
   type CardRatingSummary,
   type CatalogCardDetail,
 } from '@/lib/tcg-catalog';
@@ -26,6 +28,9 @@ type ChangeTone = 'up' | 'down' | 'flat';
 
 interface CardDetailPageProps {
   params: Promise<{ cardId: string }>;
+  searchParams?: Promise<{
+    edition?: string | string[];
+  }>;
 }
 
 export async function generateMetadata({ params }: CardDetailPageProps): Promise<Metadata> {
@@ -45,9 +50,11 @@ export async function generateMetadata({ params }: CardDetailPageProps): Promise
   };
 }
 
-export default async function CardDetailPage({ params }: CardDetailPageProps) {
+export default async function CardDetailPage({ params, searchParams }: CardDetailPageProps) {
   const { cardId } = await params;
-  const card = await getCardDetailBySlug(cardId);
+  const { edition: rawEdition } = (await searchParams) ?? {};
+  const edition = parseCardEdition(rawEdition);
+  const card = await getCardDetailBySlug(cardId, undefined, { edition });
 
   if (!card) {
     notFound();
@@ -60,10 +67,14 @@ export default async function CardDetailPage({ params }: CardDetailPageProps) {
     supabase.auth.getClaims(),
   ]);
   const isAuthenticated = Boolean(claims.data?.claims?.sub);
+  const currentPath =
+    card.selectedEdition === 'kr'
+      ? `/cards/${cardId}`
+      : `/cards/${cardId}?edition=${card.selectedEdition}`;
 
   return (
     <div className='flex min-h-screen flex-col bg-[#f8f9fb] text-[#191c1e]'>
-      <PublicHeader currentPath={`/cards/${cardId}`} search={{ desktopOnly: true }} />
+      <PublicHeader currentPath={currentPath} search={{ desktopOnly: true }} />
 
       <main className='mx-auto w-full max-w-[1440px] flex-grow px-5 pt-6 pb-16 md:px-16'>
         <CardDetailContent
@@ -141,6 +152,8 @@ export function CardDetailContent({
             </h2>
           </div>
 
+          <EditionSelector card={card} />
+
           <div className='flex flex-col gap-4 rounded-2xl bg-white p-8'>
             <div className='flex flex-col gap-1'>
               <span className='text-sm leading-none font-semibold tracking-wider text-[#535f73] uppercase'>
@@ -155,9 +168,7 @@ export function CardDetailContent({
                     card.price.changeTone,
                   )}`}
                 >
-                  <span className='material-symbols-outlined text-[16px] leading-none' aria-hidden>
-                    {trendIcon(card.price.changeTone)}
-                  </span>
+                  <TrendIcon tone={card.price.changeTone} />
                   {formatChangeRate(card.price.changeRate)}
                 </span>
               </div>
@@ -238,6 +249,55 @@ export function CardDetailContent({
   );
 }
 
+function EditionSelector({ card }: { card: CatalogCardDetail }) {
+  return (
+    <section aria-labelledby='edition-selector-heading' className='flex flex-col gap-3'>
+      <h3
+        id='edition-selector-heading'
+        className='text-sm leading-none font-semibold tracking-wider text-[#535f73] uppercase'
+      >
+        판본
+      </h3>
+      <div className='inline-flex w-fit rounded-lg border border-[#d4d8dd] bg-white p-1'>
+        {card.editionOptions.map((option) => {
+          const className = `inline-flex min-w-20 items-center justify-center rounded-md px-4 py-2 text-sm font-bold transition-colors ${
+            option.isSelected
+              ? 'bg-[#bb001a] text-white shadow-sm'
+              : 'text-[#535f73] hover:bg-[#f2f4f6] hover:text-[#191c1e]'
+          }`;
+
+          if (!option.isAvailable) {
+            return (
+              <span
+                key={option.value}
+                aria-disabled='true'
+                className='inline-flex min-w-20 items-center justify-center rounded-md px-4 py-2 text-sm font-bold text-[#9aa5b1]'
+              >
+                {option.label}
+              </span>
+            );
+          }
+
+          return (
+            <Link
+              key={option.value}
+              href={editionHref(card.slug, option.value)}
+              aria-current={option.isSelected ? 'page' : undefined}
+              className={className}
+            >
+              {option.label}
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function editionHref(slug: string, edition: string): string {
+  return edition === 'kr' ? `/cards/${slug}` : `/cards/${slug}?edition=${edition}`;
+}
+
 function CardArtPanel({ card }: { card: CatalogCardDetail }) {
   if (card.imageUrl) {
     return (
@@ -292,10 +352,9 @@ function changeChipClass(tone: ChangeTone): string {
   return 'bg-[#e6e8ea] text-[#535f73]';
 }
 
-function trendIcon(tone: ChangeTone): string {
-  if (tone === 'up') return 'trending_up';
-  if (tone === 'down') return 'trending_down';
-  return 'trending_flat';
+function TrendIcon({ tone }: { tone: ChangeTone }) {
+  const Icon = tone === 'up' ? TrendingUp : tone === 'down' ? TrendingDown : Minus;
+  return <Icon aria-hidden className='size-4' strokeWidth={2.5} />;
 }
 
 function formatChangeRate(rate: number) {

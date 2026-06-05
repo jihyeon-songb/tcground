@@ -2,9 +2,9 @@
  * Daily price collection orchestration.
  *
  * Loads the catalog cards and runs every *enabled* price source over them:
- *   - asking sources (eBay Browse, 네이버 쇼핑, 번개장터) → daily asking snapshots
- *   - sold sources (KREAM 체결, eBay 스크래핑) → observations → aggregated snapshots
- *   - reference sources (Guardian TCG) → estimate snapshots (cross-validation)
+ *   - eBay Browse → daily asking snapshots
+ *   - gated domestic/listing scaffolds → disabled unless compliant access is enabled
+ *   - manual sold/asking evidence → imported through `scripts/collect-prices.ts --csv*`
  *
  * Each source is independently gated: it only runs when its credentials / enable
  * flag are present, so the cron route can call `collectDailyPrices()` with no
@@ -64,12 +64,31 @@ export interface CollectPricesOptions {
   dryRun?: boolean;
   snapshotDate?: string;
   fetchImpl?: typeof fetch;
+  /** Optional local-run offset for retrying a catalog window. */
+  cardOffset?: number;
+  /** Optional local-run guard for verifying or retrying a catalog subset. */
+  cardLimit?: number;
+  /** Optional per-source batch size. Each batch writes its own run record. */
+  sourceBatchSize?: number;
   /** Restrict the run to these source names (defaults to all enabled sources). */
   only?: readonly string[];
   /** Preloaded FX rows. When omitted, `exchange_rates` is read as needed. */
   exchangeRates?: readonly ExchangeRateInput[];
   /** Display currency for converted price summaries. Defaults to KRW. */
   displayCurrency?: string;
+  /** Optional progress hook used by the local CLI for long-running sources. */
+  onProgress?: (event: SourceBatchProgress) => void;
+}
+
+export interface SourceBatchProgress {
+  sourceName: string;
+  batchIndex: number;
+  batchCount: number;
+  cardOffset: number;
+  cardStart: number;
+  cardEnd: number;
+  cardCount: number;
+  status?: SourceRunResult['status'];
 }
 
 interface CardPrintingPick {
@@ -148,34 +167,52 @@ export async function getCardQueries(supabase: SupabaseClient): Promise<CardQuer
 /**
  * Builds a CSV sample id → `card_printings.id` map for CSV resolution.
  *
- * Priority worklist rows use explicit `external_ids.sample_id` values (`KR-*`).
- * Full-catalog pending rows derive a stable id from the official Korean card
- * number as `PKMKR-<card_num>`, so later evidence rows can resolve without
- * mutating every existing `card_printings.external_ids` payload.
+ * CSV rows use a stable id derived from the official Korean card number as
+ * `PKMKR-<card_num>`. Legacy `external_ids.sample_id` aliases (`KR-*`) are still
+ * accepted so older seeded rows can resolve while the CSV remains canonical.
  */
 export async function getSampleIdToPrintingId(
   supabase: SupabaseClient,
 ): Promise<Map<string, string>> {
-  const { data, error } = await supabase.from('card_printings').select('id, external_ids');
-
-  if (error) {
-    throw new Error(`Failed to load card printings: ${error.message}`);
-  }
-
   const map = new Map<string, string>();
-  for (const row of (data ?? []) as Array<{
-    id: string;
-    external_ids: Record<string, unknown> | null;
-  }>) {
-    const sampleId = row.external_ids?.sample_id;
-    if (typeof sampleId === 'string' && sampleId.length > 0) {
-      map.set(sampleId, row.id);
+
+  // Supabase caps a single select at 1000 rows, so the full printing set is
+  // paged — otherwise printings past the first page (e.g. catalog cards with
+  // late ids) are missing from the map and their CSV rows fail to resolve.
+  for (let from = 0; ; from += CARD_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('card_printings')
+      .select('id, set_code, external_ids')
+      .order('id', { ascending: true })
+      .range(from, from + CARD_PAGE_SIZE - 1);
+
+    if (error) {
+      throw new Error(`Failed to load card printings: ${error.message}`);
     }
 
-    const koreanCardNum = row.external_ids?.card_num;
-    if (typeof koreanCardNum === 'string' && koreanCardNum.length > 0) {
-      map.set(`PKMKR-${koreanCardNum}`, row.id);
+    const rows = (data ?? []) as Array<{
+      id: string;
+      set_code: string | null;
+      external_ids: Record<string, unknown> | null;
+    }>;
+
+    for (const row of rows) {
+      const sampleId = row.external_ids?.sample_id;
+      if (typeof sampleId === 'string' && sampleId.length > 0) {
+        map.set(sampleId, row.id);
+      }
+
+      const koreanCardNum = row.external_ids?.card_num;
+      if (typeof koreanCardNum === 'string' && koreanCardNum.length > 0) {
+        map.set(`PKMKR-${koreanCardNum}`, row.id);
+      }
+
+      if (typeof row.set_code === 'string' && /^BS\d+$/.test(row.set_code)) {
+        map.set(`PKMKR-${row.set_code}`, row.id);
+      }
     }
+
+    if (rows.length < CARD_PAGE_SIZE) break;
   }
 
   return map;
@@ -187,12 +224,16 @@ export async function collectDailyPrices(
   options: CollectPricesOptions = {},
 ): Promise<CollectPricesResult> {
   const snapshotDate = options.snapshotDate ?? new Date().toISOString().slice(0, 10);
-  const cards = await getCardQueries(supabase);
+  const allCards = await getCardQueries(supabase);
+  const cards = selectCardWindow(allCards, {
+    cardOffset: options.cardOffset,
+    cardLimit: options.cardLimit,
+  });
 
   const sources = buildSourceRunners(snapshotDate, options.fetchImpl);
-  // Browser-only sources (KREAM, eBay scrape) are blocked from datacenter IPs, so
-  // they run only when a (browser) fetch is injected — i.e. the local script path,
-  // never the Vercel Cron route which calls without one.
+  // Browser-only/gated sources (KREAM, eBay scrape) are blocked from datacenter
+  // IPs and require compliant access, so they run only when a browser fetch is
+  // injected — i.e. the local script path, never the Vercel Cron route.
   const reachable = options.fetchImpl
     ? sources
     : sources.filter((source) => !source.requiresBrowser);
@@ -211,6 +252,9 @@ export async function collectDailyPrices(
       await runSource(supabase, source, cards, snapshotDate, options.dryRun ?? false, {
         displayCurrency: options.displayCurrency,
         exchangeRates: options.exchangeRates,
+        sourceBatchSize: options.sourceBatchSize,
+        cardOffset: options.cardOffset ?? 0,
+        onProgress: options.onProgress,
       }),
     );
   }
@@ -228,6 +272,26 @@ export async function collectDailyPrices(
     status: resolveOverallStatus(sourceResults),
     sources: sourceResults,
   };
+}
+
+export function selectCardWindow<T>(
+  cards: readonly T[],
+  options: Pick<CollectPricesOptions, 'cardOffset' | 'cardLimit'>,
+): T[] {
+  const offset = options.cardOffset ?? 0;
+  const limit = options.cardLimit;
+  return limit ? cards.slice(offset, offset + limit) : cards.slice(offset);
+}
+
+export function splitIntoSourceBatches<T>(cards: readonly T[], batchSize?: number): T[][] {
+  if (cards.length === 0) return [];
+  if (!batchSize || batchSize >= cards.length) return [cards.slice()];
+
+  const batches: T[][] = [];
+  for (let start = 0; start < cards.length; start += batchSize) {
+    batches.push(cards.slice(start, start + batchSize));
+  }
+  return batches;
 }
 
 /** Upserts snapshots into `card_price_snapshots`, returning the count written. */
@@ -263,7 +327,7 @@ export async function upsertExchangeRates(
 ): Promise<number> {
   if (rates.length === 0) return 0;
 
-  const rows = rates.map((rate) => ({
+  const rows = uniqueExchangeRates(rates).map((rate) => ({
     base_currency: rate.baseCurrency,
     quote_currency: rate.quoteCurrency,
     rate: rate.rate,
@@ -282,6 +346,17 @@ export async function upsertExchangeRates(
   }
 
   return rows.length;
+}
+
+function uniqueExchangeRates(rates: readonly ExchangeRateInput[]): ExchangeRateInput[] {
+  const byKey = new Map<string, ExchangeRateInput>();
+  for (const rate of rates) {
+    byKey.set(
+      `${rate.baseCurrency}|${rate.quoteCurrency}|${rate.rateDate}|${rate.provider}`,
+      rate,
+    );
+  }
+  return Array.from(byKey.values());
 }
 
 /**
@@ -346,7 +421,7 @@ function buildSourceRunners(snapshotDate: string, fetchImpl?: typeof fetch): Sou
             cardName: card.cardName,
             collectorNumber: card.collectorNumber,
           },
-          { snapshotDate, fetchImpl },
+          { snapshotDate },
         );
         return snapshot ? [snapshot] : [];
       },
@@ -360,7 +435,7 @@ function buildSourceRunners(snapshotDate: string, fetchImpl?: typeof fetch): Sou
         collectBunjangSnapshots(
           buildKoreanKeyword(card),
           { cardPrintingId: card.cardPrintingId, snapshotDate },
-          { snapshotDate, fetchImpl },
+          { snapshotDate },
         ),
     },
     {
@@ -375,7 +450,7 @@ function buildSourceRunners(snapshotDate: string, fetchImpl?: typeof fetch): Sou
             cardName: card.cardName,
             collectorNumber: card.collectorNumber,
           },
-          { snapshotDate, fetchImpl },
+          { snapshotDate },
         ),
     },
     {
@@ -430,12 +505,104 @@ async function runSource(
   cards: readonly CardQuery[],
   snapshotDate: string,
   dryRun: boolean,
-  options: Pick<CollectPricesOptions, 'displayCurrency' | 'exchangeRates'> = {},
+  options: Pick<
+    CollectPricesOptions,
+    'displayCurrency' | 'exchangeRates' | 'sourceBatchSize' | 'cardOffset' | 'onProgress'
+  > = {},
 ): Promise<SourceRunResult> {
+  const batches = splitIntoSourceBatches(cards, options.sourceBatchSize);
+  const aggregate: SourceRunResult = {
+    sourceName: source.sourceName,
+    snapshotsUpserted: 0,
+    observationsCollected: 0,
+    failures: [],
+    status: 'succeeded',
+  };
+  const batchStatuses: SourceRunResult['status'][] = [];
+
+  for (let batchIndex = 0; batchIndex < batches.length; batchIndex += 1) {
+    const batch = batches[batchIndex];
+    const relativeStart = batchIndex * (options.sourceBatchSize ?? cards.length);
+    const cardStart = (options.cardOffset ?? 0) + relativeStart;
+    const cardEnd = cardStart + batch.length - 1;
+
+    options.onProgress?.({
+      sourceName: source.sourceName,
+      batchIndex: batchIndex + 1,
+      batchCount: batches.length,
+      cardOffset: options.cardOffset ?? 0,
+      cardStart,
+      cardEnd,
+      cardCount: batch.length,
+    });
+
+    const result = await runSourceBatch(
+      supabase,
+      source,
+      batch,
+      snapshotDate,
+      dryRun,
+      {
+        displayCurrency: options.displayCurrency,
+        exchangeRates: options.exchangeRates,
+      },
+      {
+        batchIndex: batchIndex + 1,
+        batchCount: batches.length,
+        cardOffset: options.cardOffset ?? 0,
+        cardStart,
+        cardEnd,
+        cardCount: batch.length,
+        sourceBatchSize: options.sourceBatchSize ?? null,
+      },
+    );
+
+    aggregate.snapshotsUpserted += result.snapshotsUpserted;
+    aggregate.observationsCollected += result.observationsCollected;
+    aggregate.failures.push(...result.failures);
+    batchStatuses.push(result.status);
+
+    options.onProgress?.({
+      sourceName: source.sourceName,
+      batchIndex: batchIndex + 1,
+      batchCount: batches.length,
+      cardOffset: options.cardOffset ?? 0,
+      cardStart,
+      cardEnd,
+      cardCount: batch.length,
+      status: result.status,
+    });
+
+    if (result.aborted) break;
+  }
+
+  aggregate.status = resolveBatchStatuses(batchStatuses);
+  return aggregate;
+}
+
+/** Runs one source over one card batch, upserts its data, and records the batch. */
+async function runSourceBatch(
+  supabase: SupabaseClient,
+  source: SourceRunner,
+  cards: readonly CardQuery[],
+  snapshotDate: string,
+  dryRun: boolean,
+  options: Pick<CollectPricesOptions, 'displayCurrency' | 'exchangeRates'>,
+  batch: {
+    batchIndex: number;
+    batchCount: number;
+    cardOffset: number;
+    cardStart: number;
+    cardEnd: number;
+    cardCount: number;
+    sourceBatchSize: number | null;
+  },
+): Promise<SourceRunResult & { aborted: boolean }> {
   const startedAt = new Date().toISOString();
   const failures: SourceRunResult['failures'] = [];
   const snapshots: SnapshotAggregate[] = [];
   const observations: PriceObservationInput[] = [];
+  let aborted = false;
 
   for (let i = 0; i < cards.length; i += 1) {
     const card = cards[i];
@@ -446,7 +613,12 @@ async function runSource(
         observations.push(...(await (source.collect as SoldCollector)(card)));
       }
     } catch (error) {
-      failures.push({ cardPrintingId: card.cardPrintingId, error: errorMessage(error) });
+      const message = errorMessage(error);
+      failures.push({ cardPrintingId: card.cardPrintingId, error: message });
+      if (source.requiresBrowser && isBrowserContextClosedError(message)) {
+        aborted = true;
+        break;
+      }
     }
     if (source.delayMs && i < cards.length - 1) {
       await sleep(source.delayMs);
@@ -478,6 +650,7 @@ async function runSource(
       snapshotsUpserted,
       observationsInserted,
       failures,
+      metadata: { batch, aborted },
     });
   }
 
@@ -487,6 +660,7 @@ async function runSource(
     observationsCollected: observations.length,
     failures,
     status,
+    aborted,
   };
 }
 
@@ -613,17 +787,17 @@ async function filterNewObservationRows(
   const rows = observations.map(toObservationRow);
   const seen = new Set<string>();
   const uniqueRows = rows.filter((row) => {
-    const key = observationIdentity(row);
-    if (!key) return true;
-    if (seen.has(key)) return false;
-    seen.add(key);
+    const keys = observationIdentities(row);
+    if (keys.length === 0) return true;
+    if (keys.some((key) => seen.has(key))) return false;
+    keys.forEach((key) => seen.add(key));
     return true;
   });
 
   const existing = await loadExistingObservationIdentities(supabase, uniqueRows);
   return uniqueRows.filter((row) => {
-    const key = observationIdentity(row);
-    return !key || !existing.has(key);
+    const keys = observationIdentities(row);
+    return keys.length === 0 || keys.every((key) => !existing.has(key));
   });
 }
 
@@ -653,8 +827,7 @@ async function loadExistingObservationIdentities(
       .in('source_item_id', itemIds);
     if (error) throw new Error(`Failed to check existing observations: ${error.message}`);
     for (const row of (data ?? []) as ObservationIdentityRow[]) {
-      const key = observationIdentity(row);
-      if (key) existing.add(key);
+      observationIdentities(row).forEach((key) => existing.add(key));
     }
   }
 
@@ -668,8 +841,7 @@ async function loadExistingObservationIdentities(
       .in('source_url', urls);
     if (error) throw new Error(`Failed to check existing observations: ${error.message}`);
     for (const row of (data ?? []) as ObservationIdentityRow[]) {
-      const key = observationIdentity(row);
-      if (key) existing.add(key);
+      observationIdentities(row).forEach((key) => existing.add(key));
     }
   }
 
@@ -751,29 +923,41 @@ interface ObservationIdentityRow {
   grade_value?: string | null;
 }
 
-function observationIdentity(row: ObservationIdentityRow): string | null {
-  const sourceKey = row.source_item_id
-    ? `item:${row.source_item_id}`
-    : row.source_url
-      ? `url:${row.source_url}`
-      : null;
-  if (!sourceKey) return null;
+function observationIdentities(row: ObservationIdentityRow): string[] {
+  const sourceKeys = [
+    row.source_item_id ? `item:${row.source_item_id}` : null,
+    row.source_url ? `url:${row.source_url}` : null,
+  ].filter((value): value is string => Boolean(value));
 
-  return [
-    row.source_name,
-    sourceKey,
-    row.sold_at ?? '',
-    row.sold_price ?? '',
-    row.variant ?? '',
-    row.grade_company ?? '',
-    row.grade_value ?? '',
-  ].join('|');
+  return sourceKeys.map((sourceKey) =>
+    [
+      row.source_name,
+      sourceKey,
+      normalizeIdentityTimestamp(row.sold_at),
+      normalizeIdentityNumber(row.sold_price),
+      row.variant ?? '',
+      row.grade_company ?? '',
+      row.grade_value ?? '',
+    ].join('|'),
+  );
 }
 
 function legacyObservationIdentity(row: ObservationIdentityRow): string | null {
   if (row.source_item_id) return `${row.source_name}|item:${row.source_item_id}`;
   if (row.source_url) return `${row.source_name}|url:${row.source_url}`;
   return null;
+}
+
+function normalizeIdentityTimestamp(value: string | null | undefined): string {
+  if (!value) return '';
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString();
+}
+
+function normalizeIdentityNumber(value: number | string | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '';
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed.toString() : String(value);
 }
 
 function toObservationRow(observation: PriceObservationInput) {
@@ -848,6 +1032,7 @@ async function recordRun(
     snapshotsUpserted: number;
     observationsInserted: number;
     failures: SourceRunResult['failures'];
+    metadata?: Record<string, unknown>;
   },
 ): Promise<void> {
   await supabase.from('price_collection_runs').insert({
@@ -859,7 +1044,7 @@ async function recordRun(
     observations_inserted: run.observationsInserted,
     snapshots_created: run.snapshotsUpserted,
     error_message: run.failures.length > 0 ? `${run.failures.length} card(s) failed` : null,
-    metadata: { failures: run.failures.slice(0, 10) },
+    metadata: { ...run.metadata, failures: run.failures.slice(0, 10) },
   });
 }
 
@@ -896,6 +1081,14 @@ function resolveOverallStatus(results: readonly SourceRunResult[]): CollectPrice
   return 'succeeded';
 }
 
+function resolveBatchStatuses(statuses: readonly SourceRunResult['status'][]): SourceRunResult['status'] {
+  const ran = statuses.filter((status) => status !== 'skipped');
+  if (ran.length === 0) return 'succeeded';
+  if (ran.every((status) => status === 'failed')) return 'failed';
+  if (ran.some((status) => status === 'failed' || status === 'partial')) return 'partial';
+  return 'succeeded';
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -915,6 +1108,15 @@ function isMissingSnapshotDisplayColumn(message: string): boolean {
 
 function isLegacySourceItemUniqueViolation(message: string): boolean {
   return message.includes('price_observations_source_item_unique_idx');
+}
+
+function isBrowserContextClosedError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    lower.includes('target page, context or browser has been closed') ||
+    lower.includes('browser has been closed') ||
+    lower.includes('context has been closed')
+  );
 }
 
 function shiftDate(date: string, days: number): string {

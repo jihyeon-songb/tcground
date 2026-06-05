@@ -12,6 +12,8 @@
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --csv-asking
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --csv --fx
  *   add --dry-run to compute without writing to the DB.
+ *   add --offset N --limit N to verify/retry a catalog window.
+ *   add --source-batch-size N to write one run record per source batch.
  *
  * Source flags (--browse/--guardian/--kream/--bunjang/--ebay-scrape) restrict the
  * run to those sources; with none, every *enabled* source runs (same as cron).
@@ -42,7 +44,10 @@ import {
   parsePriceValidationCsv,
   resolveCardPrintingIds,
 } from '../lib/pricing/csv-import';
-import { aggregateAskingObservations, aggregateObservations } from '../lib/pricing/aggregate';
+import {
+  aggregateAskingObservations,
+  aggregateObservationsBySource,
+} from '../lib/pricing/aggregate';
 import { fetchKoreaEximExchangeRates, type ExchangeRateInput } from '../lib/pricing/fx';
 import type { ParsedPriceObservation } from '../lib/pricing/price-source.types';
 
@@ -67,6 +72,10 @@ async function main(): Promise<void> {
   const runCsv = args.has('--csv');
   const runCsvAsking = args.has('--csv-asking');
   const runFx = args.has('--fx');
+  const cliArgs = process.argv.slice(2);
+  const cardOffset = parseNonNegativeIntOption(cliArgs, '--offset') ?? 0;
+  const cardLimit = parsePositiveIntOption(cliArgs, '--limit');
+  const sourceBatchSize = parsePositiveIntOption(cliArgs, '--source-batch-size');
 
   const only = Object.entries(SOURCE_FLAGS)
     .filter(([flag]) => args.has(flag))
@@ -91,9 +100,13 @@ async function main(): Promise<void> {
   if (runCsv) {
     const printingIds = await getSampleIdToPrintingId(supabase);
     const observations = resolveCardPrintingIds(parsedSold, printingIds);
-    const snapshots = await attachDisplayPrices(supabase, aggregateObservations(observations), {
-      exchangeRates,
-    });
+    const snapshots = await attachDisplayPrices(
+      supabase,
+      aggregateObservationsBySource(observations),
+      {
+        exchangeRates,
+      },
+    );
 
     console.log(
       `[csv] parsed=${parsedSold.length} resolved=${observations.length} snapshots=${snapshots.length} dryRun=${dryRun}`,
@@ -139,11 +152,24 @@ async function main(): Promise<void> {
     }
 
     try {
+      console.log(
+        `[collect] dryRun=${dryRun} sources=${only.length > 0 ? only.join(',') : 'enabled'} offset=${cardOffset} limit=${cardLimit ?? 'all'} sourceBatchSize=${sourceBatchSize ?? 'all'}`,
+      );
       const result = await collectDailyPrices(supabase, {
         dryRun,
         only: only.length > 0 ? only : undefined,
         fetchImpl: browser?.fetch,
         exchangeRates,
+        cardOffset,
+        cardLimit,
+        sourceBatchSize,
+        onProgress: (event) => {
+          const range = `${event.cardStart}-${event.cardEnd}`;
+          const status = event.status ? ` status=${event.status}` : '';
+          console.log(
+            `[collect:${event.sourceName}] batch=${event.batchIndex}/${event.batchCount} cards=${range} count=${event.cardCount}${status}`,
+          );
+        },
       });
       console.log('[collect]', JSON.stringify(result, null, 2));
     } finally {
@@ -197,4 +223,35 @@ function toDateString(value: string): string | null {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed.toISOString().slice(0, 10);
+}
+
+function parsePositiveIntOption(args: readonly string[], flag: string): number | undefined {
+  const value = parseIntegerOption(args, flag);
+  if (value === undefined) return undefined;
+  if (value <= 0) {
+    throw new Error(`${flag} requires a positive integer value`);
+  }
+  return value;
+}
+
+function parseNonNegativeIntOption(args: readonly string[], flag: string): number | undefined {
+  const value = parseIntegerOption(args, flag);
+  if (value === undefined) return undefined;
+  if (value < 0) {
+    throw new Error(`${flag} requires a non-negative integer value`);
+  }
+  return value;
+}
+
+function parseIntegerOption(args: readonly string[], flag: string): number | undefined {
+  const index = args.indexOf(flag);
+  if (index === -1) return undefined;
+
+  const raw = args[index + 1];
+  const value = Number(raw);
+  if (!Number.isInteger(value)) {
+    throw new Error(`${flag} requires an integer value`);
+  }
+
+  return value;
 }

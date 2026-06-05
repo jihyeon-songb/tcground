@@ -68,7 +68,7 @@ function makeCard({
     setSlug: 'pokemon-kr-151',
     rarity: 'SAR',
     collectorNumber: '201/165',
-    sampleId: 'KR-004',
+    sampleId: 'PKMKR-BS2023014201',
     imageUrl,
     price: {
       avgPrice,

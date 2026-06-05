@@ -3,7 +3,15 @@ import type { PricePoint } from '@/lib/tcg-catalog';
 import { filterSeriesByPeriod } from './price-chart';
 
 function point(date: string, avgPrice = 100): PricePoint {
-  return { date, avgPrice, minPrice: avgPrice, maxPrice: avgPrice, sampleCount: 1, currency: 'USD' };
+  return {
+    date,
+    avgPrice,
+    minPrice: avgPrice,
+    maxPrice: avgPrice,
+    sampleCount: 1,
+    currency: 'USD',
+    sourceNames: ['ebay_browse'],
+  };
 }
 
 describe('filterSeriesByPeriod', () => {

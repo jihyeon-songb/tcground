@@ -63,11 +63,21 @@ export function buildEbaySoldSearchUrl(keyword: string): string {
   return url.toString();
 }
 
-const ITEM_BLOCK_RE = /<li[^>]*class="[^"]*s-item[^"]*"[^>]*>([\s\S]*?)<\/li>/g;
-const TITLE_RE = /<(?:span|div)[^>]*role="heading"[^>]*>([\s\S]*?)<\/(?:span|div)>/;
-const PRICE_RE = /<span[^>]*class="[^"]*s-item__price[^"]*"[^>]*>([\s\S]*?)<\/span>/;
-const SOLD_RE = /<span[^>]*class="[^"]*s-item__caption--signal[^"]*"[^>]*>([\s\S]*?)<\/span>/;
-const LINK_RE = /<a[^>]*class="[^"]*s-item__link[^"]*"[^>]*href="([^"]+)"/;
+const ITEM_BLOCK_RE =
+  /<li[^>]*class=(?:"[^"]*(?:s-item|s-card)[^"]*"|[^\s>]*(?:s-item|s-card)[^\s>]*)[^>]*>([\s\S]*?)<\/li>/g;
+const TITLE_RE = /<(?:span|div)[^>]*role="?heading"?[^>]*>([\s\S]*?)<\/(?:span|div)>/;
+const CLASS_TITLE_RE =
+  /<(?:span|div)[^>]*class=(?:"[^"]*(?:s-item__title|s-card__title)[^"]*"|[^\s>]*(?:s-item__title|s-card__title)[^\s>]*)[^>]*>([\s\S]*?)<\/(?:span|div)>/;
+const PRICE_RE =
+  /<(?:span|div)[^>]*class=(?:"[^"]*(?:s-item__price|s-card__price)[^"]*"|[^\s>]*(?:s-item__price|s-card__price)[^\s>]*)[^>]*>([\s\S]*?)<\/(?:span|div)>/;
+const SOLD_RE =
+  /<(?:span|div)[^>]*class=(?:"[^"]*(?:s-item__caption--signal|s-card__subtitle|s-card__caption)[^"]*"|[^\s>]*(?:s-item__caption--signal|s-card__subtitle|s-card__caption)[^\s>]*)[^>]*>([\s\S]*?)<\/(?:span|div)>/;
+const LINK_RE =
+  /<a[^>]*class=(?:"[^"]*(?:s-item__link|s-card__link)[^"]*"|[^\s>]*(?:s-item__link|s-card__link)[^\s>]*)[^>]*href="?([^"\s>]+)"?/;
+const ITEM_HREF_RE = /href="?([^"\s>]*\/itm\/\d+[^"\s>]*)"?/;
+const PRICE_TEXT_RE = /(?:US\s*)?[$]\s*[\d,]+(?:\.\d+)?|[£€]\s*[\d,]+(?:\.\d+)?/;
+const SOLD_TEXT_RE =
+  /(?:Sold|판매됨)\s*(?:on\s*)?(?:[A-Z][a-z]{2,}\s+\d{1,2},\s+\d{4}|\d{4}[.\-/년]\s*\d{1,2}[.\-/월]\s*\d{1,2})/i;
 
 /**
  * Parses an eBay sold-search results page into sold observations. Skips blocks
@@ -84,17 +94,26 @@ export function parseEbaySoldHtml(
   for (const match of html.matchAll(ITEM_BLOCK_RE)) {
     const block = match[1];
 
-    const title = decodeEntities(stripInnerTags(TITLE_RE.exec(block)?.[1] ?? '')).trim();
+    const title = decodeEntities(
+      stripInnerTags(TITLE_RE.exec(block)?.[1] ?? CLASS_TITLE_RE.exec(block)?.[1] ?? ''),
+    ).trim();
     if (!title) continue;
 
-    const priceText = stripInnerTags(PRICE_RE.exec(block)?.[1] ?? '');
+    const blockText = decodeEntities(stripInnerTags(block));
+    const priceText = decodeEntities(
+      stripInnerTags(PRICE_RE.exec(block)?.[1] ?? blockText.match(PRICE_TEXT_RE)?.[0] ?? ''),
+    );
     const soldPrice = parsePrice(priceText);
     if (soldPrice === null) continue;
 
-    const soldAt = parseSoldDate(stripInnerTags(SOLD_RE.exec(block)?.[1] ?? ''));
+    const soldAt = parseSoldDate(
+      decodeEntities(
+        stripInnerTags(SOLD_RE.exec(block)?.[1] ?? blockText.match(SOLD_TEXT_RE)?.[0] ?? ''),
+      ),
+    );
     if (!soldAt) continue;
 
-    const href = LINK_RE.exec(block)?.[1] ?? null;
+    const href = decodeEntities(LINK_RE.exec(block)?.[1] ?? ITEM_HREF_RE.exec(block)?.[1] ?? '');
     const itemId = href ? (href.match(/\/itm\/(\d+)/)?.[1] ?? null) : null;
     if (!itemId) continue;
 
@@ -148,6 +167,9 @@ export async function collectEbayScrape(
   }
 
   const html = await response.text();
+  if (isEbayChallengeHtml(html)) {
+    throw new Error('eBay sold scrape blocked by browser verification page');
+  }
   return parseEbaySoldHtml(html, context);
 }
 
@@ -168,8 +190,17 @@ function parseCurrency(text: string): string {
 
 /** Parses an eBay "Sold  Mar 27, 2026" caption into an ISO timestamp, or null. */
 function parseSoldDate(text: string): string | null {
-  const cleaned = text.replace(/sold/i, '').trim();
+  const cleaned = text.replace(/sold|판매됨/gi, '').trim();
   if (!cleaned) return null;
+
+  const numeric = cleaned.match(/(\d{4})[.\-/년]\s*(\d{1,2})[.\-/월]\s*(\d{1,2})/);
+  if (numeric) {
+    const [, year, month, day] = numeric;
+    return new Date(
+      Date.UTC(Number(year), Number(month) - 1, Number(day)),
+    ).toISOString();
+  }
+
   const parsed = new Date(cleaned);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed.toISOString();
@@ -191,4 +222,15 @@ function decodeEntities(value: string): string {
 function stripQuery(url: string): string {
   const index = url.indexOf('?');
   return index === -1 ? url : url.slice(0, index);
+}
+
+function isEbayChallengeHtml(html: string): boolean {
+  const normalized = html.toLowerCase();
+  return (
+    normalized.includes('splashui') ||
+    normalized.includes('checking your browser') ||
+    normalized.includes('verify your browser') ||
+    html.includes('브라우저를 확인') ||
+    html.includes('중단이 발생')
+  );
 }

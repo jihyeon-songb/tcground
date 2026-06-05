@@ -50,12 +50,12 @@ TCG(Trading Card Game) 카드의 가격을 추적하고, 컬렉터가 정보를 
 
 - MVP 대상 TCG는 포켓몬을 우선한다.
 - 한국판 포켓몬 카탈로그는 현재 약 3,600개로 충분하므로, 가격 데이터 작업 범위에서 카탈로그 증설은 하지 않는다.
-- 상세 가격 데이터 전략은 `memory-bank/prd/price-data.md`를 기준으로 한다.
 - 가격 기준은 판매중 최저가가 아니라 실거래가 중심으로 둔다. 판매중 호가(`asking`)는 보조 trend 지표로만 사용하고, 실거래가(`sold`)와 섞지 않는다.
+- 같은 source에서 sold와 asking이 모두 들어올 수 있으므로 가격 성격은 `source_name`만으로 판단하지 않고 `price_kind`와 snapshot `aggregation_method`로 구분한다.
 - 가격 데이터는 단일 현재가가 아니라 `market`, `source`, `condition`, `variant`, `observed_at`를 가진 관측치로 저장하고, 일별 snapshot으로 집계한다.
 - P0 자동 수집 source는 eBay Browse API의 판매중 호가 daily snapshot이다. eBay Browse는 sold 실거래 source가 아니다.
 - sold 실거래 데이터는 source URL/item ID와 거래일이 검증되는 수동 CSV 또는 승인된 partner/API source만 사용한다. 3,600개 전체 sold 데이터를 수동으로 채우는 것은 목표가 아니다.
-- 수동 sold 보강은 `memory-bank/price-source-validation.csv`의 priority worklist `KR-001`~`KR-110`에서 시작한다. 전체 한국판 카탈로그는 `PKMKR-<card_num>` pending backlog로 관리할 수 있지만, `exclude_reason=pending_evidence` 후보는 증거가 채워지기 전까지 공개 가격에 쓰지 않는다.
+- `memory-bank/price-source-validation.csv`의 `sample_id`는 공식 한국 카드 번호 기반 `PKMKR-<card_num>`으로 통일한다. 기존 `KR-*` priority 번호는 `raw_payload_json.worklist_id`에 남기는 alias이며, `exclude_reason=pending_evidence` 후보는 증거가 채워지기 전까지 공개 가격에 쓰지 않는다.
 - eBay 원문 접근이 차단된 경우 PriceCharting의 개별 eBay completed-sale 행은 수동 evidence 보조 source로 사용할 수 있다. 집계값/현재가가 아니라 날짜·제목·가격이 있는 개별 sold row만 허용하고, `pricecharting_ebay_sold`로 별도 표기한다.
 - eBay Marketplace Insights는 sold 자동화에 가장 적합한 공식 경로지만 restricted 상태이므로, 접근 승인과 API License Agreement 준수 범위가 확인된 뒤에만 production adapter를 활성화한다.
 - KREAM, 번개장터, 중고나라 등 국내 source는 공개 API/재사용 권한 확인 전까지 자동 수집하지 않고 수동 evidence source로만 둔다.

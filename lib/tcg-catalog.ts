@@ -5,6 +5,8 @@ type ChangeTone = 'up' | 'down' | 'flat';
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
+export type CardEdition = 'kr' | 'jp' | 'na';
+
 interface SupabaseErrorLike {
   message: string;
 }
@@ -122,6 +124,7 @@ export interface PricePoint {
   maxPrice: number;
   sampleCount: number;
   currency: string;
+  sourceNames: string[];
   sourceCurrency?: string | null;
   fxRateDate?: string | null;
   fxProvider?: string | null;
@@ -158,6 +161,7 @@ interface CardPriceSnapshotRow {
   fx_provider?: string | null;
   variant: string;
   source_name: string;
+  aggregation_method?: string | null;
   condition_label?: string | null;
   avg_price: number | null;
   min_price: number | null;
@@ -227,6 +231,8 @@ export interface CatalogCardDetail {
   rarity: string;
   imageUrl: string | null;
   price: PriceDisplay;
+  selectedEdition: CardEdition;
+  editionOptions: CardEditionOption[];
   printing: {
     id: string;
     language: string;
@@ -239,6 +245,15 @@ export interface CatalogCardDetail {
   priceHistory: PriceHistory;
   backHref: string;
   backLabel: string;
+}
+
+export interface CardEditionOption {
+  value: CardEdition;
+  label: string;
+  shortLabel: string;
+  isSelected: boolean;
+  isAvailable: boolean;
+  printingId: string | null;
 }
 
 export interface PokemonCategoryQueryOptions {
@@ -303,10 +318,21 @@ interface PrintingCardIdRow {
 }
 
 const PRICE_SNAPSHOT_SELECT_WITH_DISPLAY =
-  'snapshot_date, market, currency, source_currency, source_avg_price, source_min_price, source_max_price, display_currency, display_avg_price, display_min_price, display_max_price, fx_rate, fx_rate_date, fx_provider, variant, condition_label, source_name, avg_price, min_price, max_price, sample_count, grade_company, grade_value';
+  'snapshot_date, market, currency, source_currency, source_avg_price, source_min_price, source_max_price, display_currency, display_avg_price, display_min_price, display_max_price, fx_rate, fx_rate_date, fx_provider, variant, condition_label, source_name, aggregation_method, avg_price, min_price, max_price, sample_count, grade_company, grade_value';
 
 const PRICE_SNAPSHOT_SELECT_LEGACY =
-  'snapshot_date, market, currency, variant, condition_label, source_name, avg_price, min_price, max_price, sample_count, grade_company, grade_value';
+  'snapshot_date, market, currency, variant, condition_label, source_name, aggregation_method, avg_price, min_price, max_price, sample_count, grade_company, grade_value';
+
+const CARD_EDITION_CONFIG: Record<
+  CardEdition,
+  { label: string; shortLabel: string; language: string; region: string }
+> = {
+  kr: { label: '한국판', shortLabel: 'KR', language: 'ko', region: 'KR' },
+  jp: { label: '일본판', shortLabel: 'JP', language: 'ja', region: 'JP' },
+  na: { label: '미국판', shortLabel: 'US', language: 'en', region: 'NA' },
+};
+
+const CARD_EDITION_ORDER: CardEdition[] = ['kr', 'jp', 'na'];
 
 const POKEMON_CARD_LIST_SELECT = [
   'id',
@@ -846,6 +872,7 @@ function normalizeCardSlug(raw: string): string {
 export async function getCardDetailBySlug(
   slug: string,
   client?: SupabaseClient,
+  options: { edition?: CardEdition } = {},
 ): Promise<CatalogCardDetail | null> {
   const supabase = client ?? (await createClient());
 
@@ -873,12 +900,12 @@ export async function getCardDetailBySlug(
   if (!data) return null;
 
   const detailRow = data as unknown as CardDetailRow;
-  const printing = selectPrimaryPrinting(detailRow);
+  const printing = selectPrintingForEdition(detailRow, options.edition ?? 'kr');
   const printingId = printing?.id ?? detailRow.id;
 
   const snapshotData = await fetchSnapshotRowsForPrinting(supabase, printingId);
 
-  return mapCardDetailRow(detailRow, snapshotData);
+  return mapCardDetailRow(detailRow, snapshotData, { edition: options.edition ?? 'kr' });
 }
 
 interface CardRatingSummaryRow {
@@ -1068,8 +1095,11 @@ function compareRecommendedCards(a: PokemonCatalogCard, b: PokemonCatalogCard): 
 export function mapCardDetailRow(
   row: CardDetailRow,
   snapshots: readonly CardPriceSnapshotRow[] = [],
+  options: { edition?: CardEdition } = {},
 ): CatalogCardDetail {
-  const printing = selectPrimaryPrinting(row);
+  const requestedEdition = options.edition ?? 'kr';
+  const printing = selectPrintingForEdition(row, requestedEdition);
+  const selectedEdition = getPrintingEdition(printing) ?? requestedEdition;
   const sampleId = getSampleId(printing);
   const setLabel =
     row.card_sets?.name_ko ?? row.card_sets?.name ?? printing?.set_name ?? '세트 미상';
@@ -1094,6 +1124,8 @@ export function mapCardDetailRow(
     rarity,
     imageUrl: printing?.image_url ?? row.image_url,
     price,
+    selectedEdition,
+    editionOptions: buildEditionOptions(row, selectedEdition),
     priceHistory,
     printing: {
       id: printing?.id ?? row.id,
@@ -1134,9 +1166,9 @@ export function createDeterministicPriceDisplay(slug: string, sampleId: string):
 
 /**
  * Builds the detail chart history from snapshots. Snapshots mix currencies,
- * variants, conditions, grades and markets, so we never draw them all as one
- * line. Instead we pick a single coherent bucket — same currency, variant and
- * grade — and draw that as the trend. The eBay Browse asking series is
+ * markets, variants, conditions and grades, so we never draw them all as one
+ * line. Instead we pick a single coherent bucket — same currency, market,
+ * variant and grade — and draw that as the trend. The eBay Browse asking series is
  * preferred; otherwise the richest sold bucket forms the line, with comparable
  * sold points overlaid only when an asking trend is present.
  *
@@ -1149,8 +1181,8 @@ export function buildPriceHistory(snapshots: readonly CardPriceSnapshotRow[]): P
   const priced = snapshots.filter((snapshot) => snapshotAvgPrice(snapshot) !== null);
   // Asking sources (eBay Browse, 번개장터) form the trend line; sold sources
   // (eBay sold, KREAM 체결, manual sold imports) form the overlay/sold series.
-  const askingRows = priced.filter((snapshot) => isAskingSource(snapshot.source_name));
-  const soldRows = priced.filter((snapshot) => !isAskingSource(snapshot.source_name));
+  const askingRows = priced.filter((snapshot) => isAskingSnapshot(snapshot));
+  const soldRows = priced.filter((snapshot) => !isAskingSnapshot(snapshot));
 
   const askingBucket = pickRichestBucket(askingRows);
   const askingSeries = askingBucket ? collapseByDate(askingBucket.rows) : [];
@@ -1192,6 +1224,20 @@ export function getPriceTrendSeries(history: PriceHistory): PricePoint[] {
   return history.askingSeries.length > 0 ? history.askingSeries : history.soldPoints;
 }
 
+/**
+ * Classifies a snapshot as asking vs sold.
+ *
+ * `source_name` alone is not enough: `manual_bunjang` can appear as either a
+ * sold-out manual evidence row or a current asking row. Prefer the aggregation
+ * method when present and fall back to source naming for legacy rows.
+ */
+function isAskingSnapshot(snapshot: CardPriceSnapshotRow): boolean {
+  const method = snapshot.aggregation_method ?? '';
+  if (method.includes('asking')) return true;
+  if (method === 'median_filtered' || method.includes('sold')) return false;
+  return isAskingSource(snapshot.source_name);
+}
+
 /** True when a snapshot has no grading assigned (raw card). */
 function isUngraded(snapshot: CardPriceSnapshotRow): boolean {
   return !snapshot.grade_company && !snapshot.grade_value;
@@ -1205,15 +1251,16 @@ function gradeLabelForRows(rows: readonly CardPriceSnapshotRow[]): string | null
 }
 
 /**
- * Identifies a coherent, comparable bucket: one currency + variant + grade.
- * Market and condition are allowed to vary (and same-date rows are averaged in
+ * Identifies a coherent, comparable bucket: one currency + market + variant +
+ * grade. Condition is allowed to vary (and same-date rows are averaged in
  * `collapseByDate`) so the trend stays continuous instead of fragmenting into
- * single points. Grade is part of the key so a graded series (e.g. PSA 10) never
- * mixes with raw prices on the same line.
+ * single points. Market and grade are part of the key so JP/KR/NA and graded/raw
+ * prices never mix on the same line.
  */
 function bucketKey(snapshot: CardPriceSnapshotRow): string {
   return [
     snapshotDisplayCurrency(snapshot),
+    snapshot.market,
     snapshot.variant,
     snapshot.grade_company ?? '',
     snapshot.grade_value ?? '',
@@ -1297,6 +1344,7 @@ function collapseByDate(rows: readonly CardPriceSnapshotRow[]): PricePoint[] {
       maxPrice: Math.max(...group.map((row) => snapshotMaxPrice(row))),
       sampleCount: group.reduce((sum, row) => sum + (row.sample_count ?? 0), 0),
       currency: snapshotDisplayCurrency(group[0]),
+      sourceNames: uniqueSorted(group.map((row) => row.source_name)),
       sourceCurrency: pointSourceCurrency(group),
       fxRateDate: latestFxRateDate(group),
       fxProvider: pointFxProvider(group),
@@ -1328,8 +1376,8 @@ export function derivePriceDisplayFromHistory(history: PriceHistory): PriceDispl
     changeTone: getChangeTone(changeRate),
     lastUpdatedAt: formatSnapshotDate(latest.date),
     sourceLabel: usingAsking
-      ? `${askingSourcePrefix(latest)} 판매중 호가 ${latest.sampleCount}건 기준 (실거래가는 참조점으로 표시)${formatFxSuffix(latest)}`
-      : `최근 ${history.gradeLabel ? `${history.gradeLabel} ` : ''}실거래가 집계 ${latest.sampleCount}건 기준${formatFxSuffix(latest)}`,
+      ? `${formatSourceNames(latest.sourceNames) || askingSourcePrefix(latest)} 판매중 호가 ${latest.sampleCount}건 기준 (실거래가는 참조점으로 표시)${formatFxSuffix(latest)}`
+      : `최근 ${formatSourceNames(latest.sourceNames) || '수동 evidence'} ${history.gradeLabel ? `${history.gradeLabel} ` : ''}실거래가 집계 ${latest.sampleCount}건 기준${formatFxSuffix(latest)}`,
     currency: latest.currency,
     sampleCount: latest.sampleCount,
     sourceCurrency: latest.sourceCurrency,
@@ -1372,6 +1420,37 @@ function pointFxProvider(group: readonly CardPriceSnapshotRow[]): string | null 
     group.map((row) => row.fx_provider).filter((provider): provider is string => Boolean(provider)),
   );
   return providers.size === 1 ? Array.from(providers)[0] : null;
+}
+
+function uniqueSorted(values: readonly string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean))).sort();
+}
+
+function formatSourceNames(sourceNames: readonly string[]): string {
+  return sourceNames.map(formatSourceName).filter(Boolean).join('/');
+}
+
+function formatSourceName(sourceName: string): string {
+  switch (sourceName) {
+    case 'ebay_browse':
+      return 'eBay Browse';
+    case 'ebay_sold':
+      return 'eBay sold';
+    case 'pricecharting_ebay_sold':
+      return 'PriceCharting eBay sold';
+    case 'manual_kream':
+    case 'kream':
+      return 'KREAM';
+    case 'manual_bunjang':
+    case 'bunjang':
+      return '번개장터';
+    case 'manual_joongna':
+      return '중고나라';
+    case 'aggregate':
+      return '수동 evidence';
+    default:
+      return sourceName;
+  }
 }
 
 function askingSourcePrefix(point: PricePoint): string {
@@ -1418,9 +1497,23 @@ function mapCatalogCardRow(
     rarity: printing?.rarity ?? row.rarity ?? '레어도 미상',
     collectorNumber: printing?.collector_number ?? row.collector_number ?? '번호 미상',
     sampleId,
-    imageUrl: row.thumbnail_url ?? printing?.image_url ?? row.image_url,
+    imageUrl: selectCatalogCardImage(row, printing),
     price,
   };
+}
+
+function selectCatalogCardImage(
+  row: PokemonCatalogCardRow,
+  printing: CardPrintingRow | null,
+): string | null {
+  if (isPokemonKoreaImage(row.thumbnail_url)) return row.thumbnail_url;
+  if (isPokemonKoreaImage(printing?.image_url)) return printing?.image_url ?? null;
+  if (isPokemonKoreaImage(row.image_url)) return row.image_url;
+  return row.thumbnail_url ?? printing?.image_url ?? row.image_url;
+}
+
+function isPokemonKoreaImage(url: string | null | undefined): boolean {
+  return Boolean(url?.includes('cards.image.pokemonkorea.co.kr'));
 }
 
 function deriveAvailableSetsFromCards(cards: readonly PokemonCatalogCard[]): AvailableSetOption[] {
@@ -1448,15 +1541,74 @@ function normalizeStringList(list: readonly string[] | undefined): string[] {
 
 function selectPrimaryPrinting(row: PokemonCatalogCardRow): CardPrintingRow | null {
   return (
-    row.card_printings.find((printing) => printing.language === 'ko' && printing.region === 'KR') ??
+    findPrintingForEdition(row, 'kr') ??
     row.card_printings[0] ??
     null
   );
 }
 
+function selectPrintingForEdition(
+  row: PokemonCatalogCardRow,
+  edition: CardEdition = 'kr',
+): CardPrintingRow | null {
+  return findPrintingForEdition(row, edition) ?? selectPrimaryPrinting(row);
+}
+
+function findPrintingForEdition(
+  row: PokemonCatalogCardRow,
+  edition: CardEdition,
+): CardPrintingRow | null {
+  return row.card_printings.find((printing) => printingMatchesEdition(printing, edition)) ?? null;
+}
+
+function printingMatchesEdition(printing: CardPrintingRow, edition: CardEdition): boolean {
+  const config = CARD_EDITION_CONFIG[edition];
+  if (edition === 'na') {
+    return printing.language === config.language && ['NA', 'US'].includes(printing.region);
+  }
+  return printing.language === config.language && printing.region === config.region;
+}
+
+function getPrintingEdition(printing: CardPrintingRow | null): CardEdition | null {
+  if (!printing) return null;
+  return (
+    CARD_EDITION_ORDER.find((edition) => printingMatchesEdition(printing, edition)) ?? null
+  );
+}
+
+function buildEditionOptions(
+  row: PokemonCatalogCardRow,
+  selectedEdition: CardEdition,
+): CardEditionOption[] {
+  return CARD_EDITION_ORDER.map((edition) => {
+    const printing = findPrintingForEdition(row, edition);
+    const config = CARD_EDITION_CONFIG[edition];
+    return {
+      value: edition,
+      label: config.label,
+      shortLabel: config.shortLabel,
+      isSelected: edition === selectedEdition,
+      isAvailable: Boolean(printing),
+      printingId: printing?.id ?? null,
+    };
+  });
+}
+
+export function parseCardEdition(value: string | string[] | undefined): CardEdition {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw === 'jp' || raw === 'na') return raw;
+  return 'kr';
+}
+
 function getSampleId(printing: CardPrintingRow | null): string {
+  const cardNum = printing?.external_ids?.card_num;
+  if (typeof cardNum === 'string' && cardNum.length > 0) return `PKMKR-${cardNum}`;
+
+  const setCode = printing?.set_code;
+  if (typeof setCode === 'string' && /^BS\d+$/.test(setCode)) return `PKMKR-${setCode}`;
+
   const sampleId = printing?.external_ids?.sample_id;
-  return typeof sampleId === 'string' && sampleId.length > 0 ? sampleId : 'KR-000';
+  return typeof sampleId === 'string' && sampleId.length > 0 ? sampleId : 'PKMKR-UNKNOWN';
 }
 
 function getChangeTone(rate: number): ChangeTone {

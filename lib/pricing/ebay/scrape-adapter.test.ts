@@ -10,6 +10,24 @@ import {
 import { PriceSourceAccessNotGrantedError, isAskingSource } from '../price-source.types';
 
 const SOLD_HTML = readFileSync(join(__dirname, 'fixtures/sold-search.sample.html'), 'utf-8');
+const SOLD_CARD_HTML = `
+  <ul class="srp-results srp-list clearfix">
+    <li class="s-card s-card--horizontal" data-listingid="205979361572">
+      <a class="s-card__link image-treatment" href=https://www.ebay.com/itm/205979361572?_skw=Charizard+SAR+201%2F165+Korean&hash=item2ff553a124>
+        <span class="s-card__title">Charizard SAR 201/165 Pokemon Card 151 Korean</span>
+      </a>
+      <div class="s-card__price"><span class="su-styled-text primary default">US $210.00</span></div>
+      <div class="s-card__subtitle"><span>Sold May 18, 2026</span></div>
+    </li>
+    <li class="s-card s-card--horizontal" data-listingid="267402552242">
+      <a class="s-card__link image-treatment" href=https://www.ebay.com/itm/267402552242?hash=item267>
+        <span class="s-card__title">Pokemon Card Charizard SAR 201/165 Korean PSA 10</span>
+      </a>
+      <div class="s-card__price"><span>£196.65</span></div>
+      <div class="s-card__caption"><span>판매됨 2026. 5. 17.</span></div>
+    </li>
+  </ul>
+`;
 
 const CHARIZARD_TARGET = {
   names: ['Charizard'],
@@ -75,6 +93,28 @@ describe('parseEbaySoldHtml', () => {
     });
     expect(observation.rawPayload).toEqual({ itemId: '318064794644' });
   });
+
+  it('parses the newer s-card search result markup', () => {
+    const [raw, graded] = parseEbaySoldHtml(SOLD_CARD_HTML, {
+      cardPrintingId: 'printing-2',
+      target: { ...CHARIZARD_TARGET, setTokens: ['151'] },
+      observedAt: '2026-06-05T00:00:00Z',
+    });
+
+    expect(raw.sourceItemId).toBe('205979361572');
+    expect(raw.sourceUrl).toBe('https://www.ebay.com/itm/205979361572');
+    expect(raw.currency).toBe('USD');
+    expect(raw.soldPrice).toBe(210);
+    expect(raw.soldAt).toBe(new Date('May 18, 2026').toISOString());
+    expect(raw.confidenceScore).toBeCloseTo(1, 5);
+
+    expect(graded.sourceItemId).toBe('267402552242');
+    expect(graded.currency).toBe('GBP');
+    expect(graded.variant).toBe('graded');
+    expect(graded.gradeCompany).toBe('PSA');
+    expect(graded.gradeValue).toBe('10');
+    expect(graded.soldAt).toBe(new Date(Date.UTC(2026, 4, 17)).toISOString());
+  });
 });
 
 describe('collectEbayScrape', () => {
@@ -106,6 +146,22 @@ describe('collectEbayScrape', () => {
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(observations).toHaveLength(2);
+  });
+
+  it('treats eBay browser verification HTML as a blocked scrape', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () =>
+        '<html><head><title>중단이 발생하여 죄송합니다.</title></head><body><h1>eBay에 액세스하기 전에 브라우저를 확인하고 있습니다.</h1><script src="splashui.js"></script></body></html>',
+    } as Response);
+
+    await expect(
+      collectEbayScrape(
+        'Charizard SAR 201/165 Korean',
+        { cardPrintingId: 'printing-2', target: CHARIZARD_TARGET },
+        { accessGranted: true, fetchImpl },
+      ),
+    ).rejects.toThrow('browser verification');
   });
 });
 

@@ -61,11 +61,39 @@ describe('CardDetailContent', () => {
     expect(screen.getByRole('link', { name: '로그인' })).toBeTruthy();
     expect(screen.queryByRole('radiogroup', { name: '카드 평점 선택' })).toBeNull();
   });
+
+  it('renders edition selector links with Korean selected by default', () => {
+    render(
+      <CardDetailContent
+        card={createCardDetail()}
+        ratingSummary={{ average: null, count: 0 }}
+        viewerRating={null}
+        isAuthenticated={false}
+      />,
+    );
+
+    const korean = screen.getByRole('link', { name: '한국판' });
+    const japanese = screen.getByRole('link', { name: '일본판' });
+    const american = screen.getByRole('link', { name: '미국판' });
+
+    expect(korean.getAttribute('aria-current')).toBe('page');
+    expect(korean.getAttribute('href')).toBe('/cards/kr-004-charizard-ex-151');
+    expect(japanese.getAttribute('href')).toBe('/cards/kr-004-charizard-ex-151?edition=jp');
+    expect(american.getAttribute('href')).toBe('/cards/kr-004-charizard-ex-151?edition=na');
+  });
 });
 
 describe('buildChartGeometry', () => {
   function point(date: string, avgPrice: number): PricePoint {
-    return { date, avgPrice, minPrice: avgPrice, maxPrice: avgPrice, sampleCount: 1, currency: 'USD' };
+    return {
+      date,
+      avgPrice,
+      minPrice: avgPrice,
+      maxPrice: avgPrice,
+      sampleCount: 1,
+      currency: 'USD',
+      sourceNames: ['ebay_browse'],
+    };
   }
 
   it('scales the trend line to fill the chart from the asking series alone', () => {
@@ -113,8 +141,25 @@ describe('CardDetailPage', () => {
       }),
     ).rejects.toThrow('NEXT_NOT_FOUND');
 
-    expect(getCardDetailBySlugMock).toHaveBeenCalledWith('missing-card');
+    expect(getCardDetailBySlugMock).toHaveBeenCalledWith('missing-card', undefined, {
+      edition: 'kr',
+    });
     expect(notFoundMock).toHaveBeenCalled();
+  });
+
+  it('passes the selected edition query to the detail loader', async () => {
+    getCardDetailBySlugMock.mockResolvedValue(null);
+
+    await expect(
+      CardDetailPage({
+        params: Promise.resolve({ cardId: 'missing-card' }),
+        searchParams: Promise.resolve({ edition: 'jp' }),
+      }),
+    ).rejects.toThrow('NEXT_NOT_FOUND');
+
+    expect(getCardDetailBySlugMock).toHaveBeenCalledWith('missing-card', undefined, {
+      edition: 'jp',
+    });
   });
 });
 
@@ -130,6 +175,33 @@ function createCardDetail(): CatalogCardDetail {
     collectorNumber: '201/165',
     rarity: 'SAR',
     imageUrl: null,
+    selectedEdition: 'kr',
+    editionOptions: [
+      {
+        value: 'kr',
+        label: '한국판',
+        shortLabel: 'KR',
+        isSelected: true,
+        isAvailable: true,
+        printingId: 'printing-kr-004',
+      },
+      {
+        value: 'jp',
+        label: '일본판',
+        shortLabel: 'JP',
+        isSelected: false,
+        isAvailable: true,
+        printingId: 'printing-jp-004',
+      },
+      {
+        value: 'na',
+        label: '미국판',
+        shortLabel: 'US',
+        isSelected: false,
+        isAvailable: true,
+        printingId: 'printing-na-004',
+      },
+    ],
     price: {
       avgPrice: 120000,
       minPrice: 98000,
@@ -150,6 +222,7 @@ function createCardDetail(): CatalogCardDetail {
           maxPrice: 210,
           sampleCount: 3,
           currency: 'USD',
+          sourceNames: ['ebay_browse'],
         },
         {
           date: '2026-05-29',
@@ -158,6 +231,7 @@ function createCardDetail(): CatalogCardDetail {
           maxPrice: 205,
           sampleCount: 4,
           currency: 'USD',
+          sourceNames: ['ebay_browse'],
         },
       ],
       soldPoints: [],
@@ -172,7 +246,7 @@ function createCardDetail(): CatalogCardDetail {
       setCode: 'BS2023014201',
       collectorNumber: '201/165',
       finish: 'unknown',
-      sampleId: 'KR-004',
+      sampleId: 'PKMKR-BS2023014201',
     },
     backHref: '/categories/pokemon',
     backLabel: '포켓몬 카테고리로 돌아가기',
