@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
   type DialogProps,
-} from './dialog';
+} from './dialog.js';
 
 type AlertDialogProps = Omit<DialogProps, 'role' | 'dismissOnOverlayClick'>;
 

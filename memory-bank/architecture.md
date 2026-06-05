@@ -2,14 +2,14 @@
 
 > 기술 스택·디렉터리 구조·수정 범위·Next.js/UI 가이드.
 > 명명·코딩 스타일·테스트·커밋 룰은 `CONVENTIONS.md`.
-> 마지막 갱신: 2026-06-05 (중고나라 asking source 추가)
+> 마지막 갱신: 2026-06-05 (UI 패키지 ESM 산출물 보강)
 
 ## 1. 스택
 
 - Next.js 16 (App Router) · React 19 · TypeScript 5 (strict)
-- 모노레포 workspace: 기존 Next 앱 + `packages/ui` 공통 UI 라이브러리 + `apps/docs` Docusaurus 문서 사이트
+- 모노레포 workspace: 기존 Next 앱 + `packages/headless` 접근성 primitive + `packages/ui` 공통 UI 라이브러리 + `apps/docs` Docusaurus 문서 사이트
 - Tailwind CSS v4 + `prettier-plugin-tailwindcss`
-- shadcn/ui 계열 컴포넌트 + lucide-react + class-variance-authority + tailwind-merge + clsx + cmdk. `@tcground/ui`의 Button, Tabs, Dialog는 Radix primitive 의존 없이 직접 구현한 접근성 primitive이며, 나머지 오버레이/폼 primitive는 아직 Radix 기반 wrapper를 유지한다.
+- shadcn/ui 계열 컴포넌트 + lucide-react + class-variance-authority + tailwind-merge + clsx + cmdk. `@tcground/headless`는 Button/Tabs/Dialog/Label/Separator/Checkbox/Switch/RadioGroup/AlertDialog/Sheet의 동작·접근성 primitive를 제공하고, `@tcground/ui`는 그 위에 cva/Tailwind 스타일을 입힌다. positioning 엔진이 필요한 Popover/DropdownMenu/Select/Tooltip과 Avatar/Command는 아직 Radix/cmdk 기반 wrapper를 유지한다.
 - `packages/ui`: `@tcground/ui` 패키지. 기존 앱의 `components/ui/*` 공통 UI 컴포넌트를 분리한 React 18/19 peer range UI 라이브러리. npm 공개 배포를 위해 `private: false`, public `publishConfig`, README, package metadata를 갖추며, `@tcground/ui/theme.css`는 빌드 후 `dist/theme.css`를 export한다. 루트 `tcground` 앱은 npm registry에 배포된 `@tcground/ui` semver 버전을 소비하고, `apps/docs`는 문서/개발 검증을 위해 workspace 패키지를 소비한다.
 - `apps/docs`: Docusaurus 3.9.2 classic preset. 최신 Docusaurus next 문서는 Node 24를 요구하므로 현재 Node 22 환경에서는 3.9.2를 고정한다. 컴포넌트 문서는 `apps/docs/docs/components/*.mdx`, preview 예제는 `apps/docs/src/components/examples/<component>/*`에 둔다.
 - Supabase JS + Supabase SSR (Auth/서버 클라이언트)
@@ -33,21 +33,25 @@ app/                 # Next.js App Router (페이지·layout·route handler)
   cards/[cardId]/page.tsx          # 상품 상세
   login/page.tsx     # 로그인
   login/_actions/login.ts       # 로그인 route 전용 서버 액션
+  login/_components/LoginForm.tsx # 로그인 route 전용 클라이언트 폼
   login/_lib/login-utils.ts     # 로그인 route 전용 유틸
   signup/page.tsx    # 회원가입
   signup/_actions/signup.ts     # 회원가입 route 전용 서버 액션
+  signup/_components/SignupForm.tsx # 회원가입 route 전용 클라이언트 폼
   signup/_lib/signup-utils.ts   # 회원가입 route 전용 유틸
   auth/confirm/route.ts # Supabase 이메일 인증 콜백
   globals.css        # Tailwind 엔트리 + CSS 변수 / 디자인 토큰
 proxy.ts             # Supabase SSR 세션 쿠키 갱신
 components/
   tcg/               # TCGround 도메인 컴포넌트 (기능 도메인별 하위 폴더)
-    auth/            # 로그인/회원가입/로그아웃 폼·서버 액션
+    auth/            # 전역 인증 동작(로그아웃 서버 액션)
     layout/          # 공개 페이지 공통 헤더 등 레이아웃 컴포넌트
     search/          # 검색 입력 컴포넌트
 lib/                 # 도메인 정적 데이터·유틸·Supabase 클라이언트
 public/              # 정적 자산
 docs/                # 본 문서들
+packages/headless/   # `@tcground/headless` unstyled 접근성 primitive
+  src/               # primitive helper와 headless component/test
 packages/ui/         # `@tcground/ui` 공통 UI 컴포넌트 라이브러리
   src/components/ui/ # 기존 앱에서 분리한 shadcn 기반 공통 UI 컴포넌트와 stories
 apps/docs/           # Docusaurus 제출/배포용 문서 사이트
@@ -58,13 +62,13 @@ apps/docs/           # Docusaurus 제출/배포용 문서 사이트
 핵심 위치:
 
 - 절대 import 별칭: `@/*` → 프로젝트 루트. 루트 앱의 `@tcground/ui`는 npm 배포본을 가리키며, `apps/docs` 개발 서버/빌드는 Docusaurus resolve plugin과 workspace dependency로 `packages/ui/src`를 참조한다.
-- 공통 UI 부품: `packages/ui/src/components/ui/*` (`@tcground/ui`). 도메인 컴포넌트는 `components/<domain>/<sub-domain>/*`로 기능 단위로 묶는다.
+- 공통 UI 부품: `packages/ui/src/components/ui/*` (`@tcground/ui`). 동작·접근성 primitive는 `packages/headless/src/*` (`@tcground/headless`)에 둔다. 도메인 컴포넌트는 `components/<domain>/<sub-domain>/*`로 기능 단위로 묶는다.
 - 기존 `components/ui/*`는 `packages/ui/src/components/ui/*`로 이동했다. 앱 도메인 컴포넌트는 필요 시 `@tcground/ui`를 소비한다.
-- `packages/ui/src/components/ui/primitive.tsx`는 직접 구현 primitive에서 공유하는 ref 병합, event handler 병합, `asChild` slot 병합 헬퍼를 제공한다. Button은 이 헬퍼로 Radix `Slot` 의존 없이 `asChild`와 disabled semantics를 처리한다. Tabs는 자체 context로 tablist/tab/tabpanel ARIA, roving tabindex, 방향키 이동을 관리한다. Dialog는 자체 portal, body sibling `aria-hidden`, focus trap, Escape/overlay close, focus restore를 관리한다.
+- `packages/headless/src/primitive.tsx`는 직접 구현 primitive에서 공유하는 ref 병합, event handler 병합, `asChild` slot 병합 헬퍼를 제공한다. Button은 이 헬퍼로 Radix `Slot` 의존 없이 `asChild`와 disabled semantics를 처리한다. Tabs는 자체 context로 tablist/tab/tabpanel ARIA, roving tabindex, 방향키 이동을 관리한다. Dialog 계열은 자체 portal, body sibling `aria-hidden`, focus trap, Escape/overlay close, focus restore를 관리한다.
 - TCGround 도메인 컴포넌트: `components/tcg/<auth|layout|search>/*`. 새 도메인이 생기면 같은 레벨에 폴더를 추가한다. 같은 하위 폴더 안에서는 상대 import, 다른 하위 폴더는 `@/components/tcg/<sub>/...` 절대 경로를 사용한다.
 - 공개 페이지 공통 헤더: `components/tcg/layout/PublicHeader.tsx`. 서버 컴포넌트에서 Supabase Auth `getClaims()`로 인증 상태를 확인하고, 페이지별 검색창 옵션과 현재 내부 경로(`next`)만 props로 받는다.
-- 로그인 인증 동작: `app/login/_actions/login.ts` 서버 액션, `app/login/_lib/login-utils.ts` route 전용 유틸, `components/tcg/auth/LoginForm.tsx` 클라이언트 폼을 기준으로 한다.
-- 회원가입 인증 동작: `app/signup/_actions/signup.ts` 서버 액션, `app/signup/_lib/signup-utils.ts` route 전용 유틸, `components/tcg/auth/SignupForm.tsx` 클라이언트 폼을 기준으로 한다.
+- 로그인 인증 동작: `app/login/_actions/login.ts` 서버 액션, `app/login/_lib/login-utils.ts` route 전용 유틸, `app/login/_components/LoginForm.tsx` 클라이언트 폼을 기준으로 한다.
+- 회원가입 인증 동작: `app/signup/_actions/signup.ts` 서버 액션, `app/signup/_lib/signup-utils.ts` route 전용 유틸, `app/signup/_components/SignupForm.tsx` 클라이언트 폼을 기준으로 한다.
 - App Router route segment 안에서 route 전용 지원 파일을 둘 때는 `_actions`, `_lib` 같은 private folder를 사용해 공개 route 파일(`page.tsx`, `route.ts`)과 내부 구현 파일을 구분한다.
 - 로그아웃 인증 동작: `components/tcg/auth/logout-action.ts` 서버 액션에서 `supabase.auth.signOut()`을 호출하고 항상 `/`로 이동한다.
 - 홈/카테고리 헤더 검색 입력: `components/tcg/search/HomeSearchForm.tsx` 클라이언트 컴포넌트. 제출 시 기본 카테고리 `/categories/pokemon?q=...`로 이동한다. `PublicHeader`가 옵션에 따라 재사용한다.
@@ -190,7 +194,12 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 
 - 배포 대상 패키지: `packages/ui` (`@tcground/ui`).
 - 공개 import 계약: `import { Button } from '@tcground/ui'`, `import '@tcground/ui/theme.css'`.
-- 루트 `tcground` 앱 dependency는 배포본 검증을 위해 `@tcground/ui: ^0.1.0` 같은 npm semver range를 사용한다. `workspace:*`는 UI package 자체 문서/개발 검증이 필요한 `apps/docs`에만 유지한다.
+- 루트 `tcground` 앱 dependency는 배포본 검증을 위해 `@tcground/ui: ^0.1.0` 같은 npm semver range를 사용하고, root `tsconfig.json`은 `@tcground/ui`를 source alias로 덮어쓰지 않는다. `workspace:*`와 Docusaurus resolve alias는 UI package 자체 문서/개발 검증이 필요한 `apps/docs`에만 유지한다.
+- 루트 앱이 직접 import하지 않는 `class-variance-authority`, `clsx`, `cmdk`, `radix-ui`, `tailwind-merge`는 루트 dependency에 두지 않고 `@tcground/ui` 또는 `shadcn`의 transitive dependency로 소비한다. 앱이 직접 쓰는 icon dependency인 `lucide-react`는 루트 dependency로 유지한다.
+- `@tcground/headless`와 `@tcground/ui` source의 런타임 상대 import/export specifier는 `.js` 확장자를 명시한다. TypeScript는 `moduleResolution: "Bundler"`로 `*.js` specifier를 `*.ts(x)` source에 해소하고, build 후 `dist/*.js`는 Node ESM/Vitest dependency import에서도 extensionless re-export 오류 없이 로드된다.
+- 로컬 `@tcground/ui@0.1.2` package manifest는 `@tcground/headless`를 publish 가능한 semver dependency(`^0.1.1`)로 선언한다. workspace 개발에서는 pnpm workspace link가 계속 로컬 `packages/headless`를 연결한다.
+- npm registry의 `@tcground/ui@0.1.2`는 이미 존재하지만 이전 산출물이라 `workspace:^` dependency와 extensionless ESM re-export를 포함한다. 같은 버전은 재배포할 수 없으므로, 실제 수정본 publish는 npm scope 권한 확보 후 `@tcground/headless@0.1.2`와 `@tcground/ui@0.1.3` 같은 새 patch 버전으로 진행한다.
+- Vitest는 현재 루트 dependency가 published `@tcground/ui@0.1.0`을 가리키므로 `vitest.config.mts`에서 `@tcground/ui`를 로컬 source로 alias한다. 수정본을 새 patch 버전으로 npm 공개 배포하고 루트 dependency를 갱신한 뒤 이 alias를 제거한다. 루트 앱의 registry 소비 검증은 계속 `pnpm exec tsc --noEmit`과 `pnpm build`가 담당한다.
 - `pnpm build:ui`는 TypeScript 산출물과 `dist/theme.css`를 생성한다.
 - `apps/docs`는 `@tcground/ui/theme.css` export가 `dist`를 바라보므로 `prebuild`/`prestart`에서 `@tcground/ui`를 먼저 빌드한다.
 - 배포 전 검증: `pnpm build:ui`, `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm --filter @tcground/ui pack --dry-run`.
@@ -228,5 +237,8 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 2026-06-03: 전체 한국판 포켓몬 카탈로그 가격 검증 backlog를 `PKMKR-<card_num>` pending CSV 행으로 확장했다. 이 backlog는 실제 sold 가격이 아니며 `exclude_reason=pending_evidence`로 공개 가격 산정에서 제외한다. 후속 evidence import가 DB row 수정 없이 해소되도록 sample id resolver가 `external_ids.card_num` 기반 fallback을 제공한다.
 - 2026-06-04: `memory-bank/price-source-validation.csv`의 legacy `KR-*` sample id를 공식 `PKMKR-<card_num>` 체계로 통일했다. `KR-001`~`KR-060`은 `raw_payload_json.worklist_id`로 보존하고, 증거 없는 `KR-061`~`KR-110` 잠정 pending skeleton은 제거했다.
 - 2026-06-04: 카드 목록/인기 카드 이미지 기본값을 한국판 printing과 한국 포켓몬센터 이미지 우선으로 정리했다. 상품 상세는 `edition=kr|jp|na` 선택을 지원하며 기본은 한국판이다. 가격 히스토리 bucket key에 `market`을 포함해 KR/JP/NA 시장 가격을 같은 선으로 섞지 않는다.
+- 2026-06-05: route 전용 server action을 import하는 `LoginForm`/`SignupForm`을 `components/tcg/auth`에서 각 route private `_components`로 이동하고, `@tcground/headless` 2-layer UI 구조 설명을 현재 구현 기준으로 갱신했다.
+- 2026-06-05: `@tcground/headless`/`@tcground/ui` dist JS가 Node ESM에서도 해석되도록 런타임 상대 import/export에 `.js` 확장자를 명시하고, `@tcground/ui`의 `@tcground/headless` dependency를 publish 가능한 semver range로 정리했다.
+- 2026-06-05: 루트 앱의 `@tcground/ui` source alias와 직접 사용하지 않는 UI 내부 런타임 dependency를 제거해 npm 배포본 소비 검증 계약을 강화했다.
 - 2026-06-04: 수동 가격 CSV의 sold snapshot을 source별로 집계하고, 상세 차트의 sold/asking 분류를 `aggregation_method` 우선으로 변경했다. PriceCharting 개별 eBay completed-sale 행은 `pricecharting_ebay_sold` source로 보존하고, 번개장터 수동 sold와 asking은 같은 `source_name`이어도 서로 섞지 않는다.
 - 2026-06-05: 중고나라 자동 `asking` source를 추가했다. `JOONGNA_COLLECTION_ENABLED=true`와 `scripts/collect-prices.ts --joongna`로만 실행하며, 공개 search page에서 최소 상품 필드만 추출해 `joongna_asking_median` snapshot으로 저장한다.

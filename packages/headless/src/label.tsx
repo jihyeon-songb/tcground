@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-import { composeEventHandlers } from './primitive';
+import { composeEventHandlers } from './primitive.js';
 
 type LabelProps = React.ComponentProps<'label'>;
 

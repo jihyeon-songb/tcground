@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-import { composeEventHandlers } from './primitive';
+import { composeEventHandlers } from './primitive.js';
 
 interface RadioGroupContextValue {
   disabled?: boolean;
@@ -74,7 +74,13 @@ interface RadioGroupItemContextValue {
 
 const RadioGroupItemContext = React.createContext<RadioGroupItemContextValue | null>(null);
 
-function RadioGroupItem({ disabled: itemDisabled, onClick, onKeyDown, value, ...props }: RadioGroupItemProps) {
+function RadioGroupItem({
+  disabled: itemDisabled,
+  onClick,
+  onKeyDown,
+  value,
+  ...props
+}: RadioGroupItemProps) {
   const context = useRadioGroupContext('RadioGroupItem');
   const checked = context.value === value;
   const disabled = context.disabled || itemDisabled;
@@ -141,7 +147,10 @@ function RadioGroupItem({ disabled: itemDisabled, onClick, onKeyDown, value, ...
   );
 }
 
-function RadioGroupIndicator({ forceMount, ...props }: React.HTMLAttributes<HTMLSpanElement> & { forceMount?: boolean }) {
+function RadioGroupIndicator({
+  forceMount,
+  ...props
+}: React.HTMLAttributes<HTMLSpanElement> & { forceMount?: boolean }) {
   const context = React.useContext(RadioGroupItemContext);
 
   if (!context) {

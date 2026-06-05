@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { Label as HeadlessLabel, type LabelProps as HeadlessLabelProps } from '@tcground/headless';
 
-import { cn } from '../../utils';
+import { cn } from '../../utils.js';
 
 function Label({ className, ...props }: HeadlessLabelProps) {
   return (

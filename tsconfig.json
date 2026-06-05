@@ -20,8 +20,6 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "@tcground/ui": ["./packages/ui/src"],
-      "@tcground/ui/*": ["./packages/ui/src/*"],
       "@tcground/headless": ["./packages/headless/src"],
       "@tcground/headless/*": ["./packages/headless/src/*"]
     }
@@ -34,5 +32,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "apps"]
+  "exclude": ["node_modules", "apps", "packages"]
 }

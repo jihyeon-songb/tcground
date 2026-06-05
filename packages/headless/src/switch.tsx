@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-import { composeEventHandlers } from './primitive';
+import { composeEventHandlers } from './primitive.js';
 
 interface SwitchContextValue {
   checked: boolean;
@@ -21,8 +21,10 @@ function useSwitchContext(componentName: string) {
   return context;
 }
 
-interface SwitchProps
-  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'checked' | 'defaultChecked' | 'value' | 'onChange'> {
+interface SwitchProps extends Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  'checked' | 'defaultChecked' | 'value' | 'onChange'
+> {
   checked?: boolean;
   defaultChecked?: boolean;
   onCheckedChange?: (checked: boolean) => void;

@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { Button } from '@tcground/ui';
 import { CheckCircle2, LockKeyhole, Mail, UserPlus } from 'lucide-react';
 import { useActionState } from 'react';
-import { signup } from '@/app/signup/_actions/signup';
-import type { SignupFormState } from '@/app/signup/_lib/signup-utils';
 import { getAuthEntryHref } from '@/lib/auth/redirect';
+import { signup } from '../_actions/signup';
+import type { SignupFormState } from '../_lib/signup-utils';
 
 interface SignupFormProps {
   nextPath: string;
@@ -30,7 +30,7 @@ export function SignupForm({ nextPath }: SignupFormProps) {
       {state.formError ? (
         <p
           role='alert'
-          className='rounded-lg border border-[#f2b8c0] bg-[#fff4f5] px-3 py-2 text-sm font-medium text-tcg-red-dark'
+          className='text-tcg-red-dark rounded-lg border border-[#f2b8c0] bg-[#fff4f5] px-3 py-2 text-sm font-medium'
         >
           {state.formError}
         </p>
@@ -45,20 +45,20 @@ export function SignupForm({ nextPath }: SignupFormProps) {
             <CheckCircle2 aria-hidden='true' className='mt-0.5 h-4 w-4 shrink-0' />
             <p>{state.successMessage}</p>
           </div>
-          <Link href={loginHref} className='inline-flex font-bold text-tcg-blue hover:underline'>
+          <Link href={loginHref} className='text-tcg-blue inline-flex font-bold hover:underline'>
             로그인 화면으로 이동
           </Link>
         </div>
       ) : null}
 
       <div className='space-y-1.5'>
-        <label htmlFor='email' className='block text-sm font-bold text-foreground'>
+        <label htmlFor='email' className='text-foreground block text-sm font-bold'>
           이메일 주소
         </label>
         <div className='relative'>
           <Mail
             aria-hidden='true'
-            className='pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-muted-foreground'
+            className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2'
           />
           <input
             id='email'
@@ -71,24 +71,24 @@ export function SignupForm({ nextPath }: SignupFormProps) {
             aria-invalid={Boolean(state.fieldErrors.email)}
             aria-describedby={state.fieldErrors.email ? 'email-error' : undefined}
             disabled={isPending}
-            className='block h-11 w-full rounded-lg border border-border bg-card pr-3 pl-10 text-base text-foreground transition-colors placeholder:text-muted-foreground focus:border-tcg-red focus:ring-2 focus:ring-tcg-red/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-muted'
+            className='border-border bg-card text-foreground placeholder:text-muted-foreground focus:border-tcg-red focus:ring-tcg-red/20 disabled:bg-muted block h-11 w-full rounded-lg border pr-3 pl-10 text-base transition-colors focus:ring-2 focus:outline-none disabled:cursor-not-allowed'
           />
         </div>
         {state.fieldErrors.email ? (
-          <p id='email-error' className='text-sm font-medium text-tcg-red-dark'>
+          <p id='email-error' className='text-tcg-red-dark text-sm font-medium'>
             {state.fieldErrors.email}
           </p>
         ) : null}
       </div>
 
       <div className='space-y-1.5'>
-        <label htmlFor='password' className='block text-sm font-bold text-foreground'>
+        <label htmlFor='password' className='text-foreground block text-sm font-bold'>
           비밀번호
         </label>
         <div className='relative'>
           <LockKeyhole
             aria-hidden='true'
-            className='pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-muted-foreground'
+            className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2'
           />
           <input
             id='password'
@@ -101,24 +101,24 @@ export function SignupForm({ nextPath }: SignupFormProps) {
             aria-invalid={Boolean(state.fieldErrors.password)}
             aria-describedby={state.fieldErrors.password ? 'password-error' : undefined}
             disabled={isPending}
-            className='block h-11 w-full rounded-lg border border-border bg-card pr-3 pl-10 text-base text-foreground transition-colors placeholder:text-muted-foreground focus:border-tcg-red focus:ring-2 focus:ring-tcg-red/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-muted'
+            className='border-border bg-card text-foreground placeholder:text-muted-foreground focus:border-tcg-red focus:ring-tcg-red/20 disabled:bg-muted block h-11 w-full rounded-lg border pr-3 pl-10 text-base transition-colors focus:ring-2 focus:outline-none disabled:cursor-not-allowed'
           />
         </div>
         {state.fieldErrors.password ? (
-          <p id='password-error' className='text-sm font-medium text-tcg-red-dark'>
+          <p id='password-error' className='text-tcg-red-dark text-sm font-medium'>
             {state.fieldErrors.password}
           </p>
         ) : null}
       </div>
 
       <div className='space-y-1.5'>
-        <label htmlFor='passwordConfirm' className='block text-sm font-bold text-foreground'>
+        <label htmlFor='passwordConfirm' className='text-foreground block text-sm font-bold'>
           비밀번호 확인
         </label>
         <div className='relative'>
           <LockKeyhole
             aria-hidden='true'
-            className='pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-muted-foreground'
+            className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2'
           />
           <input
             id='passwordConfirm'
@@ -133,22 +133,17 @@ export function SignupForm({ nextPath }: SignupFormProps) {
               state.fieldErrors.passwordConfirm ? 'password-confirm-error' : undefined
             }
             disabled={isPending}
-            className='block h-11 w-full rounded-lg border border-border bg-card pr-3 pl-10 text-base text-foreground transition-colors placeholder:text-muted-foreground focus:border-tcg-red focus:ring-2 focus:ring-tcg-red/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-muted'
+            className='border-border bg-card text-foreground placeholder:text-muted-foreground focus:border-tcg-red focus:ring-tcg-red/20 disabled:bg-muted block h-11 w-full rounded-lg border pr-3 pl-10 text-base transition-colors focus:ring-2 focus:outline-none disabled:cursor-not-allowed'
           />
         </div>
         {state.fieldErrors.passwordConfirm ? (
-          <p id='password-confirm-error' className='text-sm font-medium text-tcg-red-dark'>
+          <p id='password-confirm-error' className='text-tcg-red-dark text-sm font-medium'>
             {state.fieldErrors.passwordConfirm}
           </p>
         ) : null}
       </div>
 
-      <Button
-        type='submit'
-        disabled={isPending}
-        size='auth'
-        className='mt-6'
-      >
+      <Button type='submit' disabled={isPending} size='auth' className='mt-6'>
         <UserPlus aria-hidden='true' className='h-4 w-4' />
         {isPending ? '가입 요청 중...' : '회원가입'}
       </Button>

@@ -13,8 +13,8 @@ import {
   AlertDialogTrigger as HeadlessAlertDialogTrigger,
 } from '@tcground/headless';
 
-import { cn } from '../../utils';
-import { Button } from './button';
+import { cn } from '../../utils.js';
+import { Button } from './button.js';
 
 function AlertDialog({ ...props }: React.ComponentProps<typeof HeadlessAlertDialog>) {
   return <HeadlessAlertDialog {...props} />;
@@ -144,7 +144,7 @@ function AlertDialogAction({
   size = 'default',
   ...props
 }: React.ComponentProps<typeof HeadlessAlertDialogAction> &
-  Pick<React.ComponentProps<typeof Button>, 'variant' | 'size'>) {
+  Partial<Pick<React.ComponentProps<typeof Button>, 'variant' | 'size'>>) {
   return (
     <Button variant={variant} size={size} asChild>
       <HeadlessAlertDialogAction
@@ -162,7 +162,7 @@ function AlertDialogCancel({
   size = 'default',
   ...props
 }: React.ComponentProps<typeof HeadlessAlertDialogCancel> &
-  Pick<React.ComponentProps<typeof Button>, 'variant' | 'size'>) {
+  Partial<Pick<React.ComponentProps<typeof Button>, 'variant' | 'size'>>) {
   return (
     <Button variant={variant} size={size} asChild>
       <HeadlessAlertDialogCancel

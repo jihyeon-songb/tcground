@@ -1,24 +1,24 @@
-export { PrimitiveSlot, composeEventHandlers, composeRefs } from './primitive';
-export { Button } from './button';
-export type { ButtonProps } from './button';
-export { Label } from './label';
-export type { LabelProps } from './label';
-export { Separator } from './separator';
-export type { SeparatorProps, SeparatorOrientation } from './separator';
-export { Checkbox, CheckboxIndicator } from './checkbox';
-export type { CheckboxProps, CheckboxIndicatorProps, CheckedState } from './checkbox';
-export { Switch, SwitchThumb } from './switch';
-export type { SwitchProps } from './switch';
-export { RadioGroup, RadioGroupItem, RadioGroupIndicator } from './radio-group';
-export type { RadioGroupProps, RadioGroupItemProps } from './radio-group';
-export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs';
+export { PrimitiveSlot, composeEventHandlers, composeRefs } from './primitive.js';
+export { Button } from './button.js';
+export type { ButtonProps } from './button.js';
+export { Label } from './label.js';
+export type { LabelProps } from './label.js';
+export { Separator } from './separator.js';
+export type { SeparatorProps, SeparatorOrientation } from './separator.js';
+export { Checkbox, CheckboxIndicator } from './checkbox.js';
+export type { CheckboxProps, CheckboxIndicatorProps, CheckedState } from './checkbox.js';
+export { Switch, SwitchThumb } from './switch.js';
+export type { SwitchProps } from './switch.js';
+export { RadioGroup, RadioGroupItem, RadioGroupIndicator } from './radio-group.js';
+export type { RadioGroupProps, RadioGroupItemProps } from './radio-group.js';
+export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs.js';
 export type {
   TabsProps,
   TabsTriggerProps,
   TabsContentProps,
   TabsOrientation,
   TabsActivationMode,
-} from './tabs';
+} from './tabs.js';
 export {
   Dialog,
   DialogClose,
@@ -28,13 +28,13 @@ export {
   DialogPortal,
   DialogTitle,
   DialogTrigger,
-} from './dialog';
+} from './dialog.js';
 export type {
   DialogProps,
   DialogTriggerProps,
   DialogCloseProps,
   DialogContentProps,
-} from './dialog';
+} from './dialog.js';
 export {
   AlertDialog,
   AlertDialogAction,
@@ -45,8 +45,8 @@ export {
   AlertDialogPortal,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from './alert-dialog';
-export type { AlertDialogProps } from './alert-dialog';
+} from './alert-dialog.js';
+export type { AlertDialogProps } from './alert-dialog.js';
 export {
   Sheet,
   SheetClose,
@@ -56,5 +56,5 @@ export {
   SheetPortal,
   SheetTitle,
   SheetTrigger,
-} from './sheet';
-export type { SheetProps } from './sheet';
+} from './sheet.js';
+export type { SheetProps } from './sheet.js';

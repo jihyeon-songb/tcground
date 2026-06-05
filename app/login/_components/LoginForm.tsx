@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { Button } from '@tcground/ui';
 import { LockKeyhole, LogIn, Mail } from 'lucide-react';
 import { useActionState } from 'react';
-import { login } from '@/app/login/_actions/login';
-import type { LoginFormState } from '@/app/login/_lib/login-utils';
+import { login } from '../_actions/login';
+import type { LoginFormState } from '../_lib/login-utils';
 
 interface LoginFormProps {
   nextPath: string;
@@ -28,20 +28,20 @@ export function LoginForm({ nextPath }: LoginFormProps) {
       {state.formError ? (
         <p
           role='alert'
-          className='rounded-lg border border-[#f2b8c0] bg-[#fff4f5] px-3 py-2 text-sm font-medium text-tcg-red-dark'
+          className='text-tcg-red-dark rounded-lg border border-[#f2b8c0] bg-[#fff4f5] px-3 py-2 text-sm font-medium'
         >
           {state.formError}
         </p>
       ) : null}
 
       <div className='space-y-1.5'>
-        <label htmlFor='email' className='block text-sm font-bold text-foreground'>
+        <label htmlFor='email' className='text-foreground block text-sm font-bold'>
           이메일 주소
         </label>
         <div className='relative'>
           <Mail
             aria-hidden='true'
-            className='pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-muted-foreground'
+            className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2'
           />
           <input
             id='email'
@@ -54,11 +54,11 @@ export function LoginForm({ nextPath }: LoginFormProps) {
             aria-invalid={Boolean(state.fieldErrors.email)}
             aria-describedby={state.fieldErrors.email ? 'email-error' : undefined}
             disabled={isPending}
-            className='block h-11 w-full rounded-lg border border-border bg-card pr-3 pl-10 text-base text-foreground transition-colors placeholder:text-muted-foreground focus:border-tcg-red focus:ring-2 focus:ring-tcg-red/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-muted'
+            className='border-border bg-card text-foreground placeholder:text-muted-foreground focus:border-tcg-red focus:ring-tcg-red/20 disabled:bg-muted block h-11 w-full rounded-lg border pr-3 pl-10 text-base transition-colors focus:ring-2 focus:outline-none disabled:cursor-not-allowed'
           />
         </div>
         {state.fieldErrors.email ? (
-          <p id='email-error' className='text-sm font-medium text-tcg-red-dark'>
+          <p id='email-error' className='text-tcg-red-dark text-sm font-medium'>
             {state.fieldErrors.email}
           </p>
         ) : null}
@@ -66,12 +66,12 @@ export function LoginForm({ nextPath }: LoginFormProps) {
 
       <div className='space-y-1.5'>
         <div className='flex items-center justify-between gap-3'>
-          <label htmlFor='password' className='block text-sm font-bold text-foreground'>
+          <label htmlFor='password' className='text-foreground block text-sm font-bold'>
             비밀번호
           </label>
           <Link
             href='/forgot-password'
-            className='text-xs font-medium text-tcg-blue transition-colors hover:underline'
+            className='text-tcg-blue text-xs font-medium transition-colors hover:underline'
           >
             비밀번호를 잊으셨나요?
           </Link>
@@ -79,7 +79,7 @@ export function LoginForm({ nextPath }: LoginFormProps) {
         <div className='relative'>
           <LockKeyhole
             aria-hidden='true'
-            className='pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-muted-foreground'
+            className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2'
           />
           <input
             id='password'
@@ -91,22 +91,17 @@ export function LoginForm({ nextPath }: LoginFormProps) {
             aria-invalid={Boolean(state.fieldErrors.password)}
             aria-describedby={state.fieldErrors.password ? 'password-error' : undefined}
             disabled={isPending}
-            className='block h-11 w-full rounded-lg border border-border bg-card pr-3 pl-10 text-base text-foreground transition-colors placeholder:text-muted-foreground focus:border-tcg-red focus:ring-2 focus:ring-tcg-red/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-muted'
+            className='border-border bg-card text-foreground placeholder:text-muted-foreground focus:border-tcg-red focus:ring-tcg-red/20 disabled:bg-muted block h-11 w-full rounded-lg border pr-3 pl-10 text-base transition-colors focus:ring-2 focus:outline-none disabled:cursor-not-allowed'
           />
         </div>
         {state.fieldErrors.password ? (
-          <p id='password-error' className='text-sm font-medium text-tcg-red-dark'>
+          <p id='password-error' className='text-tcg-red-dark text-sm font-medium'>
             {state.fieldErrors.password}
           </p>
         ) : null}
       </div>
 
-      <Button
-        type='submit'
-        disabled={isPending}
-        size='auth'
-        className='mt-6'
-      >
+      <Button type='submit' disabled={isPending} size='auth' className='mt-6'>
         <LogIn aria-hidden='true' className='h-4 w-4' />
         {isPending ? '로그인 중...' : '로그인'}
       </Button>

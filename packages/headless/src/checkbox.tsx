@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-import { composeEventHandlers } from './primitive';
+import { composeEventHandlers } from './primitive.js';
 
 type CheckedState = boolean | 'indeterminate';
 
@@ -23,8 +23,10 @@ function useCheckboxContext(componentName: string) {
   return context;
 }
 
-interface CheckboxProps
-  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'checked' | 'defaultChecked' | 'value' | 'onChange'> {
+interface CheckboxProps extends Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  'checked' | 'defaultChecked' | 'value' | 'onChange'
+> {
   checked?: CheckedState;
   defaultChecked?: CheckedState;
   onCheckedChange?: (checked: CheckedState) => void;

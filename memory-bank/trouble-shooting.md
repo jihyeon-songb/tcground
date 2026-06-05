@@ -1,7 +1,63 @@
 # TROUBLE SHOOTING
 
 > PRD에 없던 엣지 케이스, 예외 상황, source 리스크 기록.
-> 마지막 갱신: 2026-06-05 (KREAM 카탈로그 매칭 보강)
+> 마지막 갱신: 2026-06-05 (Vercel main 배포 미반영)
+
+## Vercel main 배포가 최신 커밋을 반영하지 않음
+
+### 문제
+
+2026-06-05 PR #5가 `main`에 merge됐지만 production URL이 최신 화면을 반영하지 않았다. GitHub 원격 `main` 최신 SHA는 `96424b89618794f7256b73e0ede0834f4e9c4c8f`였고, PR #5 merge 시각은 `2026-06-05T12:21:52Z`였다.
+
+Vercel 최신 production 배포는 `tcground-ojt264nfx-devjerryb-2567s-projects.vercel.app`로 `Ready` 상태였고 `tcground.vercel.app` alias도 붙어 있었다. 하지만 해당 배포 build log에는 다음처럼 이전 main 커밋이 기록됐다.
+
+```text
+Cloning github.com/jihyeon-songb/tcground (Branch: main, Commit: dfb2680)
+```
+
+즉 production 배포는 존재했지만 최신 merge commit `96424b8`이 아니라 이전 main 커밋 `dfb2680`을 다시 빌드한 상태였다. 최근 preview 배포들도 `refactor/component-structure`의 `d3e6ff0` 또는 `feat/card-list-page`의 `401da66`까지였고, merge commit `96424b8` 배포는 확인되지 않았다.
+
+### 처리
+
+- Vercel CLI로 `tcground` 프로젝트의 최근 deployment를 조회했다. 최신 production은 `2026-06-05 21:50:08 KST` 생성, `Ready`, production alias 연결 상태였다.
+- `vercel inspect ... --logs`로 최신 production이 `dfb2680`을 clone/build/deploy한 것을 확인했다.
+- GitHub API에서 최신 `main` commit status/check run/deployments를 확인했지만 `96424b8`에 check run 0개, deployment 0개였다.
+- GitHub Actions도 없었다. `workflow_runs=0`, `.github/workflows` 없음.
+- `/private/tmp/tcg-round-main`에 `origin/main` archive를 풀고 `pnpm install --filter=tcg-round... --frozen-lockfile`, `pnpm build`를 실행해 최신 main 소스 자체는 빌드 통과함을 확인했다.
+
+### 재발 방지
+
+- Vercel에서 이전 deployment의 "Redeploy"를 누르면 현재 `main` HEAD가 아니라 해당 deployment의 원래 commit을 다시 배포할 수 있다. 최신 main 반영이 목표면 GitHub push/merge trigger로 생성된 `96424b8` deployment를 promote하거나, 최신 main checkout에서 새 production deploy를 실행한다.
+- 배포 후 `vercel inspect <production-url> --logs`의 `Branch`/`Commit` 줄을 확인해 production alias가 기대 SHA를 가리키는지 검증한다.
+- GitHub PR merge 후 Vercel deployment/check가 생성되지 않으면 Vercel Project Git 설정의 connected repository, production branch, ignored build step, GitHub App 권한을 확인한다.
+
+## UI 패키지 npm publish 권한과 버전 충돌
+
+### 문제
+
+2026-06-05 `@tcground/headless`/`@tcground/ui` ESM 산출물 보강 후 실제 npm 배포와 루트 앱 registry 소비 갱신을 시도했다. registry 조회 결과 목표로 삼았던 `@tcground/headless@0.1.1`과 `@tcground/ui@0.1.2`는 이미 존재했다. 하지만 설치된 `@tcground/ui@0.1.2`는 이전 산출물이라 다음 문제가 있었다.
+
+- `dist/index.js`가 `./components/ui/alert`처럼 extensionless re-export를 포함해 `node import('@tcground/ui')`가 `ERR_MODULE_NOT_FOUND`로 실패했다.
+- package manifest의 `@tcground/headless` dependency가 publish 가능한 semver가 아니라 `workspace:^`로 남아 있었다.
+- npm은 같은 version을 덮어쓸 수 없으므로 `@tcground/ui@0.1.2`를 수정본으로 재배포할 수 없다.
+
+수정본 배포를 위해 `@tcground/headless@0.1.2`로 patch bump 후 `npm publish --access public`을 시도했지만 현재 환경의 npm 인증/권한도 부족했다.
+
+- `npm whoami`: E401 Unauthorized.
+- `npm publish --access public` from `packages/headless`: `PUT https://registry.npmjs.org/@tcground%2fheadless` E404.
+
+### 처리
+
+- 깨진 `@tcground/ui@0.1.2`를 루트 앱 dependency로 유지하지 않고, `pnpm-lock.yaml`과 `node_modules`를 기존 검증 상태인 `@tcground/ui@0.1.0`으로 복구했다.
+- `vitest.config.mts`의 `@tcground/ui` local source alias와 root `tsconfig.json`의 `@tcground/headless` alias를 유지했다. 현재 published package가 Node/Vitest dependency import에서 실패하기 때문이다.
+- 로컬 source에는 `.js` extension specifier 보강과 `@tcground/ui`의 semver dependency 보강을 유지한다.
+
+### 재발 방지
+
+- npm publish 전에는 `npm whoami`와 `npm access ls-packages @tcground` 또는 organization 권한을 먼저 확인한다.
+- 이미 존재하는 버전에 문제가 있으면 같은 version을 재사용하지 않고 patch version을 올린다.
+- 다음 배포는 `@tcground/headless@0.1.2`를 먼저 publish한 뒤, `@tcground/ui@0.1.3`을 `@tcground/headless:^0.1.2` dependency로 publish한다.
+- publish 후 루트 앱에서 `pnpm add -w @tcground/ui@^0.1.3`, `node import('@tcground/ui')`, `pnpm test --run`을 확인한 뒤에만 Vitest alias를 제거한다.
 
 ## KREAM 로그인 수동 수집 중 상세 접근/카탈로그 매칭 한계
 
@@ -241,17 +297,17 @@ TCGdex 카드 이미지와 홈 카테고리 타일 이미지가 외부 원본 UR
 
 ### 후보 source 평가표
 
-| source       | 가격 성격             | 접근/API 1차 확인                                                                                                                       | 주요 리스크                                                                   | 1차 처리                                                                |
-| ------------ | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| KREAM        | 체결 시세=sold        | 공개 API 확인 안 됨. 상품/체결 데이터 재사용은 제휴 확인 필요                                                                           | 싱글 카드 커버리지 제한, 재표시/저장 권한 불명확                              | 스캐폴드(`kream`, 플래그 차단) + 수동 import(`manual_kream` sold)       |
-| 번개장터     | 판매중 호가=asking, 판매완료 수동 확인 시 sold | 공개 API 확인 안 됨                                                                                                                     | 거래완료 여부와 최종 체결가 신뢰도, crawler ToS 리스크                        | 스캐폴드(`bunjang`, 플래그 차단) + 수동 import(`manual_bunjang` asking/sold) |
-| 중고나라     | 판매중/거래완료 혼재  | 공개 상품 페이지와 판매완료 표시는 확인됨. 공개 API 확인 안 됨                                                                          | 텍스트 매칭 오류와 상태 정보 부족                                             | 수동 검증 우선                                                          |
-| 당근         | 지역 개인거래         | 공개 API 확인 안 됨. 지역/앱 기반 접근성이 강함                                                                                         | 검색/접근 자동화 어려움, 지역 편차 큼                                         | 자동 adapter 후보에서 후순위                                            |
-| 국내 카드샵  | 판매중/품절가         | 매장별 개별 확인 필요                                                                                                                   | 실거래가가 아닌 판매 희망가일 수 있음                                         | 보조 지표                                                               |
-| eBay sold    | 해외 실거래           | Marketplace Insights API가 sold item sales history 경로지만 restricted/limited release이며 Buy API production approval과 계약 확인 필요 | 한국 국내 시세와 괴리, 배송비/환율 영향, restricted API 데이터 저장/표시 제약 | 1차 자동 adapter 대상(승인 전 scraping 금지)                            |
-| PriceCharting 개별 eBay sold 행 | 해외 실거래 index     | 공개 페이지의 historic sales 표에서 개별 eBay completed-sale 날짜·제목·가격 확인 가능. 직접 eBay 원문은 현재 환경에서 차단됨             | 제3자 index라 eBay item 원문보다 신뢰도가 낮고 item id 직접 확보가 제한됨      | 수동 CSV 보조 evidence(`pricecharting_ebay_sold`), 집계값은 사용 금지    |
-| Cardmarket   | 유럽 거래/판매 데이터 | 공식 API는 있으나 현재 신규 신청을 받지 않음                                                                                            | 국내 KRW 시세와 괴리, API credential 공유 금지                                | 교차 검증                                                               |
-| Guardian TCG | 제3자 집계            | 개발자 API와 무료 tier 확인됨                                                                                                           | 원천 데이터 재배포 조건과 한국판 매칭 품질 확인 필요                          | 교차 검증                                                               |
+| source                          | 가격 성격                                      | 접근/API 1차 확인                                                                                                                       | 주요 리스크                                                                   | 1차 처리                                                                     |
+| ------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| KREAM                           | 체결 시세=sold                                 | 공개 API 확인 안 됨. 상품/체결 데이터 재사용은 제휴 확인 필요                                                                           | 싱글 카드 커버리지 제한, 재표시/저장 권한 불명확                              | 스캐폴드(`kream`, 플래그 차단) + 수동 import(`manual_kream` sold)            |
+| 번개장터                        | 판매중 호가=asking, 판매완료 수동 확인 시 sold | 공개 API 확인 안 됨                                                                                                                     | 거래완료 여부와 최종 체결가 신뢰도, crawler ToS 리스크                        | 스캐폴드(`bunjang`, 플래그 차단) + 수동 import(`manual_bunjang` asking/sold) |
+| 중고나라                        | 판매중/거래완료 혼재                           | 공개 상품 페이지와 판매완료 표시는 확인됨. 공개 API 확인 안 됨                                                                          | 텍스트 매칭 오류와 상태 정보 부족                                             | 수동 검증 우선                                                               |
+| 당근                            | 지역 개인거래                                  | 공개 API 확인 안 됨. 지역/앱 기반 접근성이 강함                                                                                         | 검색/접근 자동화 어려움, 지역 편차 큼                                         | 자동 adapter 후보에서 후순위                                                 |
+| 국내 카드샵                     | 판매중/품절가                                  | 매장별 개별 확인 필요                                                                                                                   | 실거래가가 아닌 판매 희망가일 수 있음                                         | 보조 지표                                                                    |
+| eBay sold                       | 해외 실거래                                    | Marketplace Insights API가 sold item sales history 경로지만 restricted/limited release이며 Buy API production approval과 계약 확인 필요 | 한국 국내 시세와 괴리, 배송비/환율 영향, restricted API 데이터 저장/표시 제약 | 1차 자동 adapter 대상(승인 전 scraping 금지)                                 |
+| PriceCharting 개별 eBay sold 행 | 해외 실거래 index                              | 공개 페이지의 historic sales 표에서 개별 eBay completed-sale 날짜·제목·가격 확인 가능. 직접 eBay 원문은 현재 환경에서 차단됨            | 제3자 index라 eBay item 원문보다 신뢰도가 낮고 item id 직접 확보가 제한됨     | 수동 CSV 보조 evidence(`pricecharting_ebay_sold`), 집계값은 사용 금지        |
+| Cardmarket                      | 유럽 거래/판매 데이터                          | 공식 API는 있으나 현재 신규 신청을 받지 않음                                                                                            | 국내 KRW 시세와 괴리, API credential 공유 금지                                | 교차 검증                                                                    |
+| Guardian TCG                    | 제3자 집계                                     | 개발자 API와 무료 tier 확인됨                                                                                                           | 원천 데이터 재배포 조건과 한국판 매칭 품질 확인 필요                          | 교차 검증                                                                    |
 
 ### 한국판 포켓몬 10장 검증 샘플
 
@@ -276,35 +332,35 @@ TCGdex 카드 이미지와 홈 카테고리 타일 이미지가 외부 원본 UR
 
 CSV는 사람이 source를 확인한 뒤 `price_observations` 또는 asking snapshot에 넣을 수 있는 행만 작성한다. `price_kind=sold`는 실거래 관측치로, `price_kind=asking` 또는 `listing`은 판매중 호가 보조 trend로만 처리하며 둘을 섞지 않는다.
 
-| 컬럼               | 필수        | 예                                                | 매핑/규칙                                                             |
-| ------------------ | ----------- | ------------------------------------------------- | --------------------------------------------------------------------- |
-| `sample_id`        | yes         | `PKMKR-BS2023014201`                              | 공식 한국 카드 번호 기반 식별자                                       |
-| `card_name`        | yes         | `리자몽 ex`                                       | 사람이 확인하는 표시명                                                |
-| `set_name`         | yes         | `스칼렛&바이올렛 강화 확장팩 「포켓몬 카드 151」` | `card_printings.set_name` 매칭 보조                                   |
-| `set_code`         | no          | `BS2023014201`                                    | 공식 상세 ID 또는 외부 source set code                                |
-| `collector_number` | yes         | `201/165`                                         | `card_printings.collector_number`                                     |
-| `rarity`           | no          | `SAR`                                             | `card_printings.rarity`                                               |
-| `language`         | yes         | `ko`                                              | 한국판은 `ko`                                                         |
-| `region`           | yes         | `KR`                                              | 한국 시장/지역판                                                      |
-| `finish`           | yes         | `unknown`                                         | `normal`, `holo`, `reverse_holo`, `unknown`                           |
+| 컬럼               | 필수        | 예                                                          | 매핑/규칙                                                             |
+| ------------------ | ----------- | ----------------------------------------------------------- | --------------------------------------------------------------------- |
+| `sample_id`        | yes         | `PKMKR-BS2023014201`                                        | 공식 한국 카드 번호 기반 식별자                                       |
+| `card_name`        | yes         | `리자몽 ex`                                                 | 사람이 확인하는 표시명                                                |
+| `set_name`         | yes         | `스칼렛&바이올렛 강화 확장팩 「포켓몬 카드 151」`           | `card_printings.set_name` 매칭 보조                                   |
+| `set_code`         | no          | `BS2023014201`                                              | 공식 상세 ID 또는 외부 source set code                                |
+| `collector_number` | yes         | `201/165`                                                   | `card_printings.collector_number`                                     |
+| `rarity`           | no          | `SAR`                                                       | `card_printings.rarity`                                               |
+| `language`         | yes         | `ko`                                                        | 한국판은 `ko`                                                         |
+| `region`           | yes         | `KR`                                                        | 한국 시장/지역판                                                      |
+| `finish`           | yes         | `unknown`                                                   | `normal`, `holo`, `reverse_holo`, `unknown`                           |
 | `source_name`      | yes         | `manual_kream`, `manual_bunjang`, `pricecharting_ebay_sold` | `price_observations.source_name` 또는 asking snapshot source          |
-| `source_item_id`   | no          | `123456789`                                       | source 고유 ID. 없으면 비움                                           |
-| `source_url`       | yes         | `https://...`                                     | 중복 판별과 감사 추적용                                               |
-| `listing_title`    | yes         | `포켓몬카드 151 리자몽 ex SAR`                    | 원천 제목                                                             |
-| `market`           | yes         | `KR`                                              | `KR`, `JP`, `NA`                                                      |
-| `currency`         | yes         | `KRW`                                             | 원천 통화                                                             |
-| `price_kind`       | yes         | `sold`                                            | `sold`는 실거래, `asking`/`listing`은 판매중 호가 보조 trend          |
-| `sold_price`       | conditional | `120000`                                          | `price_kind=sold`일 때 필수. 배송비 제외 원칙                         |
-| `sold_at`          | conditional | `2026-05-21T12:00:00+09:00`                       | 정확한 체결 시간이 없으면 확인한 날짜의 정오                          |
-| `observed_at`      | yes         | `2026-05-21T14:00:00+09:00`                       | 수동 확인 시각                                                        |
-| `condition_label`  | no          | `near_mint`                                       | `near_mint`, `light_played`, `played`, `damaged`, `sealed`, `unknown` |
-| `variant`          | yes         | `raw`                                             | `raw`, `graded`                                                       |
-| `grade_company`    | conditional | `PSA`                                             | `variant=graded`일 때 사용                                            |
-| `grade_value`      | conditional | `10`                                              | `variant=graded`일 때 사용                                            |
-| `shipping_price`   | no          | `3000`                                            | 집계 가격에는 기본 제외, raw payload에는 보존                         |
-| `confidence_score` | yes         | `0.85`                                            | 매칭 신뢰도. 0.8 미만은 집계 제외 후보                                |
-| `raw_payload_json` | no          | `{"memo":"판매완료 화면 확인"}`                   | 원천 응답/수동 메모의 비민감 요약                                     |
-| `exclude_reason`   | no          | `not_sold_price`                                  | 제외 행일 때 사유                                                     |
+| `source_item_id`   | no          | `123456789`                                                 | source 고유 ID. 없으면 비움                                           |
+| `source_url`       | yes         | `https://...`                                               | 중복 판별과 감사 추적용                                               |
+| `listing_title`    | yes         | `포켓몬카드 151 리자몽 ex SAR`                              | 원천 제목                                                             |
+| `market`           | yes         | `KR`                                                        | `KR`, `JP`, `NA`                                                      |
+| `currency`         | yes         | `KRW`                                                       | 원천 통화                                                             |
+| `price_kind`       | yes         | `sold`                                                      | `sold`는 실거래, `asking`/`listing`은 판매중 호가 보조 trend          |
+| `sold_price`       | conditional | `120000`                                                    | `price_kind=sold`일 때 필수. 배송비 제외 원칙                         |
+| `sold_at`          | conditional | `2026-05-21T12:00:00+09:00`                                 | 정확한 체결 시간이 없으면 확인한 날짜의 정오                          |
+| `observed_at`      | yes         | `2026-05-21T14:00:00+09:00`                                 | 수동 확인 시각                                                        |
+| `condition_label`  | no          | `near_mint`                                                 | `near_mint`, `light_played`, `played`, `damaged`, `sealed`, `unknown` |
+| `variant`          | yes         | `raw`                                                       | `raw`, `graded`                                                       |
+| `grade_company`    | conditional | `PSA`                                                       | `variant=graded`일 때 사용                                            |
+| `grade_value`      | conditional | `10`                                                        | `variant=graded`일 때 사용                                            |
+| `shipping_price`   | no          | `3000`                                                      | 집계 가격에는 기본 제외, raw payload에는 보존                         |
+| `confidence_score` | yes         | `0.85`                                                      | 매칭 신뢰도. 0.8 미만은 집계 제외 후보                                |
+| `raw_payload_json` | no          | `{"memo":"판매완료 화면 확인"}`                             | 원천 응답/수동 메모의 비민감 요약                                     |
+| `exclude_reason`   | no          | `not_sold_price`                                            | 제외 행일 때 사유                                                     |
 
 ### 매칭/제외 규칙
 

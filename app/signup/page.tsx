@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { SignupForm } from '@/components/tcg/auth/SignupForm';
 import { getAuthEntryHref, getSafeNextPath } from '@/lib/auth/redirect';
 import { createClient } from '@/lib/supabase/server';
+import { SignupForm } from './_components/SignupForm';
 
 export const metadata: Metadata = {
   title: 'TCGround | 회원가입',
@@ -28,7 +28,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
   }
 
   return (
-    <main className='flex min-h-screen items-center justify-center bg-muted px-4 py-12'>
+    <main className='bg-muted flex min-h-screen items-center justify-center px-4 py-12'>
       <div className='w-full max-w-md'>
         <div className='mb-8 flex justify-center'>
           <Link href='/' aria-label='TCGround home'>
@@ -43,12 +43,12 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
           </Link>
         </div>
 
-        <section className='rounded-2xl border border-border bg-card p-8 shadow-[0_4px_20px_rgba(41,53,71,0.08)]'>
+        <section className='border-border bg-card rounded-2xl border p-8 shadow-[0_4px_20px_rgba(41,53,71,0.08)]'>
           <header className='mb-6 text-center'>
-            <h1 className='mb-1 text-2xl leading-tight font-bold text-foreground'>
+            <h1 className='text-foreground mb-1 text-2xl leading-tight font-bold'>
               TCGround 시작하기
             </h1>
-            <p className='text-base leading-[1.5] text-muted-foreground'>
+            <p className='text-muted-foreground text-base leading-[1.5]'>
               이메일 인증 후 컬렉션 가격을 추적할 수 있어요.
             </p>
           </header>
@@ -56,11 +56,11 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
           <SignupForm nextPath={nextPath} />
         </section>
 
-        <p className='mt-6 text-center text-base leading-[1.5] text-muted-foreground'>
+        <p className='text-muted-foreground mt-6 text-center text-base leading-[1.5]'>
           이미 계정이 있으신가요?{' '}
           <Link
             href={getAuthEntryHref('/login', nextPath)}
-            className='font-bold text-tcg-red transition-colors hover:underline'
+            className='text-tcg-red font-bold transition-colors hover:underline'
           >
             로그인하기
           </Link>

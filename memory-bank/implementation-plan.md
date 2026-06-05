@@ -100,6 +100,7 @@
 - 2026-06-05 중고나라 변경: `joongna` 자동 asking source를 추가했다. 공개 search page hydration 데이터에서 상품 `seq`/title/price만 최소 추출하고, 카드명 검색 + 세트/번호 confidence + 중고나라 전용 제외어로 단일 카드 호가만 `joongna_asking_median` snapshot에 저장한다. 영향 파일은 `lib/pricing/joongna/**`, `lib/pricing/collect-prices.ts`, `scripts/collect-prices.ts`, `lib/pricing/price-source.types.ts`, `lib/tcg-catalog.ts`, `.env.example`, 관련 테스트, memory-bank 문서로 제한한다.
 
 사전 준비
+
 - 한국/거주용 IP(VPN) 연결 — KREAM·eBay-scrape 차단 회피 필수.
 - Playwright chromium 준비됨(`chromium-1223` 캐시). 없으면 `npx playwright install chromium`.
 - (asking 전체 실데이터 시) `.env.local`을 `EBAY_ENV=production` + production `EBAY_CLIENT_ID/SECRET`로 교체. 현재 `EBAY_ENV=sandbox`라 Browse API 접근은 되지만 실제 listing snapshot은 기대하지 않는다.
@@ -108,45 +109,48 @@
 - 중고나라 자동 asking 수집은 실행 시 `JOONGNA_COLLECTION_ENABLED=true`를 임시로 주입한다. 기본 `.env.example`은 `false`이며, 실거래가가 아니라 판매중 호가 보조 trend로만 표시한다.
 
 실행 (쓰기 전 항상 `--dry-run` 먼저)
+
 - [ ] 기존 검증 CSV evidence + asking import:
-  `node --env-file=.env.local --import tsx scripts/collect-prices.ts --csv --csv-asking`
-  (dry-run 검증 완료: sold parsed=109/resolved=109/snapshots=107, asking 9/9/5)
+      `node --env-file=.env.local --import tsx scripts/collect-prices.ts --csv --csv-asking`
+      (dry-run 검증 완료: sold parsed=109/resolved=109/snapshots=107, asking 9/9/5)
 - [x] 검증용 제한 실행 옵션 추가:
-  `node --env-file=.env.local --import tsx scripts/collect-prices.ts --browse --dry-run --limit 5`
-  결과: `cardsProcessed=5`, `ebay_browse` succeeded, `snapshotsUpserted=0`(sandbox listing 없음).
+      `node --env-file=.env.local --import tsx scripts/collect-prices.ts --browse --dry-run --limit 5`
+      결과: `cardsProcessed=5`, `ebay_browse` succeeded, `snapshotsUpserted=0`(sandbox listing 없음).
 - [x] 활성 source 제한 dry-run:
-  `node --env-file=.env.local --import tsx scripts/collect-prices.ts --dry-run --limit 2`
-  결과: `ebay_browse`, `bunjang`, `ebay_scrape`는 실패 없이 종료, `guardian_tcg`는 한국 카드 표본 404, `kream`은 500으로 실패. 전체 status는 `partial`.
+      `node --env-file=.env.local --import tsx scripts/collect-prices.ts --dry-run --limit 2`
+      결과: `ebay_browse`, `bunjang`, `ebay_scrape`는 실패 없이 종료, `guardian_tcg`는 한국 카드 표본 404, `kream`은 500으로 실패. 전체 status는 `partial`.
 - [ ] 자동 전체 수집(핵심): `node --env-file=.env.local --import tsx scripts/collect-prices.ts`
-  = enabled 소스 전부(eBay Browse asking 전 3,668 + KREAM/eBay-scrape sold). Playwright 자동 기동.
+      = enabled 소스 전부(eBay Browse asking 전 3,668 + KREAM/eBay-scrape sold). Playwright 자동 기동.
   - 2026-06-05 production 전환 없이 `--bunjang --ebay-scrape` 실제 쓰기를 실행했다. Bunjang은 succeeded로 26개 snapshot을 생성했고, eBay scrape는 browser context 종료로 partial/0 observations/0 snapshots라 후속 batch/progress 재시도가 필요하다. KREAM은 제한 dry-run에서 5/5 500이라 제외했다.
 - [x] eBay scrape batch/progress 재시도 옵션 추가:
-  `node --env-file=.env.local --import tsx scripts/collect-prices.ts --ebay-scrape --offset 0 --limit 50 --source-batch-size 50`
-  결과: `cardsProcessed=50`, `ebay_scrape` succeeded, batch metadata(`cardStart=0`, `cardEnd=49`, `sourceBatchSize=50`)가 `price_collection_runs.metadata`에 기록됨. 매칭된 sold observation/snapshot은 0건.
+      `node --env-file=.env.local --import tsx scripts/collect-prices.ts --ebay-scrape --offset 0 --limit 50 --source-batch-size 50`
+      결과: `cardsProcessed=50`, `ebay_scrape` succeeded, batch metadata(`cardStart=0`, `cardEnd=49`, `sourceBatchSize=50`)가 `price_collection_runs.metadata`에 기록됨. 매칭된 sold observation/snapshot은 0건.
 - [x] eBay scrape 다음 batch 실행:
-  `node --env-file=.env.local --import tsx scripts/collect-prices.ts --ebay-scrape --offset 50 --limit 50 --source-batch-size 50`
-  결과: `cardsProcessed=50`, `ebay_scrape` succeeded, batch metadata(`cardStart=50`, `cardEnd=99`, `sourceBatchSize=50`)가 `price_collection_runs.metadata`에 기록됨. 매칭된 sold observation/snapshot은 0건.
+      `node --env-file=.env.local --import tsx scripts/collect-prices.ts --ebay-scrape --offset 50 --limit 50 --source-batch-size 50`
+      결과: `cardsProcessed=50`, `ebay_scrape` succeeded, batch metadata(`cardStart=50`, `cardEnd=99`, `sourceBatchSize=50`)가 `price_collection_runs.metadata`에 기록됨. 매칭된 sold observation/snapshot은 0건.
 - [x] eBay scrape 0건 원인 점검:
-  live HTML probe 결과 기존 `s-item` selector가 현재 `s-card` search result markup을 읽지 못했고, eBay browser verification page가 HTTP 200으로 내려와 빈 결과처럼 처리될 수 있었다. `s-card` 파서와 challenge detection을 추가했으며, 수정 후 `--ebay-scrape --dry-run --offset 50 --limit 2 --source-batch-size 2`는 verification page를 `failed`로 기록한다.
+      live HTML probe 결과 기존 `s-item` selector가 현재 `s-card` search result markup을 읽지 못했고, eBay browser verification page가 HTTP 200으로 내려와 빈 결과처럼 처리될 수 있었다. `s-card` 파서와 challenge detection을 추가했으며, 수정 후 `--ebay-scrape --dry-run --offset 50 --limit 2 --source-batch-size 2`는 verification page를 `failed`로 기록한다.
 - [x] 중고나라 자동 asking source 추가:
-  `lib/pricing/joongna/joongna-adapter.ts`와 `--joongna` CLI flag를 추가했다. `--joongna --dry-run --offset 0 --limit 20 --source-batch-size 20` 결과 `cardsProcessed=20`, `status=succeeded`, dry-run snapshot 1개가 생성됐다. `리자몽 ex 201/165`처럼 collector number를 붙인 검색어는 중고나라 결과가 0이라 중고나라 source만 카드명 중심 검색을 사용하고, 실제 snapshot 여부는 매칭 confidence와 제외어 필터가 결정한다.
+      `lib/pricing/joongna/joongna-adapter.ts`와 `--joongna` CLI flag를 추가했다. `--joongna --dry-run --offset 0 --limit 20 --source-batch-size 20` 결과 `cardsProcessed=20`, `status=succeeded`, dry-run snapshot 1개가 생성됐다. `리자몽 ex 201/165`처럼 collector number를 붙인 검색어는 중고나라 결과가 0이라 중고나라 source만 카드명 중심 검색을 사용하고, 실제 snapshot 여부는 매칭 confidence와 제외어 필터가 결정한다.
 - [ ] 중고나라 전체 asking 수집:
-  `JOONGNA_COLLECTION_ENABLED=true node --env-file=.env.local --import tsx scripts/collect-prices.ts --joongna --source-batch-size 100`
-  100장 단위로 `price_collection_runs` batch를 기록한다.
+      `JOONGNA_COLLECTION_ENABLED=true node --env-file=.env.local --import tsx scripts/collect-prices.ts --joongna --source-batch-size 100`
+      100장 단위로 `price_collection_runs` batch를 기록한다.
 - [ ] (선택) 단일 소스 재시도: `--kream` / `--ebay-scrape` / `--browse`. 실패 batch만 재시도할 때는 `--offset <batch start> --limit <batch size> --source-batch-size <batch size>`를 같이 쓴다.
 - [x] 로그인 Playwright 기반 KREAM 수동 evidence 수집 1차:
-  `포켓몬카드 한글판` 검색 결과에서 product link 2,045개, 거래 표시 상품 272개를 확인했다. 현재 DOM에 유지된 246개를 상세 수집해 176개 상품의 체결 446건을 `memory-bank/kream-scrape/kream-product-details.json`에 저장했다. 기존 카탈로그와 확실히 매칭된 2건(`803225` 이브이 ex SAR 223/187, `804730` 파이리 AR 168/165)은 `price-source-validation.csv`에 `manual_kream`으로 추가했고, 174개 상품 444건은 카탈로그 미등록/미매칭으로 `memory-bank/kream-scrape/kream-matching-report.json`/`kream-worklist-inbox.md`에 보류했다. 70개 상품은 상세 HTML 기본 페이지/HTTP 500/로그인 리다이렉트로 재로그인 후 재수집이 필요하다.
+      `포켓몬카드 한글판` 검색 결과에서 product link 2,045개, 거래 표시 상품 272개를 확인했다. 현재 DOM에 유지된 246개를 상세 수집해 176개 상품의 체결 446건을 `memory-bank/kream-scrape/kream-product-details.json`에 저장했다. 기존 카탈로그와 확실히 매칭된 2건(`803225` 이브이 ex SAR 223/187, `804730` 파이리 AR 168/165)은 `price-source-validation.csv`에 `manual_kream`으로 추가했고, 174개 상품 444건은 카탈로그 미등록/미매칭으로 `memory-bank/kream-scrape/kream-matching-report.json`/`kream-worklist-inbox.md`에 보류했다. 70개 상품은 상세 HTML 기본 페이지/HTTP 500/로그인 리다이렉트로 재로그인 후 재수집이 필요하다.
 - [x] 재로그인 후 KREAM 직접 상세 보강:
-  상위 30개 product detail page를 Playwright 로그인 세션에서 직접 열어 체결 196건을 확인했다. Supabase `card_printings`와 매칭된 18개 상품 115건 중 기존 CSV 중복 58건을 제외하고 57건을 `manual_kream` evidence로 추가했다. 사용자 입력 예시인 `802229` 릴리에의 결심 SAR 090/063 5건을 포함하며, `79041` 기라티나 V는 Supabase 조회로 `111/100`, `PKMKR-BS2022014110`을 확정한 뒤 반영했다. 결과 리포트는 `memory-bank/kream-scrape/kream-direct-matching-report.json`에 저장했다.
+      상위 30개 product detail page를 Playwright 로그인 세션에서 직접 열어 체결 196건을 확인했다. Supabase `card_printings`와 매칭된 18개 상품 115건 중 기존 CSV 중복 58건을 제외하고 57건을 `manual_kream` evidence로 추가했다. 사용자 입력 예시인 `802229` 릴리에의 결심 SAR 090/063 5건을 포함하며, `79041` 기라티나 V는 Supabase 조회로 `111/100`, `PKMKR-BS2022014110`을 확정한 뒤 반영했다. 결과 리포트는 `memory-bank/kream-scrape/kream-direct-matching-report.json`에 저장했다.
 - [x] KREAM 보류 상품 Supabase 재대조 보강:
-  사용자 요청에 따라 메가개굴닌자 계열과 레쿠쟈 VMAX HR은 제외했다. `memory-bank/kream-scrape/kream-matching-report.json`의 보류 상품 중 Supabase `card_printings`와 세트코드/번호가 일치한 14개 상품을 구조화 inbox(`memory-bank/kream-scrape/kream-supabase-resolved-inbox-20260605.json`)로 만들고, 기존 CSV 중복인 잉어킹 4건을 제외한 13개 상품 24건을 `manual_kream` evidence로 추가했다.
+      사용자 요청에 따라 메가개굴닌자 계열과 레쿠쟈 VMAX HR은 제외했다. `memory-bank/kream-scrape/kream-matching-report.json`의 보류 상품 중 Supabase `card_printings`와 세트코드/번호가 일치한 14개 상품을 구조화 inbox(`memory-bank/kream-scrape/kream-supabase-resolved-inbox-20260605.json`)로 만들고, 기존 CSV 중복인 잉어킹 4건을 제외한 13개 상품 24건을 `manual_kream` evidence로 추가했다.
 - [x] KREAM 남은 미해소 상품 현대 세트 우선 재대조:
-  기존 `manual_kream` CSV product id를 제외한 `kream-matching-report.json` unresolved 160개 중 `M*`, `SV*`, `S10~S12`, `S6~S9` 후보 80개를 Supabase MCP로 재조회했다. `set_code + collector_number + ko/KR printing`이 일치한 14개 상품을 구조화 inbox(`memory-bank/kream-scrape/kream-supabase-resolved-modern-inbox-20260605.json`)로 만들고, 중복 없이 25건을 `manual_kream` evidence로 추가했다. DB에 시크릿/프로모/구세대 프린팅이 없거나 세트코드가 일치하지 않는 후보는 CSV에 넣지 않았다.
+      기존 `manual_kream` CSV product id를 제외한 `kream-matching-report.json` unresolved 160개 중 `M*`, `SV*`, `S10~S12`, `S6~S9` 후보 80개를 Supabase MCP로 재조회했다. `set_code + collector_number + ko/KR printing`이 일치한 14개 상품을 구조화 inbox(`memory-bank/kream-scrape/kream-supabase-resolved-modern-inbox-20260605.json`)로 만들고, 중복 없이 25건을 `manual_kream` evidence로 추가했다. DB에 시크릿/프로모/구세대 프린팅이 없거나 세트코드가 일치하지 않는 후보는 CSV에 넣지 않았다.
 
 우선 카드 부족분 (raw sold < 3, 2026-06-04 기준 28장) — 자동 sold 수집이 우선 채울 대상
+
 - `KR-020`(테라파고스 ex 237/187), `KR-028`(푸크린 ex 189/165), `KR-029`(리자몽 ex 139/108), `KR-032`(가디안 ex 348/190), `KR-033`(미라이돈 ex 358/190), `KR-034`(코라이돈 ex 360/190), `KR-035`(파오젠 ex 357/190), `KR-038`(코라이돈 ex 103/078), `KR-040`(코라이돈 ex 106/078), `KR-041`~`KR-046`(로켓단의 영광 SV10), `KR-047`~`KR-051`(블랙볼트/화이트플레어 SV11W·SV11B), `KR-052`~`KR-054`(SV9), `KR-055`·`KR-056`(오거폰 SV6), `KR-057`·`KR-058`(SV5a), `KR-059`·`KR-060`(SV7).
 
 검증
+
 - [x] 제한 dry-run 수치 정상 출력.
 - [x] Supabase 읽기로 dry-run 후 row count 유지 확인: `card_price_snapshots=112`, `price_observations=109`, `price_collection_runs=2`, `exchange_rates=1449`.
 - [x] 실제 쓰기 실행 후 Supabase 읽기로 `card_price_snapshots`/`price_collection_runs` 증가·소스별 status 확인. 최종 count: `card_price_snapshots=138`, `price_observations=109`, `price_collection_runs=4`, `exchange_rates=1449`. source별 snapshot: `pricecharting_ebay_sold=64`, `ebay_sold=30`, `bunjang=26`, `manual_bunjang=10`, `manual_joongna=5`, `manual_kream=3`.
@@ -385,6 +389,16 @@
 - [x] 신규 headless 단위 테스트 추가, `index.ts` export와 README Components 목록 갱신.
 - [x] `pnpm exec tsc --noEmit`, `pnpm exec vitest run`, `pnpm lint`, `pnpm --filter @tcground/headless build`, `pnpm build:ui`, `pnpm build:docs`, `pnpm build-storybook` 검증.
 
+### 4.18.1 컴포넌트 구조 리팩토링 마감
+
+- 영향 파일: `app/login/**`, `app/signup/**`, `components/tcg/auth/**`, `app/categories/[categoryId]/_components/**`, `app/categories/[categoryId]/page.test.tsx`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: 공통 도메인 컴포넌트와 route private component 경계를 맞춘다. route 전용 server action을 직접 import하는 auth form은 해당 route의 `_components`로 이동하고, `/categories/[categoryId]`의 큰 client result component는 list/pagination/card rendering 단위로 분리한다. UI/동작/API 변경은 하지 않는다. `@tcground/headless` npm publish와 루트 앱의 registry package 검증 alias 정리는 npm 권한 확인이 필요한 후속으로 유지한다.
+- [x] `LoginForm`, `SignupForm`을 route private `_components`로 이동하고 `components/tcg/auth`에는 전역 로그아웃 action만 남긴다.
+- [x] `CardResults`의 infinite scroll/container, card tile, pagination/empty state를 파일 단위로 분리한다.
+- [x] UI 패키지 분리 후 사용처가 없어진 루트 `lib/utils.ts` 제거. 루트 UI dependency 제거는 lockfile 변경이 필요한 별도 후속으로 보류.
+- [x] `architecture.md`의 `@tcground/headless` 2-layer 구조와 auth component 위치 설명을 현재 코드 기준으로 갱신한다.
+- [x] focused tests, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
+
 ### 4.19 `/categories` 대분류 실데이터 전환 및 이미지 타일 재설계
 
 - 영향 파일: `app/categories/page.tsx`, `app/categories/page.test.tsx`, `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `lib/tcg-data.ts`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
@@ -547,14 +561,28 @@
 
 ### 6.7 TCGround 앱의 npm 배포본 소비 전환
 
-- 영향 파일: `package.json`, `pnpm-lock.yaml`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 영향 파일: `package.json`, `pnpm-lock.yaml`, `tsconfig.json`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
 - 최소 변경 범위: npm registry에 공개된 `@tcground/ui@0.1.0`를 `tcground` 루트 앱에서 실제 설치 대상으로 쓰도록 dependency protocol만 `workspace:*`에서 semver range로 전환한다. `apps/docs`는 로컬 UI 패키지 문서/검증 사이트이므로 `workspace:*`를 유지한다.
 - [x] npm registry에서 `@tcground/ui` 최신 버전 확인.
 - [x] 루트 앱 dependency를 `@tcground/ui: ^0.1.0`으로 변경.
 - [x] `pnpm install`로 lockfile을 npm 배포본 기준으로 갱신.
 - [x] `node_modules/@tcground/ui`가 workspace symlink가 아니라 `.pnpm/@tcground+ui@0.1.0...` registry 설치본을 가리키는지 확인.
+- [x] 루트 `tsconfig.json`에서 `@tcground/ui` source alias를 제거해 앱 import가 설치된 package export를 보도록 정리.
+- [x] 앱이 직접 import하지 않는 UI 내부 런타임 의존성을 루트 dependency에서 제거.
+- [x] Vitest는 현재 published `@tcground/ui@0.1.0`의 extensionless ESM re-export 이슈 때문에 `@tcground/ui`를 로컬 source로 alias하고, 앱 배포본 소비 검증은 `tsc`/Next build로 분리한다.
+- [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
+
+### 6.8 UI 패키지 ESM 배포 산출물 보강
+
+- 영향 파일: `packages/headless/src/**`, `packages/ui/src/**`, `packages/ui/package.json`, `pnpm-lock.yaml`, `vitest.config.mts`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: `@tcground/headless`와 `@tcground/ui`의 TypeScript source에서 런타임 상대 import/export specifier에 `.js` 확장자를 명시해 build 후 `dist/*.js`가 Node ESM/Vitest dependency import에서도 해석되게 한다. `@tcground/ui`의 `@tcground/headless` dependency는 publish tarball에 `workspace:` protocol이 남지 않도록 semver range로 전환한다. 실제 `npm publish`는 npm 로그인/organization 권한 확인 뒤 별도 수동 단계로 유지한다.
+- [x] `packages/headless/src`의 런타임 상대 import/export를 `.js` extension specifier로 정리한다.
+- [x] `packages/ui/src`의 런타임 상대 import/export를 `.js` extension specifier로 정리한다.
+- [x] `@tcground/ui`의 `@tcground/headless` dependency를 semver range로 전환하고 lockfile을 갱신한다.
+- [x] `@tcground/headless`/`@tcground/ui` build와 pack dry-run 결과에서 publish 산출물 import 계약을 확인한다.
+- [x] registry package dependency import 검증 후 Vitest의 임시 `@tcground/ui` source alias 제거 가능 여부를 판단한다. 현재 루트는 published `@tcground/ui@0.1.0`을 설치하므로 alias는 유지한다. registry의 `@tcground/ui@0.1.2`는 이전 산출물이라 같은 버전 재배포가 불가하므로, npm scope 권한 확보 후 `@tcground/headless@0.1.2`와 `@tcground/ui@0.1.3` 같은 새 patch 버전으로 배포하고 root dependency를 갱신한 뒤 alias를 제거한다.
 - [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
 
 ## 다음 작업
 
-최우선 다음 단계는 `raw_payload_json.worklist_id` 기준 `KR-020`, `KR-028`, `KR-029`, `KR-032`~`KR-035`, `KR-038`, `KR-040`~`KR-060` priority pending worklist에서 카드별 source URL/item ID가 있는 sold 증거를 수동으로 채우는 것이다. CSV `sample_id`와 전체 카탈로그 pending backlog는 `PKMKR-*`로 보유하되, 증거가 확보된 카드만 실제 evidence 행으로 승격한다. eBay Browse daily asking series가 배포 후 최소 7일 이상 누적되는지 확인한다. Marketplace Insights(sold) 자동 수집과 국내 source 자동화는 접근 승인/재사용 권한 확인 전까지 보류한다. 이후 카드 상세의 "관심 카드 추가"/"가격 알림" placeholder 버튼을 `favorite_cards` 기반 실제 기능으로 구현한다.
+최우선 다음 단계는 npm 로그인과 `@tcground` scope publish 권한을 확보한 뒤 로컬 package version을 새 patch로 올려 `@tcground/headless@0.1.2`, `@tcground/ui@0.1.3` 순서로 배포하는 것이다. 그 다음 루트 앱 dependency를 새 registry 버전으로 갱신하고 Vitest의 임시 `@tcground/ui` source alias를 제거한다. npm 배포 권한이 준비되지 않았다면, 가격 데이터 쪽은 `raw_payload_json.worklist_id` 기준 `KR-020`, `KR-028`, `KR-029`, `KR-032`~`KR-035`, `KR-038`, `KR-040`~`KR-060` priority pending worklist에서 카드별 source URL/item ID가 있는 sold 증거를 수동으로 채우는 것이 다음 순서다. CSV `sample_id`와 전체 카탈로그 pending backlog는 `PKMKR-*`로 보유하되, 증거가 확보된 카드만 실제 evidence 행으로 승격한다.

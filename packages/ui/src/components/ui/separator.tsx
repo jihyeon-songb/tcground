@@ -6,7 +6,7 @@ import {
   type SeparatorProps as HeadlessSeparatorProps,
 } from '@tcground/headless';
 
-import { cn } from '../../utils';
+import { cn } from '../../utils.js';
 
 function Separator({
   className,

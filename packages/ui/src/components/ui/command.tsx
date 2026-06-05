@@ -3,9 +3,9 @@
 import * as React from 'react';
 import { Command as CommandPrimitive } from 'cmdk';
 
-import { cn } from '../../utils';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './dialog';
-import { InputGroup, InputGroupAddon } from './input-group';
+import { cn } from '../../utils.js';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './dialog.js';
+import { InputGroup, InputGroupAddon } from './input-group.js';
 import { SearchIcon, CheckIcon } from 'lucide-react';
 
 function Command({ className, ...props }: React.ComponentProps<typeof CommandPrimitive>) {

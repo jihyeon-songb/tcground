@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-import { composeEventHandlers } from './primitive';
+import { composeEventHandlers } from './primitive.js';
 
 type TabsOrientation = 'horizontal' | 'vertical';
 type TabsActivationMode = 'automatic' | 'manual';
@@ -84,9 +84,7 @@ function Tabs({
 function TabsList(props: React.ComponentProps<'div'>) {
   const { orientation } = useTabsContext('TabsList');
 
-  return (
-    <div role='tablist' aria-orientation={orientation} data-slot='tabs-list' {...props} />
-  );
+  return <div role='tablist' aria-orientation={orientation} data-slot='tabs-list' {...props} />;
 }
 
 interface TabsTriggerProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'value'> {
@@ -100,7 +98,10 @@ function TabsTrigger({ disabled, onClick, onKeyDown, value, ...props }: TabsTrig
   const panelId = getPanelId(context.baseId, value);
 
   const moveFocus = React.useCallback(
-    (event: React.KeyboardEvent<HTMLButtonElement>, direction: 'first' | 'last' | 'next' | 'prev') => {
+    (
+      event: React.KeyboardEvent<HTMLButtonElement>,
+      direction: 'first' | 'last' | 'next' | 'prev',
+    ) => {
       const list = event.currentTarget.closest('[role="tablist"]');
       const tabs = Array.from(
         list?.querySelectorAll<HTMLButtonElement>('[role="tab"]:not(:disabled)') ?? [],
@@ -159,7 +160,10 @@ function TabsTrigger({ disabled, onClick, onKeyDown, value, ...props }: TabsTrig
           moveFocus(event, 'first');
         } else if (event.key === 'End') {
           moveFocus(event, 'last');
-        } else if (context.activationMode === 'manual' && (event.key === 'Enter' || event.key === ' ')) {
+        } else if (
+          context.activationMode === 'manual' &&
+          (event.key === 'Enter' || event.key === ' ')
+        ) {
           event.preventDefault();
           context.setValue(value);
         }

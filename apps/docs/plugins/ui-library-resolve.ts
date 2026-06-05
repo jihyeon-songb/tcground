@@ -8,15 +8,18 @@ export default function uiLibraryResolvePlugin(): Plugin {
       return {
         resolve: {
           alias: {
-            '@tcground/ui': path.resolve(__dirname, '../../../packages/ui/src'),
-            '@tcground/headless': path.resolve(__dirname, '../../../packages/headless/src'),
+            '@tcground/ui': path.resolve(__dirname, '../../../packages/ui/dist/index.js'),
+            '@tcground/headless': path.resolve(
+              __dirname,
+              '../../../packages/headless/dist/index.js',
+            ),
           },
         },
         module: {
           rules: [
             {
               test: /\.js$/,
-              include: /packages\/ui\/dist/,
+              include: /packages\/(headless|ui)\/dist/,
               resolve: { fullySpecified: false },
             },
           ],
