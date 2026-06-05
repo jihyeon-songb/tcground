@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@tcground/ui';
-import { ArrowLeft, Bell, CirclePlus, Info, Minus, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Bell, CirclePlus, Info } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { PageFooter } from '@/components/tcg/layout/PageFooter';
 import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
@@ -17,15 +17,14 @@ import {
   type CatalogCardDetail,
 } from '@/lib/tcg-catalog';
 import { formatPrice } from '@/lib/tcg-data';
-import { PriceHistoryChart } from './PriceHistoryChart';
-import { CardRating } from './CardRating';
+import { PriceHistoryChart } from './_components/PriceHistoryChart';
+import { CardRating } from './_components/CardRating';
+import { changeChipClass, formatChangeRate, TrendIcon } from '../_lib/price-change';
 
 export const dynamic = 'force-dynamic';
 
 // Re-exported for tests that exercise the pure geometry helper against `./page`.
-export { buildChartGeometry } from './price-chart';
-
-type ChangeTone = 'up' | 'down' | 'flat';
+export { buildChartGeometry } from './_lib/price-chart';
 
 interface CardDetailPageProps {
   params: Promise<{ cardId: string }>;
@@ -339,19 +338,4 @@ function InfoItem({ label, value }: { label: string; value: string }) {
   );
 }
 
-function changeChipClass(tone: ChangeTone): string {
-  if (tone === 'up') return 'bg-[#e8f5e9] text-[#2e7d32]';
-  if (tone === 'down') return 'bg-[#ffebee] text-[#c62828]';
-  return 'bg-muted text-muted-foreground';
-}
-
-function TrendIcon({ tone }: { tone: ChangeTone }) {
-  const Icon = tone === 'up' ? TrendingUp : tone === 'down' ? TrendingDown : Minus;
-  return <Icon aria-hidden className='size-4' strokeWidth={2.5} />;
-}
-
-function formatChangeRate(rate: number) {
-  if (rate > 0) return `+${rate.toFixed(1)}%`;
-  return `${rate.toFixed(1)}%`;
-}
 

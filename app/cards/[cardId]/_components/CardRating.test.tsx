@@ -4,7 +4,7 @@ import { CardRating } from './CardRating';
 
 const submitCardRatingMock = vi.hoisted(() => vi.fn());
 
-vi.mock('./_actions/rate-card', () => ({
+vi.mock('../_actions/rate-card', () => ({
   submitCardRating: submitCardRatingMock,
 }));
 

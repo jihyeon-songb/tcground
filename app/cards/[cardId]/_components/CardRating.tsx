@@ -4,8 +4,8 @@ import { useId, useState, useTransition } from 'react';
 import Link from 'next/link';
 import type { CardRatingSummary } from '@/lib/tcg-catalog';
 import { formatRating } from '@/lib/tcg-data';
-import { submitCardRating } from './_actions/rate-card';
-import { RATING_STARS, ratingCountLabel, starFills } from './card-rating';
+import { submitCardRating } from '../_actions/rate-card';
+import { RATING_STARS, ratingCountLabel, starFills } from '../_lib/card-rating';
 
 interface CardRatingProps {
   cardId: string;
@@ -124,7 +124,7 @@ export function CardRating({
               ))}
             </div>
             {error ? (
-              <p role='alert' className='text-sm text-[#c62828]'>
+              <p role='alert' className='text-sm text-destructive'>
                 {error}
               </p>
             ) : null}
@@ -134,7 +134,7 @@ export function CardRating({
             평점을 남기려면{' '}
             <Link
               href={`/login?next=/cards/${slug}`}
-              className='font-semibold text-tcg-red underline hover:text-[#8f0014]'
+              className='font-semibold text-tcg-red underline hover:text-tcg-red-dark'
             >
               로그인
             </Link>
