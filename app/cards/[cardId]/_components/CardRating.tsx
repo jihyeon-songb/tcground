@@ -4,8 +4,8 @@ import { useId, useState, useTransition } from 'react';
 import Link from 'next/link';
 import type { CardRatingSummary } from '@/lib/tcg-catalog';
 import { formatRating } from '@/lib/tcg-data';
-import { submitCardRating } from './_actions/rate-card';
-import { RATING_STARS, ratingCountLabel, starFills } from './card-rating';
+import { submitCardRating } from '../_actions/rate-card';
+import { RATING_STARS, ratingCountLabel, starFills } from '../_lib/card-rating';
 
 interface CardRatingProps {
   cardId: string;
@@ -27,7 +27,7 @@ function Star({ fill, className }: { fill: number; className?: string }) {
       </defs>
       <path
         d='M12 2l2.9 6.26L21.8 9.27l-5 4.87 1.18 6.88L12 17.77l-5.98 3.25L7.2 14.14l-5-4.87 6.9-1.01L12 2z'
-        fill='#e6e8ea'
+        fill='var(--muted)'
       />
       <path
         d='M12 2l2.9 6.26L21.8 9.27l-5 4.87 1.18 6.88L12 17.77l-5.98 3.25L7.2 14.14l-5-4.87 6.9-1.01L12 2z'
@@ -72,17 +72,17 @@ export function CardRating({
   return (
     <section
       aria-labelledby='card-rating-heading'
-      className='flex flex-col gap-4 rounded-2xl bg-white p-8'
+      className='flex flex-col gap-4 rounded-2xl bg-card p-8'
     >
       <h3
         id='card-rating-heading'
-        className='text-sm leading-none font-semibold tracking-wider text-[#535f73] uppercase'
+        className='text-sm leading-none font-semibold tracking-wider text-muted-foreground uppercase'
       >
         사용자 평점
       </h3>
 
       <div className='flex flex-wrap items-center gap-4'>
-        <span className='text-4xl leading-[1.1] font-extrabold text-[#191c1e] tabular-nums'>
+        <span className='text-4xl leading-[1.1] font-extrabold text-foreground tabular-nums'>
           {formatRating(summary.average)}
         </span>
         <div className='flex items-center gap-1' aria-hidden>
@@ -90,13 +90,13 @@ export function CardRating({
             <Star key={index} fill={fill} className='h-6 w-6' />
           ))}
         </div>
-        <span className='text-base text-[#535f73]'>{ratingCountLabel(summary)}</span>
+        <span className='text-base text-muted-foreground'>{ratingCountLabel(summary)}</span>
       </div>
 
-      <div className='border-t border-[#e6e8ea] pt-4'>
+      <div className='border-t border-border pt-4'>
         {isAuthenticated ? (
           <div className='flex flex-col gap-2'>
-            <span className='text-sm font-semibold text-[#535f73]'>
+            <span className='text-sm font-semibold text-muted-foreground'>
               {selected ? '내 평점' : '이 카드를 평가해 주세요'}
             </span>
             <div
@@ -124,17 +124,17 @@ export function CardRating({
               ))}
             </div>
             {error ? (
-              <p role='alert' className='text-sm text-[#c62828]'>
+              <p role='alert' className='text-sm text-destructive'>
                 {error}
               </p>
             ) : null}
           </div>
         ) : (
-          <p className='text-sm text-[#535f73]'>
+          <p className='text-sm text-muted-foreground'>
             평점을 남기려면{' '}
             <Link
               href={`/login?next=/cards/${slug}`}
-              className='font-semibold text-[#bb001a] underline hover:text-[#8f0014]'
+              className='font-semibold text-tcg-red underline hover:text-tcg-red-dark'
             >
               로그인
             </Link>

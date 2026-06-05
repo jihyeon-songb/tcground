@@ -29,7 +29,7 @@ describe('parseCsv', () => {
 describe('parsePriceValidationCsv', () => {
   it('parses a sold row into a normalized observation', () => {
     const content = csv(
-      'KR-004,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
+      'PKMKR-BS2023014201,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
         'ebay_sold,389546254393,https://www.ebay.com/itm/389546254393,Korean Charizard,NA,USD,sold,139.99,' +
         '2026-01-30T12:49:00+00:00,2026-05-21T18:39:22+09:00,near_mint,raw,,,,' +
         '0.92,"{""memo"":""match""}",',
@@ -40,7 +40,7 @@ describe('parsePriceValidationCsv', () => {
 
     const { match, observation, priceKind } = observations[0];
     expect(priceKind).toBe('sold');
-    expect(match.sampleId).toBe('KR-004');
+    expect(match.sampleId).toBe('PKMKR-BS2023014201');
     expect(match.collectorNumber).toBe('201/165');
     expect(observation.market).toBe('NA');
     expect(observation.currency).toBe('USD');
@@ -51,7 +51,7 @@ describe('parsePriceValidationCsv', () => {
 
   it('skips rows with an exclude_reason (e.g. bundles)', () => {
     const content = csv(
-      'KR-002,M리자몽,cp6,BS2016009104,104/100,SR,ko,KR,unknown,' +
+      'PKMKR-BS2016009104,M리자몽,cp6,BS2016009104,104/100,SR,ko,KR,unknown,' +
         'ebay_sold,267402552242,https://www.ebay.com/itm/267402552242,Bundle,NA,GBP,sold,196.65,' +
         '2025-09-21T12:00:00+00:00,2026-05-21T18:48:05+09:00,near_mint,raw,,,,' +
         '0.55,"{}",bundle_contains_multiple_cards',
@@ -62,7 +62,7 @@ describe('parsePriceValidationCsv', () => {
 
   it('parses graded sales with grade fields', () => {
     const content = csv(
-      'KR-004,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
+      'PKMKR-BS2023014201,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
         'manual_kream,804751,https://kream.co.kr/products/804751,PSA 10,KR,KRW,sold,550000,' +
         '2026-05-12T12:00:00+09:00,2026-05-21T18:39:22+09:00,,graded,PSA,10,,' +
         '0.88,"{}",',
@@ -79,10 +79,10 @@ describe('parsePriceValidationCsv', () => {
 describe('parseAskingValidationCsv', () => {
   it('parses asking rows and ignores sold rows', () => {
     const content = csv(
-      'KR-004,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
+      'PKMKR-BS2023014201,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
         'manual_bunjang,223419820,https://web.bunjang.co.kr/products/223419820,리자몽 sar,KR,KRW,asking,60000,' +
         '2026-05-21T12:00:00+09:00,2026-05-21T18:39:22+09:00,,raw,,,,0.74,"{}",',
-      'KR-004,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
+      'PKMKR-BS2023014201,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
         'manual_kream,804751,https://kream.co.kr/products/804751,PSA 10,KR,KRW,sold,550000,' +
         '2026-05-12T12:00:00+09:00,2026-05-21T18:39:22+09:00,,graded,PSA,10,,0.88,"{}",',
     );
@@ -97,7 +97,7 @@ describe('parseAskingValidationCsv', () => {
 
   it('treats price_kind=listing as asking (호가), not a completed sale', () => {
     const content = csv(
-      'KR-004,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
+      'PKMKR-BS2023014201,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
         'manual_bunjang,223419821,https://web.bunjang.co.kr/products/223419821,리자몽 sar,KR,KRW,listing,58000,' +
         '2026-05-21T12:00:00+09:00,2026-05-21T18:39:22+09:00,,raw,,,,0.7,"{}",',
     );
@@ -111,26 +111,43 @@ describe('parseAskingValidationCsv', () => {
 
   it('uppercases the currency so chart bucketing matches', () => {
     const content = csv(
-      'KR-004,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
+      'PKMKR-BS2023014201,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
         'ebay_sold,1,https://e/1,t,NA,usd,sold,100,2026-01-01T00:00:00Z,2026-01-02T00:00:00Z,near_mint,raw,,,,0.9,"{}",',
     );
 
     const [{ observation }] = parsePriceValidationCsv(content);
     expect(observation.currency).toBe('USD');
   });
+
+  it('accepts PriceCharting individual completed-sale rows as manual sold evidence', () => {
+    const content = csv(
+      'PKMKR-BS2024019200,리피아 ex,테라스탈 페스타 ex,SV8a,200/187,SAR,ko,KR,unknown,' +
+        'pricecharting_ebay_sold,pc-kr-011-20260507-1,https://www.pricecharting.com/game/pokemon-korean-terastal-festival-ex/leafeon-ex-200,Leafeon ex 200/187 SAR Korean,NA,USD,sold,56.99,' +
+        '2026-05-07T12:00:00+00:00,2026-06-03T16:30:00+09:00,near_mint,raw,,,,' +
+        '0.86,"{""memo"":""individual completed-sale row""}",',
+    );
+
+    const [{ observation }] = parsePriceValidationCsv(content);
+    expect(observation.sourceName).toBe('pricecharting_ebay_sold');
+    expect(observation.sourceItemId).toBe('pc-kr-011-20260507-1');
+    expect(observation.soldPrice).toBe(56.99);
+  });
 });
 
 describe('resolveCardPrintingIds', () => {
   it('attaches printing ids and drops unmatched cards', () => {
     const content = csv(
-      'KR-004,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
+      'PKMKR-BS2023014201,리자몽 ex,151,BS2023014201,201/165,SAR,ko,KR,unknown,' +
         'ebay_sold,1,https://e/1,t,NA,USD,sold,100,2026-01-01T00:00:00Z,2026-01-02T00:00:00Z,near_mint,raw,,,,0.9,"{}",',
-      'KR-999,Unknown,?,?,?,?,ko,KR,unknown,' +
+      'PKMKR-NOTFOUND,Unknown,?,?,?,?,ko,KR,unknown,' +
         'ebay_sold,2,https://e/2,t,NA,USD,sold,100,2026-01-01T00:00:00Z,2026-01-02T00:00:00Z,near_mint,raw,,,,0.9,"{}",',
     );
 
     const parsed = parsePriceValidationCsv(content);
-    const resolved = resolveCardPrintingIds(parsed, new Map([['KR-004', 'printing-4']]));
+    const resolved = resolveCardPrintingIds(
+      parsed,
+      new Map([['PKMKR-BS2023014201', 'printing-4']]),
+    );
 
     expect(resolved).toHaveLength(1);
     expect(resolved[0].cardPrintingId).toBe('printing-4');

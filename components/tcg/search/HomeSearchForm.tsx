@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 import { Button } from '@tcground/ui';
-import { XIcon } from 'lucide-react';
+import { Search, XIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface HomeSearchFormProps {
@@ -37,22 +37,21 @@ export function HomeSearchForm({
   }
 
   const inputBaseClasses =
-    'w-full rounded-full border-none text-[#191c1e] outline-none placeholder:text-[#535f73] focus:ring-2 focus:ring-[#bb001a]';
+    'w-full rounded-full border-none text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-tcg-red';
   const inputSizeClasses = isHero
-    ? 'bg-white shadow-sm py-5 pr-28 pl-14 text-base leading-[1.6] sm:pr-36 sm:pl-16 sm:text-lg'
+    ? 'bg-card shadow-sm py-5 pr-28 pl-14 text-base leading-[1.6] sm:pr-36 sm:pl-16 sm:text-lg'
     : isHeader
-      ? 'bg-[#e0e3e5] py-3 pr-12 pl-12 text-base leading-[1.5]'
-      : 'bg-white shadow-sm py-3 pr-4 pl-12 text-base leading-[1.5]';
+      ? 'bg-border py-3 pr-12 pl-12 text-base leading-[1.5]'
+      : 'bg-card shadow-sm py-3 pr-4 pl-12 text-base leading-[1.5]';
 
   return (
     <form className='relative w-full' aria-label='Card search' onSubmit={handleSubmit} noValidate>
-      <span
-        className={`material-symbols-outlined absolute top-1/2 -translate-y-1/2 text-[#535f73] ${
-          isHero ? 'left-5 text-2xl sm:left-6' : 'left-4'
+      <Search
+        className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground ${
+          isHero ? 'left-5 size-6 sm:left-6' : 'left-4 size-5'
         }`}
         aria-hidden='true'
-      >
-      </span>
+      />
       <input
         className={`${inputBaseClasses} ${inputSizeClasses}`}
         name='q'
@@ -69,7 +68,7 @@ export function HomeSearchForm({
           size='icon-sm'
           aria-label='검색어 지우기'
           onClick={() => setQuery('')}
-          className='absolute top-1/2 right-3 -translate-y-1/2 rounded-full text-[#535f73] hover:bg-transparent hover:text-[#bb001a]'
+          className='absolute top-1/2 right-3 -translate-y-1/2 rounded-full text-muted-foreground hover:bg-transparent hover:text-tcg-red'
         >
           <XIcon aria-hidden='true' className='h-4 w-4' />
         </Button>

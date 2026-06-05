@@ -34,6 +34,22 @@ export const MARKETPLACE_INSIGHTS_SCOPE =
 export const ITEM_SUMMARY_SEARCH_PATH = '/buy/browse/v1/item_summary/search';
 export const ITEM_SALES_SEARCH_PATH = '/buy/marketplace_insights/v1_beta/item_sales/search';
 
+/**
+ * eBay public website origin + sold-listing search path. Used by the
+ * `ebay_scrape` source, which parses completed/sold listings from the search
+ * results page as a fallback for the restricted Marketplace Insights API.
+ */
+export const EBAY_WEB_BASE_URL = 'https://www.ebay.com';
+export const EBAY_SOLD_SEARCH_PATH = '/sch/i.html';
+
+/**
+ * eBay category id the `ebay_scrape` source constrains its sold search to, so
+ * results stay within trading cards instead of mixing in accessories/other
+ * categories. Defaults to "CCG Individual Cards" (183454); override per
+ * marketplace with `EBAY_TCG_CATEGORY_ID`.
+ */
+export const EBAY_TCG_CATEGORY_ID = process.env.EBAY_TCG_CATEGORY_ID ?? '183454';
+
 /** Reads eBay config from env. Throws if credentials are missing. */
 export function loadEbayConfig(): EbayConfig {
   const environment = normalizeEnvironment(process.env.EBAY_ENV);

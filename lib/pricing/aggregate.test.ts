@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   aggregateAskingObservations,
   aggregateObservations,
+  aggregateObservationsBySource,
   removeOutliers,
   toSnapshotDate,
 } from './aggregate';
@@ -99,6 +100,37 @@ describe('aggregateObservations', () => {
     ]);
 
     expect(snapshots).toHaveLength(2);
+  });
+});
+
+describe('aggregateObservationsBySource', () => {
+  it('keeps manual CSV sold sources as separate snapshot sources', () => {
+    const snapshots = aggregateObservationsBySource([
+      soldObservation({
+        sourceName: 'ebay_sold',
+        sourceItemId: 'ebay-1',
+        soldPrice: 100,
+      }),
+      soldObservation({
+        sourceName: 'pricecharting_ebay_sold',
+        sourceItemId: 'pc-1',
+        soldPrice: 120,
+      }),
+      soldObservation({
+        sourceName: 'manual_kream',
+        market: 'KR',
+        currency: 'KRW',
+        sourceItemId: 'kream-1',
+        soldPrice: 150000,
+      }),
+    ]);
+
+    expect(snapshots).toHaveLength(3);
+    expect(snapshots.map((snapshot) => snapshot.sourceName).sort()).toEqual([
+      'ebay_sold',
+      'manual_kream',
+      'pricecharting_ebay_sold',
+    ]);
   });
 });
 

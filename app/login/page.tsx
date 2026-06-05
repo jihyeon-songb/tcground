@@ -30,7 +30,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   }
 
   return (
-    <main className='flex min-h-screen items-center justify-center bg-[#f2f4f6] px-4 py-12'>
+    <main className='flex min-h-screen items-center justify-center bg-muted px-4 py-12'>
       <div className='w-full max-w-md'>
         <div className='mb-8 flex justify-center'>
           <Link href='/' aria-label='TCGround home'>
@@ -45,12 +45,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </Link>
         </div>
 
-        <section className='rounded-2xl border border-[#e0e3e5] bg-white p-8 shadow-[0_4px_20px_rgba(41,53,71,0.08)]'>
+        <section className='rounded-2xl border border-border bg-card p-8 shadow-[0_4px_20px_rgba(41,53,71,0.08)]'>
           <header className='mb-6 text-center'>
-            <h1 className='mb-1 text-2xl leading-tight font-bold text-[#191c1e]'>
+            <h1 className='mb-1 text-2xl leading-tight font-bold text-foreground'>
               다시 오신 걸 환영해요
             </h1>
-            <p className='text-base leading-[1.5] text-[#535f73]'>
+            <p className='text-base leading-[1.5] text-muted-foreground'>
               컬렉션 가격을 추적하려면 로그인하세요.
             </p>
           </header>
@@ -58,9 +58,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <LoginForm nextPath={nextPath} />
 
           <div className='my-6 flex items-center gap-3'>
-            <span className='h-px flex-1 bg-[#e0e3e5]' aria-hidden='true' />
-            <span className='text-xs font-medium text-[#535f73]'>또는 다음으로 계속</span>
-            <span className='h-px flex-1 bg-[#e0e3e5]' aria-hidden='true' />
+            <span className='h-px flex-1 bg-border' aria-hidden='true' />
+            <span className='text-xs font-medium text-muted-foreground'>또는 다음으로 계속</span>
+            <span className='h-px flex-1 bg-border' aria-hidden='true' />
           </div>
 
           <Button
@@ -73,11 +73,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </Button>
         </section>
 
-        <p className='mt-6 text-center text-base leading-[1.5] text-[#535f73]'>
+        <p className='mt-6 text-center text-base leading-[1.5] text-muted-foreground'>
           TCGround이 처음이세요?{' '}
           <Link
             href={getAuthEntryHref('/signup', nextPath)}
-            className='font-bold text-[#bb001a] transition-colors hover:underline'
+            className='font-bold text-tcg-red transition-colors hover:underline'
           >
             TCGround 가입하기
           </Link>

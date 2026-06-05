@@ -1,0 +1,179 @@
+[
+  {
+    "sampleId": "PKMKR-BS2025014094",
+    "cardName": "메가리자몽X ex",
+    "setName": "MEGA 확장팩 「인페르노X」",
+    "setCode": "M2",
+    "collectorNumber": "094/080",
+    "rarity": "SR",
+    "productId": "901600",
+    "shortSet": "인페르노X",
+    "trades": ["BRG 10 영문 | 100,000원 | 26/04/29"]
+  },
+  {
+    "sampleId": "PKMKR-BS2025014107",
+    "cardName": "빛나",
+    "setName": "MEGA 확장팩 「인페르노X」",
+    "setCode": "M2",
+    "collectorNumber": "107/080",
+    "rarity": "SR",
+    "productId": "906558",
+    "shortSet": "인페르노X",
+    "trades": ["PSA 10 | 50,000원 | 26/06/02"]
+  },
+  {
+    "sampleId": "PKMKR-BS2025014112",
+    "cardName": "로토무 ex",
+    "setName": "MEGA 확장팩 「인페르노X」",
+    "setCode": "M2",
+    "collectorNumber": "112/080",
+    "rarity": "SAR",
+    "productId": "906562",
+    "shortSet": "인페르노X",
+    "trades": ["PSA 8 | 30,000원 | 26/06/04"]
+  },
+  {
+    "sampleId": "PKMKR-BS2025015223",
+    "cardName": "메가리자몽X ex",
+    "setName": "MEGA 하이클래스팩 「MEGA 드림 ex」",
+    "setCode": "M2a",
+    "collectorNumber": "223/193",
+    "rarity": "MA",
+    "productId": "901601",
+    "shortSet": "MEGA 드림 ex",
+    "trades": [
+      "BRG 10 영문 | 105,000원 | 26/06/02",
+      "BRG 9 영문 | 35,000원 | 26/06/02",
+      "BRG 9 영문 | 40,000원 | 26/06/02",
+      "BRG 9 영문 | 50,000원 | 26/05/29",
+      "BRG 9 영문 | 60,000원 | 26/05/23"
+    ]
+  },
+  {
+    "sampleId": "PKMKR-BS2025015230",
+    "cardName": "메가팬텀 ex",
+    "setName": "MEGA 하이클래스팩 「MEGA 드림 ex」",
+    "setCode": "M2a",
+    "collectorNumber": "230/193",
+    "rarity": "MA",
+    "productId": "907006",
+    "shortSet": "MEGA 드림 ex",
+    "trades": ["BRG 9 영문 | 35,000원 | 26/05/14"]
+  },
+  {
+    "sampleId": "PKMKR-BS2025015245",
+    "cardName": "성호의 메타그로스 ex",
+    "setName": "MEGA 하이클래스팩 「MEGA 드림 ex」",
+    "setCode": "M2a",
+    "collectorNumber": "245/193",
+    "rarity": "SAR",
+    "productId": "907019",
+    "shortSet": "MEGA 드림 ex",
+    "trades": ["BRG 10 영문 | 80,000원 | 26/05/24"]
+  },
+  {
+    "sampleId": "PKMKR-BS2026003022",
+    "cardName": "메가개굴닌자 ex",
+    "setName": "MEGA 확장팩 「닌자스피너」",
+    "setCode": "M4",
+    "collectorNumber": "022/083",
+    "rarity": "RR",
+    "productId": "904504",
+    "shortSet": "닌자스피너",
+    "trades": [
+      "BRG 10 한글 | 20,000원 | 26/06/04",
+      "PSA 10 | 40,000원 | 26/06/03"
+    ]
+  },
+  {
+    "sampleId": "PKMKR-BS2026003042",
+    "cardName": "제르네아스",
+    "setName": "MEGA 확장팩 「닌자스피너」",
+    "setCode": "M4",
+    "collectorNumber": "042/083",
+    "rarity": "R",
+    "productId": "904524",
+    "shortSet": "닌자스피너",
+    "trades": [
+      "PSA 10 | 40,000원 | 26/06/04",
+      "BRG 10 한글 | 20,000원 | 26/05/31"
+    ]
+  },
+  {
+    "sampleId": "PKMKR-BS2026003063",
+    "cardName": "메가드래캄 ex",
+    "setName": "MEGA 확장팩 「닌자스피너」",
+    "setCode": "M4",
+    "collectorNumber": "063/083",
+    "rarity": "RR",
+    "productId": "904542",
+    "shortSet": "닌자스피너",
+    "trades": [
+      "BRG 10 한글 | 35,000원 | 26/06/03",
+      "BRG 9 한글 | 40,000원 | 26/06/03",
+      "BRG 9 한글 | 35,000원 | 26/06/03"
+    ]
+  },
+  {
+    "sampleId": "PKMKR-BS2025006126",
+    "cardName": "로켓단의 니드킹 ex",
+    "setName": "스칼렛&바이올렛 확장팩 「로켓단의 영광」",
+    "setCode": "SV10",
+    "collectorNumber": "126/098",
+    "rarity": "SAR",
+    "productId": "802733",
+    "shortSet": "로켓단의 영광",
+    "trades": [
+      "BRG 9 영문 | 32,000원 | 26/05/27",
+      "BRG 10 영문 | 50,000원 | 26/05/25",
+      "BRG 10 영문 | 45,000원 | 26/04/19"
+    ]
+  },
+  {
+    "sampleId": "PKMKR-BS2023020069",
+    "cardName": "그란돈",
+    "setName": "스칼렛&바이올렛 강화 확장팩 「레이징서프」",
+    "setCode": "SV3a",
+    "collectorNumber": "069/062",
+    "rarity": "AR",
+    "productId": "804580",
+    "shortSet": "레이징서프",
+    "trades": ["BRG 10 영문 | 80,000원 | 26/05/29"]
+  },
+  {
+    "sampleId": "PKMKR-BS2024001236",
+    "cardName": "피카츄",
+    "setName": "스칼렛&바이올렛 하이클래스팩 「샤이니트레저 ex」",
+    "setCode": "SV4a",
+    "collectorNumber": "236/190",
+    "rarity": "S",
+    "productId": "804212",
+    "shortSet": "샤이니트레저 ex",
+    "trades": [
+      "BRG 9 영문 | 59,000원 | 26/05/07",
+      "BRG 10 영문 | 99,000원 | 26/04/16"
+    ]
+  },
+  {
+    "sampleId": "PKMKR-BS2025001115",
+    "cardName": "릴리에의 삐삐 ex",
+    "setName": "스칼렛&바이올렛 확장팩 「배틀파트너즈」",
+    "setCode": "SV9",
+    "collectorNumber": "115/100",
+    "rarity": "SR",
+    "productId": "802911",
+    "shortSet": "배틀파트너즈",
+    "trades": ["PSA 10 | 65,000원 | 26/05/23"]
+  },
+  {
+    "sampleId": "PKMKR-BS2022014124",
+    "cardName": "기라티나 VSTAR",
+    "setName": "소드&실드 확장팩 「로스트어비스」",
+    "setCode": "S11",
+    "collectorNumber": "125/100",
+    "rarity": "UR",
+    "productId": "82638",
+    "shortSet": "로스트어비스",
+    "trades": ["BRG 9 영문 | 70,000원 | 22/12/17"]
+  }
+]

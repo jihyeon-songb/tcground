@@ -1,0 +1,110 @@
+{
+  "observedAt": "2026-06-05T12:00:00+09:00",
+  "source": "KREAM Playwright logged-in direct product page read",
+  "input": "memory-bank/kream-scrape/kream-direct-results.json",
+  "productsRead": 30,
+  "tradesRead": 189,
+  "catalogMatchedProducts": 18,
+  "unmatchedProducts": [
+    {
+      "productId": "917064",
+      "modelNumber": "M4114-083",
+      "title": "포켓몬 TCG 메가개굴닌자 ex SAR MEGA 확장팩 닌자스피너 (한글판) | Pokemon TCG | KREAM",
+      "trades": 3
+    },
+    {
+      "productId": "805531",
+      "modelNumber": "S12A260-172",
+      "title": "포켓몬 TCG 오리진 디아루가 VSTAR UR VSTAR 유니버스 (한글판) | Pokemon TCG | KREAM",
+      "trades": 6
+    },
+    {
+      "productId": "805532",
+      "modelNumber": "S12A261-172",
+      "title": "포켓몬 TCG 기라티나 VSTAR UR VSTAR 유니버스 (한글판) | Pokemon TCG | KREAM",
+      "trades": 8
+    },
+    {
+      "productId": "69958",
+      "modelNumber": "S8106-100",
+      "title": "포켓몬 TCG 뮤 V SR 퓨전아츠 (한글판) | Pokemon TCG | KREAM",
+      "trades": 2
+    },
+    {
+      "productId": "911456",
+      "modelNumber": "M4120-083",
+      "title": "포켓몬 TCG 메가 개굴닌자 ex MUR 닌자 스피너 (한글판) | Pokemon TCG | KREAM",
+      "trades": 5
+    },
+    {
+      "productId": "70001",
+      "modelNumber": "S9103-100",
+      "title": "포켓몬 TCG 리자몽 V SR 스타버스 (한글판) | Pokemon TCG | KREAM",
+      "trades": 5
+    },
+    {
+      "productId": "805533",
+      "modelNumber": "S12A262-172",
+      "title": "포켓몬 TCG 아르세우스 VSTAR UR VSTAR 유니버스 (한글판) | Pokemon TCG | KREAM",
+      "trades": 4
+    },
+    {
+      "productId": "865589",
+      "modelNumber": "CP3010-032",
+      "title": "포켓몬 TCG 피카츄 RR 포켓심쿵 컬렉션 (한글판) | Pokemon TCG | KREAM",
+      "trades": 1
+    },
+    {
+      "productId": "70076",
+      "modelNumber": "S7R083-067",
+      "title": "포켓몬 TCG 레쿠쟈 VMAX HR 창공스트림 (한글판) | Pokemon TCG | KREAM",
+      "trades": 20
+    },
+    {
+      "productId": "804308",
+      "modelNumber": "SV4A347-190",
+      "title": "포켓몬 TCG 뮤 ex SAR 샤이니트레저 ex (한글판) | Pokemon TCG | KREAM",
+      "trades": 4
+    },
+    {
+      "productId": "901954",
+      "modelNumber": "M2116-080",
+      "title": "포켓몬 TCG 메가리자몽 X ex MUR 인페르노 X (한글판) | Pokemon TCG | KREAM",
+      "trades": 4
+    },
+    {
+      "productId": "69949",
+      "modelNumber": "S4A307-190",
+      "title": "포켓몬 TCG 리자몽 V SSR 샤이니스타 V (한글판) | Pokemon TCG | KREAM",
+      "trades": 12
+    }
+  ],
+  "newlyAppendedRows": 57,
+  "duplicateRowsSkipped": 58,
+  "appendedCounts": {
+    "79041": 26,
+    "802229": 5,
+    "802732": 6,
+    "802919": 7,
+    "803208": 5,
+    "803213": 1,
+    "803226": 2,
+    "804732": 1,
+    "804753": 1,
+    "906975": 2,
+    "907020": 1
+  },
+  "alreadyPresentMatchedProducts": [
+    "901602",
+    "907016",
+    "804754",
+    "803217",
+    "803786",
+    "907010",
+    "804751"
+  ],
+  "notes": [
+    "Rows were appended only when source_item_id, sold_price, sold_at date, grade_company, grade_value, and variant were not already present.",
+    "Product 79041 was resolved as S11 collector 111/100 with Supabase external_ids.card_num BS2022014110."
+  ]
+}

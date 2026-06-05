@@ -83,6 +83,31 @@ export function aggregateObservations(
 }
 
 /**
+ * Groups sold observations by their original source before aggregating.
+ *
+ * Manual CSV imports can contain multiple evidence sources in one file
+ * (`ebay_sold`, `pricecharting_ebay_sold`, `manual_kream`, `manual_bunjang`).
+ * Keeping source buckets separate preserves attribution and prevents a
+ * third-party completed-sale index from being blended with direct/manual rows.
+ */
+export function aggregateObservationsBySource(
+  observations: readonly PriceObservationInput[],
+  options: Omit<AggregateOptions, 'sourceName'> = {},
+): SnapshotAggregate[] {
+  const bySource = new Map<string, PriceObservationInput[]>();
+
+  for (const observation of observations) {
+    const existing = bySource.get(observation.sourceName);
+    if (existing) existing.push(observation);
+    else bySource.set(observation.sourceName, [observation]);
+  }
+
+  return Array.from(bySource.entries()).flatMap(([sourceName, sourceObservations]) =>
+    aggregateObservations(sourceObservations, { ...options, sourceName }),
+  );
+}
+
+/**
  * Aggregates asking observations (current listing prices, e.g. `manual_bunjang`
  * rows) into daily asking snapshots. One snapshot per
  * (printing, date, market, currency, variant, condition, grade, source) bucket,

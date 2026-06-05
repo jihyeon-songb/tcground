@@ -10,7 +10,7 @@ import {
   buildChartGeometry,
   filterSeriesByPeriod,
   type ChartPeriod,
-} from './price-chart';
+} from '../_lib/price-chart';
 
 interface PriceHistoryChartProps {
   /** Coherent trend series drawn as the line (asking, or sold when asking is absent). */
@@ -67,20 +67,20 @@ export function PriceHistoryChart({
   }
 
   return (
-    <section aria-labelledby='price-history-heading' className='mt-8 rounded-2xl bg-white p-6'>
+    <section aria-labelledby='price-history-heading' className='mt-8 rounded-2xl bg-card p-6'>
       <div className='mb-4 flex flex-wrap items-center justify-between gap-3'>
         <div className='flex flex-wrap items-center gap-2'>
-          <h3 id='price-history-heading' className='text-2xl leading-[1.2] font-bold text-[#191c1e]'>
+          <h3 id='price-history-heading' className='text-2xl leading-[1.2] font-bold text-foreground'>
             가격 변동 추이
           </h3>
           {gradeLabel && (
-            <span className='rounded-full bg-[#e6e8ea] px-2.5 py-1 text-xs leading-none font-semibold text-[#191c1e]'>
+            <span className='rounded-full bg-muted px-2.5 py-1 text-xs leading-none font-semibold text-foreground'>
               {gradeLabel} 체결가 기준
             </span>
           )}
         </div>
         <div
-          className='flex items-center gap-1 rounded-full bg-[#f2f4f6] p-1'
+          className='flex items-center gap-1 rounded-full bg-muted p-1'
           role='tablist'
           aria-label='차트 기간'
         >
@@ -100,8 +100,8 @@ export function PriceHistoryChart({
                 }}
                 className={
                   isActive
-                    ? 'bg-white text-[#191c1e]'
-                    : 'text-[#535f73] hover:bg-transparent hover:text-[#191c1e]'
+                    ? 'bg-card text-foreground'
+                    : 'text-muted-foreground hover:bg-transparent hover:text-foreground'
                 }
               >
                 {option.label}
@@ -119,7 +119,7 @@ export function PriceHistoryChart({
         <ChartMessage>선택한 기간에는 가격 데이터가 없습니다. 더 긴 기간을 선택해 보세요.</ChartMessage>
       ) : (
         <div
-          className='relative h-56 w-full overflow-hidden rounded-xl bg-[#f8f9fb]'
+          className='relative h-56 w-full overflow-hidden rounded-xl bg-background'
           onPointerMove={handlePointerMove}
           onPointerLeave={() => setHoverIndex(null)}
         >
@@ -131,8 +131,8 @@ export function PriceHistoryChart({
           >
             <defs>
               <linearGradient id='card-detail-chart-gradient' x1='0' x2='0' y1='0' y2='1'>
-                <stop offset='0%' stopColor='#bb001a' stopOpacity='0.25' />
-                <stop offset='100%' stopColor='#bb001a' stopOpacity='0' />
+                <stop offset='0%' stopColor='var(--tcg-red)' stopOpacity='0.25' />
+                <stop offset='100%' stopColor='var(--tcg-red)' stopOpacity='0' />
               </linearGradient>
             </defs>
             {geometry.areaPath && (
@@ -142,7 +142,7 @@ export function PriceHistoryChart({
               <path
                 d={geometry.linePath}
                 fill='none'
-                stroke='#bb001a'
+                stroke='var(--tcg-red)'
                 strokeWidth='2'
                 vectorEffect='non-scaling-stroke'
               />
@@ -150,21 +150,21 @@ export function PriceHistoryChart({
           </svg>
 
           {geometry.linePoints.length === 1 && (
-            <ChartDot point={geometry.linePoints[0]} className='bg-[#bb001a]' />
+            <ChartDot point={geometry.linePoints[0]} className='bg-tcg-red' />
           )}
           {geometry.overlayPoints.map((point, index) => (
-            <ChartDot key={index} point={point} className='border-2 border-[#bb001a] bg-white' />
+            <ChartDot key={index} point={point} className='border-2 border-tcg-red bg-card' />
           ))}
 
           {activeCoord && (
             <span
-              className='pointer-events-none absolute top-0 bottom-0 w-px bg-[#bb001a]/40'
+              className='pointer-events-none absolute top-0 bottom-0 w-px bg-tcg-red/40'
               style={{ left: `${activeCoord.x}%` }}
               aria-hidden
             />
           )}
           {activeCoord && (
-            <ChartDot point={activeCoord} className='ring-2 ring-white bg-[#bb001a]' />
+            <ChartDot point={activeCoord} className='ring-2 ring-white bg-tcg-red' />
           )}
           {activePoint && activeCoord && (
             <ChartTooltip point={activePoint} x={activeCoord.x} />
@@ -173,26 +173,26 @@ export function PriceHistoryChart({
       )}
 
       {hasData && hasWindowData && periodRange && (
-        <p className='mt-3 text-sm text-[#535f73]'>
+        <p className='mt-3 text-sm text-muted-foreground'>
           선택 기간 최저{' '}
-          <span className='font-semibold text-[#191c1e] tabular-nums'>
+          <span className='font-semibold text-foreground tabular-nums'>
             {formatPrice(periodRange.low, periodRange.currency)}
           </span>{' '}
           · 최고{' '}
-          <span className='font-semibold text-[#191c1e] tabular-nums'>
+          <span className='font-semibold text-foreground tabular-nums'>
             {formatPrice(periodRange.high, periodRange.currency)}
           </span>
         </p>
       )}
 
       {hasData && hasWindowData && geometry.overlayPoints.length > 0 && (
-        <div className='mt-3 flex flex-wrap items-center gap-4 text-sm text-[#535f73]'>
+        <div className='mt-3 flex flex-wrap items-center gap-4 text-sm text-muted-foreground'>
           <span className='flex items-center gap-2'>
-            <span className='h-2.5 w-2.5 rounded-full bg-[#bb001a]' aria-hidden />
+            <span className='h-2.5 w-2.5 rounded-full bg-tcg-red' aria-hidden />
             판매중 호가 추이
           </span>
           <span className='flex items-center gap-2'>
-            <span className='h-2.5 w-2.5 rounded-full border-2 border-[#bb001a] bg-white' aria-hidden />
+            <span className='h-2.5 w-2.5 rounded-full border-2 border-tcg-red bg-card' aria-hidden />
             실거래가 (참조)
           </span>
         </div>
@@ -203,7 +203,7 @@ export function PriceHistoryChart({
 
 function ChartMessage({ children }: { children: React.ReactNode }) {
   return (
-    <div className='flex h-56 w-full items-center justify-center rounded-xl bg-[#f8f9fb] px-6 text-center text-sm text-[#535f73]'>
+    <div className='flex h-56 w-full items-center justify-center rounded-xl bg-background px-6 text-center text-sm text-muted-foreground'>
       {children}
     </div>
   );
@@ -224,13 +224,13 @@ function ChartTooltip({ point, x }: { point: PricePoint; x: number }) {
   const clampedX = Math.min(88, Math.max(12, x));
   return (
     <div
-      className='pointer-events-none absolute top-3 z-10 -translate-x-1/2 rounded-lg bg-[#191c1e] px-3 py-2 text-center whitespace-nowrap text-white shadow-lg'
+      className='pointer-events-none absolute top-3 z-10 -translate-x-1/2 rounded-lg bg-foreground px-3 py-2 text-center whitespace-nowrap text-background shadow-lg'
       style={{ left: `${clampedX}%` }}
     >
       <p className='text-sm leading-none font-bold tabular-nums'>
         {formatPrice(point.avgPrice, point.currency)}
       </p>
-      <p className='mt-1 text-xs leading-none text-white/70 tabular-nums'>
+      <p className='mt-1 text-xs leading-none text-background/70 tabular-nums'>
         {formatChartDate(point.date)}
       </p>
     </div>

@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { PokemonCatalogCard } from '@/lib/tcg-catalog';
-import { FeaturedCardsGrid } from './page';
+import { FeaturedCardsGrid } from './FeaturedCardsGrid';
 
 describe('FeaturedCardsGrid', () => {
   afterEach(() => {
@@ -68,7 +68,7 @@ function makeCard({
     setSlug: 'pokemon-kr-151',
     rarity: 'SAR',
     collectorNumber: '201/165',
-    sampleId: 'KR-004',
+    sampleId: 'PKMKR-BS2023014201',
     imageUrl,
     price: {
       avgPrice,
@@ -81,5 +81,6 @@ function makeCard({
       currency: 'KRW',
       sampleCount: 0,
     },
+    priceSnapshotCount: 0,
   };
 }

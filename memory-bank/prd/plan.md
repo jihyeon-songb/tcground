@@ -2,7 +2,7 @@
 
 > Project Requirement Document. 제품의 **무엇을·왜·어디까지** 만들지를 적는다.
 > 구현 방법·기술 결정은 `architecture.md`로.
-> 마지막 갱신: 2026-05-27 (UI library extraction)
+> 마지막 갱신: 2026-06-03 (전체 가격 worklist 확장)
 
 ## 1. 제품 한 줄 요약
 
@@ -49,13 +49,18 @@ TCG(Trading Card Game) 카드의 가격을 추적하고, 컬렉터가 정보를 
 ## 5.1 데이터/가격 기준
 
 - MVP 대상 TCG는 포켓몬을 우선한다.
-- 카드 카탈로그는 TCGdex와 Pokémon TCG API 조합으로 시작한다. TCGdex는 언어판/지역판 보강, Pokémon TCG API는 북미/영문 카드와 가격 필드 연동을 우선 검토한다.
-- 가격 기준은 판매중 최저가가 아니라 실거래가 중심으로 둔다. 판매중 최저가는 보조 지표로만 사용한다.
+- 한국판 포켓몬 카탈로그는 현재 약 3,600개로 충분하므로, 가격 데이터 작업 범위에서 카탈로그 증설은 하지 않는다.
+- 가격 기준은 판매중 최저가가 아니라 실거래가 중심으로 둔다. 판매중 호가(`asking`)는 보조 trend 지표로만 사용하고, 실거래가(`sold`)와 섞지 않는다.
+- 같은 source에서 sold와 asking이 모두 들어올 수 있으므로 가격 성격은 `source_name`만으로 판단하지 않고 `price_kind`와 snapshot `aggregation_method`로 구분한다.
 - 가격 데이터는 단일 현재가가 아니라 `market`, `source`, `condition`, `variant`, `observed_at`를 가진 관측치로 저장하고, 일별 snapshot으로 집계한다.
-- 한글/일본판은 안정적인 공개 가격 API가 부족할 수 있으므로 MVP 초기에는 수동 import와 ToS가 허용하는 source별 crawler/partner adapter를 병행할 수 있게 설계한다.
-- 한국판 포켓몬 가격 수집은 자동화 전에 인기/대표 카드 10장 기준으로 source별 실거래성, ToS/접근 가능성, 카드 식별 정확도, 표본 수를 검증한다.
-- 한국판 포켓몬의 1차 자동 가격 adapter source는 `ebay_sold`로 둔다. 단, eBay Marketplace Insights API 접근 승인과 API License Agreement 준수 범위가 확인된 뒤 production adapter를 구현한다. 승인 전에는 eBay 페이지 scraping을 자동화하지 않는다.
-- UI에는 가격 출처, 마지막 업데이트, 표본 수를 노출해 가격 신뢰도를 숨기지 않는다.
+- P0 자동 수집 source는 eBay Browse API의 판매중 호가 daily snapshot이다. eBay Browse는 sold 실거래 source가 아니다.
+- sold 실거래 데이터는 source URL/item ID와 거래일이 검증되는 수동 CSV 또는 승인된 partner/API source만 사용한다. 3,600개 전체 sold 데이터를 수동으로 채우는 것은 목표가 아니다.
+- `memory-bank/price-source-validation.csv`의 `sample_id`는 공식 한국 카드 번호 기반 `PKMKR-<card_num>`으로 통일한다. 기존 `KR-*` priority 번호는 `raw_payload_json.worklist_id`에 남기는 alias이며, `exclude_reason=pending_evidence` 후보는 증거가 채워지기 전까지 공개 가격에 쓰지 않는다.
+- eBay 원문 접근이 차단된 경우 PriceCharting의 개별 eBay completed-sale 행은 수동 evidence 보조 source로 사용할 수 있다. 집계값/현재가가 아니라 날짜·제목·가격이 있는 개별 sold row만 허용하고, `pricecharting_ebay_sold`로 별도 표기한다.
+- eBay Marketplace Insights는 sold 자동화에 가장 적합한 공식 경로지만 restricted 상태이므로, 접근 승인과 API License Agreement 준수 범위가 확인된 뒤에만 production adapter를 활성화한다.
+- KREAM, 번개장터, 중고나라 등 국내 source는 공개 API/재사용 권한 확인 전까지 자동 수집하지 않고 수동 evidence source로만 둔다.
+- USD 등 외화 가격은 원천 통화와 원천 금액을 보존하고, 관측일 또는 snapshot 기준일 환율로 KRW 표시값을 계산한다.
+- UI에는 가격 출처, 마지막 업데이트, 표본 수, sold/asking 구분, 환율 기준일을 노출해 가격 신뢰도를 숨기지 않는다.
 
 ## 6. 범위 외 (Out of Scope)
 
@@ -76,7 +81,8 @@ TCG(Trading Card Game) 카드의 가격을 추적하고, 컬렉터가 정보를 
 
 ## 8. 결정 대기 / 미결 항목
 
-- `ebay_sold` production adapter 구현 전 eBay Buy API/Marketplace Insights 접근 승인, 저장/표시/집계 권한, rate limit, 공개 snapshot 표시 범위를 확인한다.
+- eBay Marketplace Insights sold production adapter 구현 전 eBay Buy API/Marketplace Insights 접근 승인, 저장/표시/집계 권한, rate limit, 공개 snapshot 표시 범위를 확인한다.
+- FX provider는 한국수출입은행 환율 OpenAPI를 1차 후보로 두고, API 키/호출 제한/휴일 rate 처리 정책을 구현 단계에서 확정한다.
 - 이미지 저장소: Supabase Storage vs Cloudflare R2
 - 카테고리 최종 구조: TCG 종류 / 세트 / 카드 타입 / 레어도 중 MVP 포함 범위
 
@@ -96,3 +102,5 @@ TCG(Trading Card Game) 카드의 가격을 추적하고, 컬렉터가 정보를 
 - 2026-05-22: 카테고리 상세 페이지의 "등록 세트" 그리드(별도 세트 페이지 진입)를 제거하고, 세트 선택을 사이드바 필터로 일원화. 사이드바는 레어도/세트 모두 다중 선택 체크박스로 동작하며 URL 쿼리(`?rarity=SAR,AR&set=pokemon-kr-151,...`)와 즉시 동기화한다. 옵션 목록은 게임 전체 기준으로 항상 노출해 다른 카테고리로 이동 없이 필터를 추가/해제할 수 있게 한다.
 - 2026-05-26: 기존 TCGround 앱은 유지하되, 멘토 과제 산출물로 접근성 중심 Headless UI 라이브러리(`packages/ui`)와 Docusaurus 문서 사이트(`apps/docs`)를 모노레포 안에 분리해 진행하기로 결정.
 - 2026-05-27: UI 라이브러리 과제 방향을 기존 앱 `components/ui/*` 공통 UI의 패키지화로 전환하고, `packages/ui`를 `@tcground/ui`로 재정의.
+- 2026-06-03: 한국판 카탈로그는 약 3,600개로 충분하므로 증설하지 않고, 가격 데이터는 eBay Browse asking daily snapshot + 검증된 수동 sold CSV + 기준일 FX 환산을 P0 전략으로 확정. Marketplace Insights sold 자동화와 국내 source 자동화는 승인/권한 확인 전까지 보류.
+- 2026-06-03: 전체 한국판 포켓몬 카탈로그는 `PKMKR-<card_num>` sample id의 `pending_evidence` backlog로 CSV에 추가할 수 있도록 확정. 이는 실제 가격 데이터가 아니라 증거 수집 대기 목록이며, source URL/item ID와 거래일/가격/상태/variant가 검증되기 전까지 공개 가격 산정에서 제외한다.

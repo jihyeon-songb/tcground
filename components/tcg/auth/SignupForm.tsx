@@ -30,7 +30,7 @@ export function SignupForm({ nextPath }: SignupFormProps) {
       {state.formError ? (
         <p
           role='alert'
-          className='rounded-lg border border-[#f2b8c0] bg-[#fff4f5] px-3 py-2 text-sm font-medium text-[#930012]'
+          className='rounded-lg border border-[#f2b8c0] bg-[#fff4f5] px-3 py-2 text-sm font-medium text-tcg-red-dark'
         >
           {state.formError}
         </p>
@@ -45,20 +45,20 @@ export function SignupForm({ nextPath }: SignupFormProps) {
             <CheckCircle2 aria-hidden='true' className='mt-0.5 h-4 w-4 shrink-0' />
             <p>{state.successMessage}</p>
           </div>
-          <Link href={loginHref} className='inline-flex font-bold text-[#0079b6] hover:underline'>
+          <Link href={loginHref} className='inline-flex font-bold text-tcg-blue hover:underline'>
             로그인 화면으로 이동
           </Link>
         </div>
       ) : null}
 
       <div className='space-y-1.5'>
-        <label htmlFor='email' className='block text-sm font-bold text-[#191c1e]'>
+        <label htmlFor='email' className='block text-sm font-bold text-foreground'>
           이메일 주소
         </label>
         <div className='relative'>
           <Mail
             aria-hidden='true'
-            className='pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-[#535f73]'
+            className='pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-muted-foreground'
           />
           <input
             id='email'
@@ -71,24 +71,24 @@ export function SignupForm({ nextPath }: SignupFormProps) {
             aria-invalid={Boolean(state.fieldErrors.email)}
             aria-describedby={state.fieldErrors.email ? 'email-error' : undefined}
             disabled={isPending}
-            className='block h-11 w-full rounded-lg border border-[#e0e3e5] bg-white pr-3 pl-10 text-base text-[#191c1e] transition-colors placeholder:text-[#535f73] focus:border-[#bb001a] focus:ring-2 focus:ring-[#bb001a]/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-[#f2f4f6]'
+            className='block h-11 w-full rounded-lg border border-border bg-card pr-3 pl-10 text-base text-foreground transition-colors placeholder:text-muted-foreground focus:border-tcg-red focus:ring-2 focus:ring-tcg-red/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-muted'
           />
         </div>
         {state.fieldErrors.email ? (
-          <p id='email-error' className='text-sm font-medium text-[#930012]'>
+          <p id='email-error' className='text-sm font-medium text-tcg-red-dark'>
             {state.fieldErrors.email}
           </p>
         ) : null}
       </div>
 
       <div className='space-y-1.5'>
-        <label htmlFor='password' className='block text-sm font-bold text-[#191c1e]'>
+        <label htmlFor='password' className='block text-sm font-bold text-foreground'>
           비밀번호
         </label>
         <div className='relative'>
           <LockKeyhole
             aria-hidden='true'
-            className='pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-[#535f73]'
+            className='pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-muted-foreground'
           />
           <input
             id='password'
@@ -101,24 +101,24 @@ export function SignupForm({ nextPath }: SignupFormProps) {
             aria-invalid={Boolean(state.fieldErrors.password)}
             aria-describedby={state.fieldErrors.password ? 'password-error' : undefined}
             disabled={isPending}
-            className='block h-11 w-full rounded-lg border border-[#e0e3e5] bg-white pr-3 pl-10 text-base text-[#191c1e] transition-colors placeholder:text-[#535f73] focus:border-[#bb001a] focus:ring-2 focus:ring-[#bb001a]/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-[#f2f4f6]'
+            className='block h-11 w-full rounded-lg border border-border bg-card pr-3 pl-10 text-base text-foreground transition-colors placeholder:text-muted-foreground focus:border-tcg-red focus:ring-2 focus:ring-tcg-red/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-muted'
           />
         </div>
         {state.fieldErrors.password ? (
-          <p id='password-error' className='text-sm font-medium text-[#930012]'>
+          <p id='password-error' className='text-sm font-medium text-tcg-red-dark'>
             {state.fieldErrors.password}
           </p>
         ) : null}
       </div>
 
       <div className='space-y-1.5'>
-        <label htmlFor='passwordConfirm' className='block text-sm font-bold text-[#191c1e]'>
+        <label htmlFor='passwordConfirm' className='block text-sm font-bold text-foreground'>
           비밀번호 확인
         </label>
         <div className='relative'>
           <LockKeyhole
             aria-hidden='true'
-            className='pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-[#535f73]'
+            className='pointer-events-none absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 text-muted-foreground'
           />
           <input
             id='passwordConfirm'
@@ -133,11 +133,11 @@ export function SignupForm({ nextPath }: SignupFormProps) {
               state.fieldErrors.passwordConfirm ? 'password-confirm-error' : undefined
             }
             disabled={isPending}
-            className='block h-11 w-full rounded-lg border border-[#e0e3e5] bg-white pr-3 pl-10 text-base text-[#191c1e] transition-colors placeholder:text-[#535f73] focus:border-[#bb001a] focus:ring-2 focus:ring-[#bb001a]/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-[#f2f4f6]'
+            className='block h-11 w-full rounded-lg border border-border bg-card pr-3 pl-10 text-base text-foreground transition-colors placeholder:text-muted-foreground focus:border-tcg-red focus:ring-2 focus:ring-tcg-red/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-muted'
           />
         </div>
         {state.fieldErrors.passwordConfirm ? (
-          <p id='password-confirm-error' className='text-sm font-medium text-[#930012]'>
+          <p id='password-confirm-error' className='text-sm font-medium text-tcg-red-dark'>
             {state.fieldErrors.passwordConfirm}
           </p>
         ) : null}

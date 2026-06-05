@@ -5,6 +5,8 @@ type ChangeTone = 'up' | 'down' | 'flat';
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
+export type CardEdition = 'kr' | 'jp' | 'na';
+
 interface SupabaseErrorLike {
   message: string;
 }
@@ -22,6 +24,49 @@ export interface CardSetRow {
   name: string;
   name_ko: string | null;
 }
+
+export interface TcgCategoryOverviewGameRow {
+  id: string;
+  slug: string;
+  name: string;
+  name_ko: string | null;
+  description: string | null;
+}
+
+export interface TcgCategoryOverview {
+  slug: string;
+  name: string;
+  description: string;
+  href: string;
+  cardCount: number;
+  setCount: number;
+  priceSnapshotCount: number;
+  status: 'live' | 'catalog-only' | 'empty';
+  statusLabel: string;
+}
+
+const DEFAULT_TCG_CATEGORY_BASE = [
+  {
+    slug: 'pokemon',
+    name: '포켓몬 카드',
+    description: '한국판 포켓몬 대표 카드와 가격 기록을 추적합니다.',
+  },
+  {
+    slug: 'yugioh',
+    name: '유희왕',
+    description: '유희왕 카드 카탈로그와 가격 추적 데이터를 준비 중입니다.',
+  },
+  {
+    slug: 'one-piece',
+    name: '원피스',
+    description: '원피스 리더 카드와 주요 수입판 카탈로그를 준비 중입니다.',
+  },
+  {
+    slug: 'magic',
+    name: '매직 더 개더링',
+    description: '매직 더 개더링 staples와 세트별 카탈로그를 준비 중입니다.',
+  },
+] as const;
 
 export interface CardPrintingRow {
   id: string;
@@ -66,6 +111,9 @@ export interface PriceDisplay {
   sourceLabel: string;
   currency: string;
   sampleCount: number;
+  sourceCurrency?: string | null;
+  fxRateDate?: string | null;
+  fxProvider?: string | null;
 }
 
 /** A single dated price point for the detail chart. */
@@ -76,6 +124,10 @@ export interface PricePoint {
   maxPrice: number;
   sampleCount: number;
   currency: string;
+  sourceNames: string[];
+  sourceCurrency?: string | null;
+  fxRateDate?: string | null;
+  fxProvider?: string | null;
 }
 
 /**
@@ -96,8 +148,20 @@ interface CardPriceSnapshotRow {
   snapshot_date: string;
   market: string;
   currency: string;
+  source_currency?: string | null;
+  source_avg_price?: number | null;
+  source_min_price?: number | null;
+  source_max_price?: number | null;
+  display_currency?: string | null;
+  display_avg_price?: number | null;
+  display_min_price?: number | null;
+  display_max_price?: number | null;
+  fx_rate?: number | null;
+  fx_rate_date?: string | null;
+  fx_provider?: string | null;
   variant: string;
   source_name: string;
+  aggregation_method?: string | null;
   condition_label?: string | null;
   avg_price: number | null;
   min_price: number | null;
@@ -117,13 +181,22 @@ export interface PokemonCatalogCard {
   collectorNumber: string;
   sampleId: string;
   imageUrl: string | null;
-  price: PriceDisplay;
+  /** Real snapshot-derived price summary, or null when the card has no price data. */
+  price: PriceDisplay | null;
+  /** Number of price-snapshot records backing this card; drives the recommended ("추천순") order. */
+  priceSnapshotCount: number;
 }
 
 export interface AvailableSetOption {
   slug: string;
   name: string;
 }
+
+export type PokemonSort = 'best' | 'name-asc' | 'name-desc';
+
+export const DEFAULT_POKEMON_PAGE_SIZE = 24;
+const SNAPSHOT_FETCH_CHUNK_SIZE = 100;
+const RECOMMENDED_CANDIDATE_FETCH_LIMIT = 5000;
 
 export interface PokemonCategoryPageData {
   gameName: string;
@@ -135,6 +208,10 @@ export interface PokemonCategoryPageData {
   selectedSetSlugs: string[];
   cards: PokemonCatalogCard[];
   query: string;
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  sort: PokemonSort;
 }
 
 /** Public aggregate of user ratings for a card. */
@@ -156,6 +233,8 @@ export interface CatalogCardDetail {
   rarity: string;
   imageUrl: string | null;
   price: PriceDisplay;
+  selectedEdition: CardEdition;
+  editionOptions: CardEditionOption[];
   printing: {
     id: string;
     language: string;
@@ -170,11 +249,23 @@ export interface CatalogCardDetail {
   backLabel: string;
 }
 
+export interface CardEditionOption {
+  value: CardEdition;
+  label: string;
+  shortLabel: string;
+  isSelected: boolean;
+  isAvailable: boolean;
+  printingId: string | null;
+}
+
 export interface PokemonCategoryQueryOptions {
   client?: SupabaseClient;
   query?: string;
   rarities?: readonly string[];
   setSlugs?: readonly string[];
+  page?: number;
+  pageSize?: number;
+  sort?: PokemonSort;
 }
 
 export interface MapPokemonCategoryOptions {
@@ -183,16 +274,226 @@ export interface MapPokemonCategoryOptions {
   selectedRarities?: string[];
   selectedSetSlugs?: string[];
   query?: string;
+  totalCount?: number;
+  page?: number;
+  pageSize?: number;
+  sort?: PokemonSort;
+}
+
+export interface TcgCategoryOverviewOptions {
+  client?: SupabaseClient;
+}
+
+interface CardGameCountRow {
+  id: string;
+  game_id: string | null;
+}
+
+interface CardSetGameCountRow {
+  id: string;
+  game_id: string | null;
+}
+
+interface PrintingCardJoinRow {
+  id: string;
+  card_id: string | null;
+}
+
+interface PriceSnapshotPrintingJoinRow {
+  card_printing_id: string | null;
+}
+
+interface GameCountRow {
+  game_id: string;
+  count: number;
+}
+
+interface RecommendedSnapshotCandidateRow {
+  card_printing_id: string | null;
+  snapshot_date: string;
+}
+
+interface PrintingCardIdRow {
+  id: string;
+  card_id: string | null;
+}
+
+const PRICE_SNAPSHOT_SELECT_WITH_DISPLAY =
+  'snapshot_date, market, currency, source_currency, source_avg_price, source_min_price, source_max_price, display_currency, display_avg_price, display_min_price, display_max_price, fx_rate, fx_rate_date, fx_provider, variant, condition_label, source_name, aggregation_method, avg_price, min_price, max_price, sample_count, grade_company, grade_value';
+
+const PRICE_SNAPSHOT_SELECT_LEGACY =
+  'snapshot_date, market, currency, variant, condition_label, source_name, aggregation_method, avg_price, min_price, max_price, sample_count, grade_company, grade_value';
+
+const CARD_EDITION_CONFIG: Record<
+  CardEdition,
+  { label: string; shortLabel: string; language: string; region: string }
+> = {
+  kr: { label: '한국판', shortLabel: 'KR', language: 'ko', region: 'KR' },
+  jp: { label: '일본판', shortLabel: 'JP', language: 'ja', region: 'JP' },
+  na: { label: '미국판', shortLabel: 'US', language: 'en', region: 'NA' },
+};
+
+const CARD_EDITION_ORDER: CardEdition[] = ['kr', 'jp', 'na'];
+
+const POKEMON_CARD_LIST_SELECT = [
+  'id',
+  'slug',
+  'name',
+  'collector_number',
+  'rarity',
+  'image_url',
+  'thumbnail_url',
+  'card_sets(slug, name, name_ko)',
+  'card_printings(id, language, region, set_name, set_code, collector_number, rarity, finish, image_url, external_ids)',
+].join(', ');
+
+export async function getTcgCategoryOverview(
+  options: TcgCategoryOverviewOptions = {},
+): Promise<TcgCategoryOverview[]> {
+  const supabase = options.client ?? (await createClient());
+
+  const gameResult = await supabase
+    .from('tcg_games')
+    .select('id, slug, name, name_ko, description')
+    .order('display_order', { ascending: true });
+
+  throwIfSupabaseError(gameResult.error);
+
+  const games = (gameResult.data ?? []) as TcgCategoryOverviewGameRow[];
+  const gameIds = games.map((game) => game.id);
+
+  const [cardResult, setResult, printingResult, snapshotResult, cardCounts, setCounts] =
+    await Promise.all([
+      supabase.from('cards').select('id, game_id'),
+      supabase.from('card_sets').select('id, game_id'),
+      supabase.from('card_printings').select('id, card_id'),
+      supabase.from('card_price_snapshots').select('card_printing_id'),
+      countRowsByGameId(supabase, 'cards', gameIds),
+      countRowsByGameId(supabase, 'card_sets', gameIds),
+    ]);
+
+  throwIfSupabaseError(cardResult.error);
+  throwIfSupabaseError(setResult.error);
+  throwIfSupabaseError(printingResult.error);
+  throwIfSupabaseError(snapshotResult.error);
+
+  return mapTcgCategoryOverviewRows({
+    games,
+    cards: (cardResult.data ?? []) as CardGameCountRow[],
+    sets: (setResult.data ?? []) as CardSetGameCountRow[],
+    cardCounts,
+    setCounts,
+    printings: (printingResult.data ?? []) as PrintingCardJoinRow[],
+    snapshots: (snapshotResult.data ?? []) as PriceSnapshotPrintingJoinRow[],
+  });
+}
+
+export function mapTcgCategoryOverviewRows({
+  games,
+  cards,
+  sets,
+  cardCounts: exactCardCounts,
+  setCounts: exactSetCounts,
+  printings,
+  snapshots,
+}: {
+  games: readonly TcgCategoryOverviewGameRow[];
+  cards: readonly CardGameCountRow[];
+  sets: readonly CardSetGameCountRow[];
+  cardCounts?: readonly GameCountRow[];
+  setCounts?: readonly GameCountRow[];
+  printings: readonly PrintingCardJoinRow[];
+  snapshots: readonly PriceSnapshotPrintingJoinRow[];
+}): TcgCategoryOverview[] {
+  const gameByCardId = new Map<string, string>();
+  const cardCounts = new Map<string, number>();
+  for (const card of cards) {
+    if (!card.game_id) continue;
+    gameByCardId.set(card.id, card.game_id);
+    cardCounts.set(card.game_id, (cardCounts.get(card.game_id) ?? 0) + 1);
+  }
+  applyExactCounts(cardCounts, exactCardCounts);
+
+  const setCounts = new Map<string, number>();
+  for (const set of sets) {
+    if (!set.game_id) continue;
+    setCounts.set(set.game_id, (setCounts.get(set.game_id) ?? 0) + 1);
+  }
+  applyExactCounts(setCounts, exactSetCounts);
+
+  const gameByPrintingId = new Map<string, string>();
+  for (const printing of printings) {
+    if (!printing.card_id) continue;
+    const gameId = gameByCardId.get(printing.card_id);
+    if (gameId) gameByPrintingId.set(printing.id, gameId);
+  }
+
+  const priceSnapshotCounts = new Map<string, number>();
+  for (const snapshot of snapshots) {
+    if (!snapshot.card_printing_id) continue;
+    const gameId = gameByPrintingId.get(snapshot.card_printing_id);
+    if (!gameId) continue;
+    priceSnapshotCounts.set(gameId, (priceSnapshotCounts.get(gameId) ?? 0) + 1);
+  }
+
+  const defaultSlugs = new Set<string>(DEFAULT_TCG_CATEGORY_BASE.map((category) => category.slug));
+  const gamesBySlug = new Map(games.map((game) => [game.slug, game] as const));
+  const orderedCategories = [
+    ...DEFAULT_TCG_CATEGORY_BASE.map((base) => ({
+      base,
+      game: gamesBySlug.get(base.slug) ?? null,
+    })),
+    ...games
+      .filter((game) => !defaultSlugs.has(game.slug))
+      .map((game) => ({
+        base: null,
+        game,
+      })),
+  ];
+
+  return orderedCategories.map(({ base, game }) => {
+    const cardCount = game ? (cardCounts.get(game.id) ?? 0) : 0;
+    const setCount = game ? (setCounts.get(game.id) ?? 0) : 0;
+    const priceSnapshotCount = game ? (priceSnapshotCounts.get(game.id) ?? 0) : 0;
+    const status = getCategoryOverviewStatus(cardCount, priceSnapshotCount);
+    const slug = game?.slug ?? base?.slug ?? 'unknown';
+    const name = game?.name_ko ?? game?.name ?? base?.name ?? slug;
+
+    return {
+      slug,
+      name,
+      description: game?.description ?? base?.description ?? `${name} 카탈로그를 준비 중입니다.`,
+      href: `/categories/${slug}`,
+      cardCount,
+      setCount,
+      priceSnapshotCount,
+      status,
+      statusLabel: getCategoryOverviewStatusLabel(status),
+    };
+  });
 }
 
 export async function getPokemonCategoryPageData(
   options: PokemonCategoryQueryOptions = {},
 ): Promise<PokemonCategoryPageData | null> {
-  const { client, query = '', rarities, setSlugs } = options;
+  const {
+    client,
+    query = '',
+    rarities,
+    setSlugs,
+    page = 1,
+    pageSize = DEFAULT_POKEMON_PAGE_SIZE,
+    sort = 'best',
+  } = options;
   const supabase = client ?? (await createClient());
   const trimmedQuery = query.trim();
   const selectedRarities = normalizeStringList(rarities);
   const selectedSetSlugs = normalizeStringList(setSlugs);
+  const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+  const safePageSize =
+    Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : DEFAULT_POKEMON_PAGE_SIZE;
+  const rangeFrom = (safePage - 1) * safePageSize;
+  const rangeTo = rangeFrom + safePageSize - 1;
 
   const { data: gameData, error: gameError } = await supabase
     .from('tcg_games')
@@ -246,6 +547,9 @@ export async function getPokemonCategoryPageData(
     selectedRarities,
     selectedSetSlugs,
     query: trimmedQuery,
+    page: safePage,
+    pageSize: safePageSize,
+    sort,
   };
 
   let setIdsForFilter: string[] | null = null;
@@ -254,48 +558,222 @@ export async function getPokemonCategoryPageData(
       .filter((row) => selectedSetSlugs.includes(row.slug))
       .map((row) => row.id);
     if (setIdsForFilter.length === 0) {
-      return mapPokemonCategoryPageData(game, [], baseMapOptions);
+      return mapPokemonCategoryPageData(game, [], { ...baseMapOptions, totalCount: 0 });
     }
   }
 
-  let cardQuery = supabase
-    .from('cards')
-    .select(
-      [
-        'id',
-        'slug',
-        'name',
-        'collector_number',
-        'rarity',
-        'image_url',
-        'thumbnail_url',
-        'card_sets(slug, name, name_ko)',
-        'card_printings(id, language, region, set_name, set_code, collector_number, rarity, finish, image_url, external_ids)',
-      ].join(', '),
-    )
-    .eq('game_id', game.id);
+  const buildCardQuery = (
+    columns = POKEMON_CARD_LIST_SELECT,
+    selectOptions: { count?: 'exact'; head?: boolean } = { count: 'exact' },
+  ) => {
+    let cardQuery = supabase
+      .from('cards')
+      .select(columns, selectOptions)
+      .eq('game_id', game.id);
 
-  if (trimmedQuery) {
-    cardQuery = cardQuery.ilike('name', `%${trimmedQuery}%`);
+    if (trimmedQuery) {
+      cardQuery = cardQuery.ilike('name', `%${trimmedQuery}%`);
+    }
+
+    if (selectedRarities.length > 0) {
+      cardQuery = cardQuery.in('rarity', selectedRarities);
+    }
+
+    if (setIdsForFilter) {
+      cardQuery = cardQuery.in('set_id', setIdsForFilter);
+    }
+
+    return cardQuery;
+  };
+
+  if (sort === 'best') {
+    const filteredCardQuery = buildCardQuery as unknown as BuildPokemonCardQuery;
+    const [{ count, error: countError }, recommendedCardIds] = await Promise.all([
+      buildCardQuery('id', { count: 'exact', head: true }),
+      getRecommendedPricedCardIds(supabase),
+    ]);
+
+    throwIfSupabaseError(countError);
+
+    const totalCount = count ?? 0;
+    const pricedRows = await fetchCardRowsByIdsInOrder(
+      filteredCardQuery,
+      recommendedCardIds,
+    );
+    const pricedCardIds = new Set(pricedRows.map((row) => row.id));
+    const pricedCount = pricedRows.length;
+    const selectedRows = pricedRows.slice(rangeFrom, rangeTo + 1);
+    const remainingPageSize = safePageSize - selectedRows.length;
+
+    if (remainingPageSize > 0) {
+      const fallbackOffset = Math.max(0, rangeFrom - pricedCount);
+      const fallbackRows = await fetchUnpricedFallbackRows({
+        buildCardQuery: filteredCardQuery,
+        excludedCardIds: pricedCardIds,
+        offset: fallbackOffset,
+        limit: remainingPageSize,
+      });
+      selectedRows.push(...fallbackRows);
+    }
+
+    const snapshotsByPrinting = await fetchSnapshotsByPrinting(
+      supabase,
+      collectPrimaryPrintingIds(selectedRows),
+    );
+
+    return mapPokemonCategoryPageData(
+      game,
+      selectedRows,
+      { ...baseMapOptions, totalCount },
+      snapshotsByPrinting,
+    );
   }
 
-  if (selectedRarities.length > 0) {
-    cardQuery = cardQuery.in('rarity', selectedRarities);
-  }
+  const orderedQuery =
+    sort === 'name-asc'
+      ? buildCardQuery().order('name', { ascending: true })
+      : buildCardQuery().order('name', { ascending: false });
 
-  if (setIdsForFilter) {
-    cardQuery = cardQuery.in('set_id', setIdsForFilter);
-  }
-
-  const { data: cardData, error: cardError } = await cardQuery.order('slug', { ascending: true });
+  const { data: cardData, error: cardError, count } = await orderedQuery.range(rangeFrom, rangeTo);
 
   throwIfSupabaseError(cardError);
 
+  const cardRows = (cardData ?? []) as unknown as PokemonCatalogCardRow[];
+  const snapshotsByPrinting = await fetchSnapshotsByPrinting(
+    supabase,
+    collectPrimaryPrintingIds(cardRows),
+  );
+
   return mapPokemonCategoryPageData(
     game,
-    (cardData ?? []) as unknown as PokemonCatalogCardRow[],
-    baseMapOptions,
+    cardRows,
+    { ...baseMapOptions, totalCount: count ?? 0 },
+    snapshotsByPrinting,
   );
+}
+
+interface CardQueryResult {
+  data: unknown[] | null;
+  error: SupabaseErrorLike | null;
+  count?: number | null;
+}
+
+interface CardQuery extends PromiseLike<CardQueryResult> {
+  in(column: string, values: readonly string[]): CardQuery;
+  not(column: string, operator: string, value: string): CardQuery;
+  order(column: string, options: { ascending: boolean }): CardQuery;
+  range(from: number, to: number): CardQuery;
+}
+
+type BuildPokemonCardQuery = (
+  columns?: string,
+  selectOptions?: { count?: 'exact'; head?: boolean },
+) => CardQuery;
+
+async function getRecommendedPricedCardIds(supabase: SupabaseClient): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('card_price_snapshots')
+    .select('card_printing_id, snapshot_date')
+    .not('card_printing_id', 'is', null)
+    .order('snapshot_date', { ascending: false })
+    .limit(RECOMMENDED_CANDIDATE_FETCH_LIMIT);
+
+  throwIfSupabaseError(error);
+
+  // Count price-snapshot records per printing; the recommended order surfaces
+  // cards with the most price data (시세 데이터 건수) first.
+  const snapshotCountByPrinting = new Map<string, number>();
+  for (const row of (data ?? []) as RecommendedSnapshotCandidateRow[]) {
+    if (!row.card_printing_id) continue;
+    snapshotCountByPrinting.set(
+      row.card_printing_id,
+      (snapshotCountByPrinting.get(row.card_printing_id) ?? 0) + 1,
+    );
+  }
+
+  const printingIds = Array.from(snapshotCountByPrinting.keys());
+  if (printingIds.length === 0) return [];
+
+  const cardIdByPrinting = new Map<string, string>();
+  for (const chunk of chunkStrings(printingIds, SNAPSHOT_FETCH_CHUNK_SIZE)) {
+    const { data: printingData, error: printingError } = await supabase
+      .from('card_printings')
+      .select('id, card_id')
+      .in('id', chunk);
+
+    throwIfSupabaseError(printingError);
+
+    for (const row of (printingData ?? []) as PrintingCardIdRow[]) {
+      if (row.card_id) cardIdByPrinting.set(row.id, row.card_id);
+    }
+  }
+
+  // A card may span multiple printings, so sum each card's snapshot records.
+  const snapshotCountByCard = new Map<string, number>();
+  for (const [printingId, count] of snapshotCountByPrinting) {
+    const cardId = cardIdByPrinting.get(printingId);
+    if (!cardId) continue;
+    snapshotCountByCard.set(cardId, (snapshotCountByCard.get(cardId) ?? 0) + count);
+  }
+
+  return Array.from(snapshotCountByCard.entries())
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([cardId]) => cardId);
+}
+
+async function fetchCardRowsByIdsInOrder(
+  buildCardQuery: BuildPokemonCardQuery,
+  cardIds: readonly string[],
+): Promise<PokemonCatalogCardRow[]> {
+  if (cardIds.length === 0) return [];
+
+  const rows: PokemonCatalogCardRow[] = [];
+  for (const chunk of chunkStrings(cardIds, SNAPSHOT_FETCH_CHUNK_SIZE)) {
+    const { data, error } = await buildCardQuery().in('id', chunk);
+    throwIfSupabaseError(error);
+    rows.push(...((data ?? []) as unknown as PokemonCatalogCardRow[]));
+  }
+
+  const rowById = new Map(rows.map((row) => [row.id, row] as const));
+  return cardIds
+    .map((cardId) => rowById.get(cardId))
+    .filter((row): row is PokemonCatalogCardRow => row !== undefined);
+}
+
+async function fetchUnpricedFallbackRows({
+  buildCardQuery,
+  excludedCardIds,
+  offset,
+  limit,
+}: {
+  buildCardQuery: BuildPokemonCardQuery;
+  excludedCardIds: ReadonlySet<string>;
+  offset: number;
+  limit: number;
+}): Promise<PokemonCatalogCardRow[]> {
+  if (limit <= 0) return [];
+
+  let query = buildCardQuery().order('slug', { ascending: true });
+  if (excludedCardIds.size > 0) {
+    query = query.not('id', 'in', formatPostgrestInList(Array.from(excludedCardIds)));
+  }
+
+  const { data, error } = await query.range(offset, offset + limit - 1);
+  throwIfSupabaseError(error);
+
+  return (data ?? []) as unknown as PokemonCatalogCardRow[];
+}
+
+function chunkStrings(values: readonly string[], chunkSize: number): string[][] {
+  const chunks: string[][] = [];
+  for (let index = 0; index < values.length; index += chunkSize) {
+    chunks.push(values.slice(index, index + chunkSize));
+  }
+  return chunks;
+}
+
+function formatPostgrestInList(values: readonly string[]): string {
+  return `(${values.map((value) => `"${value.replaceAll('"', '\\"')}"`).join(',')})`;
 }
 
 export interface FeaturedPokemonCardsOptions {
@@ -322,26 +800,45 @@ export async function getFeaturedPokemonCards(
 
   const { data: cardData, error: cardError } = await supabase
     .from('cards')
-    .select(
-      [
-        'id',
-        'slug',
-        'name',
-        'collector_number',
-        'rarity',
-        'image_url',
-        'thumbnail_url',
-        'card_sets(slug, name, name_ko)',
-        'card_printings(id, language, region, set_name, set_code, collector_number, rarity, finish, image_url, external_ids)',
-      ].join(', '),
-    )
+    .select(POKEMON_CARD_LIST_SELECT)
     .eq('game_id', game.id)
     .order('slug', { ascending: true });
 
   throwIfSupabaseError(cardError);
 
   const rows = (cardData ?? []) as unknown as PokemonCatalogCardRow[];
-  return selectFeaturedPokemonCards(rows.map(mapCatalogCardRow), limit);
+
+  // Order by recommendation ("추천순") — cards with the most price-snapshot
+  // records first — so the featured grid surfaces the same top cards as the
+  // catalog's default sort, with slug order as the tiebreaker/fallback.
+  const recommendedCardIds = await getRecommendedPricedCardIds(supabase);
+  const recommendationRank = new Map(
+    recommendedCardIds.map((cardId, index) => [cardId, index] as const),
+  );
+  const orderedRows = [...rows].sort((a, b) => {
+    const aRank = recommendationRank.get(a.id) ?? Number.POSITIVE_INFINITY;
+    const bRank = recommendationRank.get(b.id) ?? Number.POSITIVE_INFINITY;
+    if (aRank !== bRank) return aRank - bRank;
+    return a.slug.localeCompare(b.slug);
+  });
+
+  // Pick the featured subset first (image filter + limit), then load prices only
+  // for those few printings instead of the whole catalog.
+  const featured = selectFeaturedPokemonCards(
+    orderedRows.map((row) => mapCatalogCardRow(row)),
+    limit,
+  );
+  const rowBySlug = new Map(rows.map((row) => [row.slug, row] as const));
+  const featuredRows = featured
+    .map((card) => rowBySlug.get(card.slug))
+    .filter((row): row is PokemonCatalogCardRow => row !== undefined);
+
+  const snapshotsByPrinting = await fetchSnapshotsByPrinting(
+    supabase,
+    collectPrimaryPrintingIds(featuredRows),
+  );
+
+  return featuredRows.map((row) => mapCatalogCardRow(row, snapshotsByPrinting));
 }
 
 export function selectFeaturedPokemonCards(
@@ -351,9 +848,28 @@ export function selectFeaturedPokemonCards(
   return cards.filter((card) => card.imageUrl !== null && card.imageUrl !== '').slice(0, limit);
 }
 
+/**
+ * Normalizes a card slug coming from a route param. Next can hand the dynamic
+ * segment over still percent-encoded (e.g. Korean `피콘` as `%ED%94%BC...`), so
+ * we decode it and normalize to NFC to match the slugs stored in the DB. Slugs
+ * passed already-decoded (internal callers) pass through unchanged.
+ */
+function normalizeCardSlug(raw: string): string {
+  let value = raw;
+  if (value.includes('%')) {
+    try {
+      value = decodeURIComponent(value);
+    } catch {
+      // Not valid percent-encoding — keep the raw value.
+    }
+  }
+  return value.normalize('NFC');
+}
+
 export async function getCardDetailBySlug(
   slug: string,
   client?: SupabaseClient,
+  options: { edition?: CardEdition } = {},
 ): Promise<CatalogCardDetail | null> {
   const supabase = client ?? (await createClient());
 
@@ -373,7 +889,7 @@ export async function getCardDetailBySlug(
         'card_printings(id, language, region, set_name, set_code, collector_number, rarity, finish, image_url, external_ids)',
       ].join(', '),
     )
-    .eq('slug', slug)
+    .eq('slug', normalizeCardSlug(slug))
     .maybeSingle();
 
   throwIfSupabaseError(error);
@@ -381,20 +897,12 @@ export async function getCardDetailBySlug(
   if (!data) return null;
 
   const detailRow = data as unknown as CardDetailRow;
-  const printing = selectPrimaryPrinting(detailRow);
+  const printing = selectPrintingForEdition(detailRow, options.edition ?? 'kr');
   const printingId = printing?.id ?? detailRow.id;
 
-  const { data: snapshotData, error: snapshotError } = await supabase
-    .from('card_price_snapshots')
-    .select(
-      'snapshot_date, market, currency, variant, condition_label, source_name, avg_price, min_price, max_price, sample_count, grade_company, grade_value',
-    )
-    .eq('card_printing_id', printingId)
-    .order('snapshot_date', { ascending: true });
+  const snapshotData = await fetchSnapshotRowsForPrinting(supabase, printingId);
 
-  throwIfSupabaseError(snapshotError);
-
-  return mapCardDetailRow(detailRow, (snapshotData ?? []) as CardPriceSnapshotRow[]);
+  return mapCardDetailRow(detailRow, snapshotData, { edition: options.edition ?? 'kr' });
 }
 
 interface CardRatingSummaryRow {
@@ -449,12 +957,97 @@ export async function getViewerRating(
   return row?.score ?? null;
 }
 
+async function fetchSnapshotRowsForPrinting(
+  supabase: SupabaseClient,
+  printingId: string,
+): Promise<CardPriceSnapshotRow[]> {
+  const result = await supabase
+    .from('card_price_snapshots')
+    .select(PRICE_SNAPSHOT_SELECT_WITH_DISPLAY)
+    .eq('card_printing_id', printingId)
+    .order('snapshot_date', { ascending: true });
+
+  if (result.error && isMissingDisplayPriceColumn(result.error.message)) {
+    const legacy = await supabase
+      .from('card_price_snapshots')
+      .select(PRICE_SNAPSHOT_SELECT_LEGACY)
+      .eq('card_printing_id', printingId)
+      .order('snapshot_date', { ascending: true });
+    throwIfSupabaseError(legacy.error);
+    return (legacy.data ?? []) as CardPriceSnapshotRow[];
+  }
+
+  throwIfSupabaseError(result.error);
+  return (result.data ?? []) as CardPriceSnapshotRow[];
+}
+
+async function fetchSnapshotRowsForPrintings(
+  supabase: SupabaseClient,
+  printingIds: readonly string[],
+): Promise<Array<CardPriceSnapshotRow & { card_printing_id: string }>> {
+  const result = await supabase
+    .from('card_price_snapshots')
+    .select(`card_printing_id, ${PRICE_SNAPSHOT_SELECT_WITH_DISPLAY}`)
+    .in('card_printing_id', printingIds)
+    .order('snapshot_date', { ascending: true });
+
+  if (result.error && isMissingDisplayPriceColumn(result.error.message)) {
+    const legacy = await supabase
+      .from('card_price_snapshots')
+      .select(`card_printing_id, ${PRICE_SNAPSHOT_SELECT_LEGACY}`)
+      .in('card_printing_id', printingIds)
+      .order('snapshot_date', { ascending: true });
+    throwIfSupabaseError(legacy.error);
+    return (legacy.data ?? []) as Array<CardPriceSnapshotRow & { card_printing_id: string }>;
+  }
+
+  throwIfSupabaseError(result.error);
+  return (result.data ?? []) as Array<CardPriceSnapshotRow & { card_printing_id: string }>;
+}
+
+/**
+ * Batch-loads price snapshots for a set of printings, grouped by printing id, so
+ * a list page can derive real prices without one query per card. Returns an
+ * empty map when given no ids.
+ */
+export async function fetchSnapshotsByPrinting(
+  supabase: SupabaseClient,
+  printingIds: readonly string[],
+): Promise<Map<string, CardPriceSnapshotRow[]>> {
+  const byPrinting = new Map<string, CardPriceSnapshotRow[]>();
+  if (printingIds.length === 0) return byPrinting;
+
+  for (let index = 0; index < printingIds.length; index += SNAPSHOT_FETCH_CHUNK_SIZE) {
+    const chunk = printingIds.slice(index, index + SNAPSHOT_FETCH_CHUNK_SIZE);
+    const data = await fetchSnapshotRowsForPrintings(supabase, chunk);
+
+    for (const row of (data ?? []) as Array<CardPriceSnapshotRow & { card_printing_id: string }>) {
+      const list = byPrinting.get(row.card_printing_id);
+      if (list) list.push(row);
+      else byPrinting.set(row.card_printing_id, [row]);
+    }
+  }
+
+  return byPrinting;
+}
+
+/** Collects the primary printing id of each card row (Korean printing preferred). */
+function collectPrimaryPrintingIds(rows: readonly PokemonCatalogCardRow[]): string[] {
+  return rows
+    .map((row) => selectPrimaryPrinting(row)?.id)
+    .filter((id): id is string => Boolean(id));
+}
+
 export function mapPokemonCategoryPageData(
   game: TcgGameRow,
   rows: readonly PokemonCatalogCardRow[],
   options: MapPokemonCategoryOptions = {},
+  snapshotsByPrinting?: ReadonlyMap<string, CardPriceSnapshotRow[]>,
 ): PokemonCategoryPageData {
-  const cards = rows.map(mapCatalogCardRow);
+  const cards = sortPokemonCatalogCardsByRecommendation(
+    rows.map((row) => mapCatalogCardRow(row, snapshotsByPrinting)),
+    options.sort ?? 'best',
+  );
 
   return {
     gameName: game.name,
@@ -467,14 +1060,46 @@ export function mapPokemonCategoryPageData(
     selectedSetSlugs: options.selectedSetSlugs ?? [],
     cards,
     query: options.query ?? '',
+    totalCount: options.totalCount ?? cards.length,
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? DEFAULT_POKEMON_PAGE_SIZE,
+    sort: options.sort ?? 'best',
   };
+}
+
+export function sortPokemonCatalogCardsByRecommendation(
+  cards: readonly PokemonCatalogCard[],
+  sort: PokemonSort = 'best',
+): PokemonCatalogCard[] {
+  const sorted = [...cards];
+  if (sort !== 'best') return sorted;
+
+  sorted.sort(compareRecommendedCards);
+  return sorted;
+}
+
+function compareRecommendedCards(a: PokemonCatalogCard, b: PokemonCatalogCard): number {
+  // Recommended order ("추천순") surfaces cards with the most price data first:
+  // rank by how many price-snapshot records back each card (시세 데이터 건수).
+  const snapshotDelta = b.priceSnapshotCount - a.priceSnapshotCount;
+  if (snapshotDelta !== 0) return snapshotDelta;
+
+  // Among cards with the same record count, prefer ones that yield a usable price.
+  const aHasPrice = a.price !== null;
+  const bHasPrice = b.price !== null;
+  if (aHasPrice !== bHasPrice) return aHasPrice ? -1 : 1;
+
+  return a.slug.localeCompare(b.slug);
 }
 
 export function mapCardDetailRow(
   row: CardDetailRow,
   snapshots: readonly CardPriceSnapshotRow[] = [],
+  options: { edition?: CardEdition } = {},
 ): CatalogCardDetail {
-  const printing = selectPrimaryPrinting(row);
+  const requestedEdition = options.edition ?? 'kr';
+  const printing = selectPrintingForEdition(row, requestedEdition);
+  const selectedEdition = getPrintingEdition(printing) ?? requestedEdition;
   const sampleId = getSampleId(printing);
   const setLabel =
     row.card_sets?.name_ko ?? row.card_sets?.name ?? printing?.set_name ?? '세트 미상';
@@ -499,6 +1124,8 @@ export function mapCardDetailRow(
     rarity,
     imageUrl: printing?.image_url ?? row.image_url,
     price,
+    selectedEdition,
+    editionOptions: buildEditionOptions(row, selectedEdition),
     priceHistory,
     printing: {
       id: printing?.id ?? row.id,
@@ -539,9 +1166,9 @@ export function createDeterministicPriceDisplay(slug: string, sampleId: string):
 
 /**
  * Builds the detail chart history from snapshots. Snapshots mix currencies,
- * variants, conditions, grades and markets, so we never draw them all as one
- * line. Instead we pick a single coherent bucket — same currency, variant and
- * grade — and draw that as the trend. The eBay Browse asking series is
+ * markets, variants, conditions and grades, so we never draw them all as one
+ * line. Instead we pick a single coherent bucket — same currency, market,
+ * variant and grade — and draw that as the trend. The eBay Browse asking series is
  * preferred; otherwise the richest sold bucket forms the line, with comparable
  * sold points overlaid only when an asking trend is present.
  *
@@ -551,11 +1178,11 @@ export function createDeterministicPriceDisplay(slug: string, sampleId: string):
  * so the UI can tell the user which grade the chart is showing.
  */
 export function buildPriceHistory(snapshots: readonly CardPriceSnapshotRow[]): PriceHistory {
-  const priced = snapshots.filter((snapshot) => snapshot.avg_price !== null);
+  const priced = snapshots.filter((snapshot) => snapshotAvgPrice(snapshot) !== null);
   // Asking sources (eBay Browse, 번개장터) form the trend line; sold sources
   // (eBay sold, KREAM 체결, manual sold imports) form the overlay/sold series.
-  const askingRows = priced.filter((snapshot) => isAskingSource(snapshot.source_name));
-  const soldRows = priced.filter((snapshot) => !isAskingSource(snapshot.source_name));
+  const askingRows = priced.filter((snapshot) => isAskingSnapshot(snapshot));
+  const soldRows = priced.filter((snapshot) => !isAskingSnapshot(snapshot));
 
   const askingBucket = pickRichestBucket(askingRows);
   const askingSeries = askingBucket ? collapseByDate(askingBucket.rows) : [];
@@ -597,6 +1224,20 @@ export function getPriceTrendSeries(history: PriceHistory): PricePoint[] {
   return history.askingSeries.length > 0 ? history.askingSeries : history.soldPoints;
 }
 
+/**
+ * Classifies a snapshot as asking vs sold.
+ *
+ * `source_name` alone is not enough: `manual_bunjang` can appear as either a
+ * sold-out manual evidence row or a current asking row. Prefer the aggregation
+ * method when present and fall back to source naming for legacy rows.
+ */
+function isAskingSnapshot(snapshot: CardPriceSnapshotRow): boolean {
+  const method = snapshot.aggregation_method ?? '';
+  if (method.includes('asking')) return true;
+  if (method === 'median_filtered' || method.includes('sold')) return false;
+  return isAskingSource(snapshot.source_name);
+}
+
 /** True when a snapshot has no grading assigned (raw card). */
 function isUngraded(snapshot: CardPriceSnapshotRow): boolean {
   return !snapshot.grade_company && !snapshot.grade_value;
@@ -610,15 +1251,16 @@ function gradeLabelForRows(rows: readonly CardPriceSnapshotRow[]): string | null
 }
 
 /**
- * Identifies a coherent, comparable bucket: one currency + variant + grade.
- * Market and condition are allowed to vary (and same-date rows are averaged in
+ * Identifies a coherent, comparable bucket: one currency + market + variant +
+ * grade. Condition is allowed to vary (and same-date rows are averaged in
  * `collapseByDate`) so the trend stays continuous instead of fragmenting into
- * single points. Grade is part of the key so a graded series (e.g. PSA 10) never
- * mixes with raw prices on the same line.
+ * single points. Market and grade are part of the key so JP/KR/NA and graded/raw
+ * prices never mix on the same line.
  */
 function bucketKey(snapshot: CardPriceSnapshotRow): string {
   return [
-    snapshot.currency,
+    snapshotDisplayCurrency(snapshot),
+    snapshot.market,
     snapshot.variant,
     snapshot.grade_company ?? '',
     snapshot.grade_value ?? '',
@@ -694,15 +1336,18 @@ function collapseByDate(rows: readonly CardPriceSnapshotRow[]): PricePoint[] {
 
   const points: PricePoint[] = [];
   for (const [date, group] of byDate) {
-    const avg =
-      group.reduce((sum, row) => sum + (row.avg_price ?? 0), 0) / group.length;
+    const avg = group.reduce((sum, row) => sum + (snapshotAvgPrice(row) ?? 0), 0) / group.length;
     points.push({
       date,
       avgPrice: Math.round(avg * 100) / 100,
-      minPrice: Math.min(...group.map((row) => row.min_price ?? row.avg_price ?? 0)),
-      maxPrice: Math.max(...group.map((row) => row.max_price ?? row.avg_price ?? 0)),
+      minPrice: Math.min(...group.map((row) => snapshotMinPrice(row))),
+      maxPrice: Math.max(...group.map((row) => snapshotMaxPrice(row))),
       sampleCount: group.reduce((sum, row) => sum + (row.sample_count ?? 0), 0),
-      currency: group[0].currency,
+      currency: snapshotDisplayCurrency(group[0]),
+      sourceNames: uniqueSorted(group.map((row) => row.source_name)),
+      sourceCurrency: pointSourceCurrency(group),
+      fxRateDate: latestFxRateDate(group),
+      fxProvider: pointFxProvider(group),
     });
   }
 
@@ -731,11 +1376,96 @@ export function derivePriceDisplayFromHistory(history: PriceHistory): PriceDispl
     changeTone: getChangeTone(changeRate),
     lastUpdatedAt: formatSnapshotDate(latest.date),
     sourceLabel: usingAsking
-      ? `${latest.currency === 'KRW' ? '국내' : 'eBay'} 판매중 호가 ${latest.sampleCount}건 기준 (실거래가는 참조점으로 표시)`
-      : `최근 ${history.gradeLabel ? `${history.gradeLabel} ` : ''}실거래가 집계 ${latest.sampleCount}건 기준`,
+      ? `${formatSourceNames(latest.sourceNames) || askingSourcePrefix(latest)} 판매중 호가 ${latest.sampleCount}건 기준 (실거래가는 참조점으로 표시)${formatFxSuffix(latest)}`
+      : `최근 ${formatSourceNames(latest.sourceNames) || '수동 evidence'} ${history.gradeLabel ? `${history.gradeLabel} ` : ''}실거래가 집계 ${latest.sampleCount}건 기준${formatFxSuffix(latest)}`,
     currency: latest.currency,
     sampleCount: latest.sampleCount,
+    sourceCurrency: latest.sourceCurrency,
+    fxRateDate: latest.fxRateDate,
+    fxProvider: latest.fxProvider,
   };
+}
+
+function snapshotDisplayCurrency(snapshot: CardPriceSnapshotRow): string {
+  return snapshot.display_currency ?? snapshot.currency;
+}
+
+function snapshotAvgPrice(snapshot: CardPriceSnapshotRow): number | null {
+  return snapshot.display_avg_price ?? snapshot.avg_price;
+}
+
+function snapshotMinPrice(snapshot: CardPriceSnapshotRow): number {
+  return snapshot.display_min_price ?? snapshot.min_price ?? snapshotAvgPrice(snapshot) ?? 0;
+}
+
+function snapshotMaxPrice(snapshot: CardPriceSnapshotRow): number {
+  return snapshot.display_max_price ?? snapshot.max_price ?? snapshotAvgPrice(snapshot) ?? 0;
+}
+
+function pointSourceCurrency(group: readonly CardPriceSnapshotRow[]): string | null {
+  const sourceCurrencies = new Set(group.map((row) => row.source_currency ?? row.currency));
+  return sourceCurrencies.size === 1 ? Array.from(sourceCurrencies)[0] : null;
+}
+
+function latestFxRateDate(group: readonly CardPriceSnapshotRow[]): string | null {
+  const latest = group
+    .map((row) => row.fx_rate_date)
+    .filter((date): date is string => Boolean(date))
+    .reduce((latest, date) => (date > latest ? date : latest), '');
+  return latest || null;
+}
+
+function pointFxProvider(group: readonly CardPriceSnapshotRow[]): string | null {
+  const providers = new Set(
+    group.map((row) => row.fx_provider).filter((provider): provider is string => Boolean(provider)),
+  );
+  return providers.size === 1 ? Array.from(providers)[0] : null;
+}
+
+function uniqueSorted(values: readonly string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean))).sort();
+}
+
+function formatSourceNames(sourceNames: readonly string[]): string {
+  return sourceNames.map(formatSourceName).filter(Boolean).join('/');
+}
+
+function formatSourceName(sourceName: string): string {
+  switch (sourceName) {
+    case 'ebay_browse':
+      return 'eBay Browse';
+    case 'ebay_sold':
+      return 'eBay sold';
+    case 'pricecharting_ebay_sold':
+      return 'PriceCharting eBay sold';
+    case 'manual_kream':
+    case 'kream':
+      return 'KREAM';
+    case 'manual_bunjang':
+    case 'bunjang':
+      return '번개장터';
+    case 'manual_joongna':
+    case 'joongna':
+      return '중고나라';
+    case 'aggregate':
+      return '수동 evidence';
+    default:
+      return sourceName;
+  }
+}
+
+function askingSourcePrefix(point: PricePoint): string {
+  if (point.sourceCurrency && point.sourceCurrency !== point.currency) return 'eBay';
+  return point.currency === 'KRW' ? '국내' : 'eBay';
+}
+
+function formatFxSuffix(point: PricePoint): string {
+  if (!point.fxRateDate || !point.sourceCurrency || point.sourceCurrency === point.currency) {
+    return '';
+  }
+  return ` · ${point.sourceCurrency}->${point.currency} 환율 ${formatSnapshotDate(
+    point.fxRateDate,
+  )} 기준`;
 }
 
 function formatSnapshotDate(date: string): string {
@@ -744,11 +1474,20 @@ function formatSnapshotDate(date: string): string {
   return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'long' }).format(parsed);
 }
 
-function mapCatalogCardRow(row: PokemonCatalogCardRow): PokemonCatalogCard {
+function mapCatalogCardRow(
+  row: PokemonCatalogCardRow,
+  snapshotsByPrinting?: ReadonlyMap<string, CardPriceSnapshotRow[]>,
+): PokemonCatalogCard {
   const printing = selectPrimaryPrinting(row);
   const sampleId = getSampleId(printing);
   const setName =
     row.card_sets?.name_ko ?? row.card_sets?.name ?? printing?.set_name ?? '세트 미상';
+
+  const printingId = printing?.id ?? row.id;
+  const snapshots = snapshotsByPrinting?.get(printingId) ?? [];
+  // Real snapshot-derived summary; null when the card has no price data, so the
+  // UI can show "시세 정보 없음" instead of a fabricated placeholder value.
+  const price = derivePriceDisplayFromHistory(buildPriceHistory(snapshots));
 
   return {
     slug: row.slug,
@@ -759,14 +1498,27 @@ function mapCatalogCardRow(row: PokemonCatalogCardRow): PokemonCatalogCard {
     rarity: printing?.rarity ?? row.rarity ?? '레어도 미상',
     collectorNumber: printing?.collector_number ?? row.collector_number ?? '번호 미상',
     sampleId,
-    imageUrl: row.thumbnail_url ?? printing?.image_url ?? row.image_url,
-    price: createDeterministicPriceDisplay(row.slug, sampleId),
+    imageUrl: selectCatalogCardImage(row, printing),
+    price,
+    priceSnapshotCount: snapshots.length,
   };
 }
 
-function deriveAvailableSetsFromCards(
-  cards: readonly PokemonCatalogCard[],
-): AvailableSetOption[] {
+function selectCatalogCardImage(
+  row: PokemonCatalogCardRow,
+  printing: CardPrintingRow | null,
+): string | null {
+  if (isPokemonKoreaImage(row.thumbnail_url)) return row.thumbnail_url;
+  if (isPokemonKoreaImage(printing?.image_url)) return printing?.image_url ?? null;
+  if (isPokemonKoreaImage(row.image_url)) return row.image_url;
+  return row.thumbnail_url ?? printing?.image_url ?? row.image_url;
+}
+
+function isPokemonKoreaImage(url: string | null | undefined): boolean {
+  return Boolean(url?.includes('cards.image.pokemonkorea.co.kr'));
+}
+
+function deriveAvailableSetsFromCards(cards: readonly PokemonCatalogCard[]): AvailableSetOption[] {
   const seen = new Map<string, string>();
   cards.forEach((card) => {
     if (!seen.has(card.setSlug)) {
@@ -786,28 +1538,128 @@ function deriveAvailableRaritiesFromCards(cards: readonly PokemonCatalogCard[]):
 
 function normalizeStringList(list: readonly string[] | undefined): string[] {
   if (!list || list.length === 0) return [];
-  return Array.from(
-    new Set(list.map((value) => value.trim()).filter((value) => value.length > 0)),
-  );
+  return Array.from(new Set(list.map((value) => value.trim()).filter((value) => value.length > 0)));
 }
 
 function selectPrimaryPrinting(row: PokemonCatalogCardRow): CardPrintingRow | null {
   return (
-    row.card_printings.find((printing) => printing.language === 'ko' && printing.region === 'KR') ??
+    findPrintingForEdition(row, 'kr') ??
     row.card_printings[0] ??
     null
   );
 }
 
+function selectPrintingForEdition(
+  row: PokemonCatalogCardRow,
+  edition: CardEdition = 'kr',
+): CardPrintingRow | null {
+  return findPrintingForEdition(row, edition) ?? selectPrimaryPrinting(row);
+}
+
+function findPrintingForEdition(
+  row: PokemonCatalogCardRow,
+  edition: CardEdition,
+): CardPrintingRow | null {
+  return row.card_printings.find((printing) => printingMatchesEdition(printing, edition)) ?? null;
+}
+
+function printingMatchesEdition(printing: CardPrintingRow, edition: CardEdition): boolean {
+  const config = CARD_EDITION_CONFIG[edition];
+  if (edition === 'na') {
+    return printing.language === config.language && ['NA', 'US'].includes(printing.region);
+  }
+  return printing.language === config.language && printing.region === config.region;
+}
+
+function getPrintingEdition(printing: CardPrintingRow | null): CardEdition | null {
+  if (!printing) return null;
+  return (
+    CARD_EDITION_ORDER.find((edition) => printingMatchesEdition(printing, edition)) ?? null
+  );
+}
+
+function buildEditionOptions(
+  row: PokemonCatalogCardRow,
+  selectedEdition: CardEdition,
+): CardEditionOption[] {
+  return CARD_EDITION_ORDER.map((edition) => {
+    const printing = findPrintingForEdition(row, edition);
+    const config = CARD_EDITION_CONFIG[edition];
+    return {
+      value: edition,
+      label: config.label,
+      shortLabel: config.shortLabel,
+      isSelected: edition === selectedEdition,
+      isAvailable: Boolean(printing),
+      printingId: printing?.id ?? null,
+    };
+  });
+}
+
+export function parseCardEdition(value: string | string[] | undefined): CardEdition {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw === 'jp' || raw === 'na') return raw;
+  return 'kr';
+}
+
 function getSampleId(printing: CardPrintingRow | null): string {
+  const cardNum = printing?.external_ids?.card_num;
+  if (typeof cardNum === 'string' && cardNum.length > 0) return `PKMKR-${cardNum}`;
+
+  const setCode = printing?.set_code;
+  if (typeof setCode === 'string' && /^BS\d+$/.test(setCode)) return `PKMKR-${setCode}`;
+
   const sampleId = printing?.external_ids?.sample_id;
-  return typeof sampleId === 'string' && sampleId.length > 0 ? sampleId : 'KR-000';
+  return typeof sampleId === 'string' && sampleId.length > 0 ? sampleId : 'PKMKR-UNKNOWN';
 }
 
 function getChangeTone(rate: number): ChangeTone {
   if (rate > 0) return 'up';
   if (rate < 0) return 'down';
   return 'flat';
+}
+
+function getCategoryOverviewStatus(
+  cardCount: number,
+  priceSnapshotCount: number,
+): TcgCategoryOverview['status'] {
+  if (cardCount === 0) return 'empty';
+  if (priceSnapshotCount > 0) return 'live';
+  return 'catalog-only';
+}
+
+function getCategoryOverviewStatusLabel(status: TcgCategoryOverview['status']): string {
+  if (status === 'live') return '가격 추적 중';
+  if (status === 'catalog-only') return '카탈로그 연결';
+  return '준비 중';
+}
+
+async function countRowsByGameId(
+  supabase: SupabaseClient,
+  table: 'cards' | 'card_sets',
+  gameIds: readonly string[],
+): Promise<GameCountRow[]> {
+  return Promise.all(
+    gameIds.map(async (gameId) => {
+      const { count, error } = await supabase
+        .from(table)
+        .select('id', { count: 'exact', head: true })
+        .eq('game_id', gameId);
+
+      throwIfSupabaseError(error);
+      return { game_id: gameId, count: count ?? 0 };
+    }),
+  );
+}
+
+function applyExactCounts(
+  target: Map<string, number>,
+  exactCounts: readonly GameCountRow[] | undefined,
+) {
+  if (!exactCounts) return;
+  for (const row of exactCounts) {
+    target.set(row.game_id, row.count);
+  }
 }
 
 function stableHash(value: string): number {
@@ -822,4 +1674,18 @@ function throwIfSupabaseError(error: SupabaseErrorLike | null) {
   if (error) {
     throw new Error(`Supabase catalog query failed: ${error.message}`);
   }
+}
+
+function isMissingDisplayPriceColumn(message: string): boolean {
+  const normalizedMessage = message.toLowerCase();
+  const mentionsDisplayColumn =
+    normalizedMessage.includes('display_currency') ||
+    normalizedMessage.includes('source_currency') ||
+    normalizedMessage.includes('fx_rate');
+  return (
+    mentionsDisplayColumn &&
+    (normalizedMessage.includes('schema cache') ||
+      normalizedMessage.includes('does not exist') ||
+      normalizedMessage.includes('could not find'))
+  );
 }

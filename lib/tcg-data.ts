@@ -1,13 +1,3 @@
-export interface TcgCategory {
-  id: string;
-  name: string;
-  label: string;
-  cardCount: number;
-  trackedSets: number;
-  momentum: 'up' | 'flat' | 'down';
-  href: string;
-}
-
 export interface FeaturedCard {
   id: string;
   cardName: string;
@@ -28,45 +18,6 @@ export interface MarketSignal {
   value: string;
   caption: string;
 }
-
-export const tcgCategories: TcgCategory[] = [
-  {
-    id: 'pokemon',
-    name: '포켓몬 카드',
-    label: 'Scarlet & Violet 중심',
-    cardCount: 1284,
-    trackedSets: 42,
-    momentum: 'up',
-    href: '/categories/pokemon',
-  },
-  {
-    id: 'yugioh',
-    name: '유희왕',
-    label: 'Quarter Century Rare 추적',
-    cardCount: 936,
-    trackedSets: 31,
-    momentum: 'flat',
-    href: '/categories/yugioh',
-  },
-  {
-    id: 'magic',
-    name: '매직 더 개더링',
-    label: 'Commander staples',
-    cardCount: 774,
-    trackedSets: 28,
-    momentum: 'down',
-    href: '/categories/magic',
-  },
-  {
-    id: 'one-piece',
-    name: '원피스',
-    label: '리더 카드와 병행 수입판',
-    cardCount: 412,
-    trackedSets: 14,
-    momentum: 'up',
-    href: '/categories/one-piece',
-  },
-];
 
 export const featuredCards: FeaturedCard[] = [
   {
