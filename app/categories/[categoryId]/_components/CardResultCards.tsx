@@ -1,13 +1,21 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import type { MouseEvent } from 'react';
 import type { PokemonCatalogCard, PriceDisplay } from '@/lib/tcg-catalog';
 import { formatPrice } from '@/lib/tcg-data';
 
-export function GridCard({ card }: { card: PokemonCatalogCard }) {
+interface CardLinkProps {
+  card: PokemonCatalogCard;
+  onNavigate?: (event: MouseEvent<HTMLAnchorElement>) => void;
+}
+
+export function GridCard({ card, onNavigate }: CardLinkProps) {
   return (
     <Link
       href={card.href}
       aria-label={`${card.name} 상세 보기`}
+      onClick={onNavigate}
+      scroll
       className='group border-border bg-card flex h-full w-full flex-col overflow-hidden rounded-xl border shadow-sm transition-all duration-200 hover:shadow-md'
     >
       <CardImage card={card} />
@@ -26,11 +34,13 @@ export function GridCard({ card }: { card: PokemonCatalogCard }) {
   );
 }
 
-export function ListCard({ card }: { card: PokemonCatalogCard }) {
+export function ListCard({ card, onNavigate }: CardLinkProps) {
   return (
     <Link
       href={card.href}
       aria-label={`${card.name} 상세 보기`}
+      onClick={onNavigate}
+      scroll
       className='group border-border bg-card flex w-full gap-4 rounded-xl border p-4 shadow-sm transition-all duration-200 hover:shadow-md'
     >
       <ListImage card={card} />

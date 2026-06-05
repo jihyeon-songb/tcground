@@ -1,7 +1,12 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PokemonCatalogCard, PokemonCategoryPageData } from '@/lib/tcg-catalog';
-import { CardResults } from './_components/CardResults';
+import {
+  buildCardResultsStorageKey,
+  CARD_RESULTS_RESTORE_MARKER_KEY,
+  CardResults,
+  markCardResultsForRestore,
+} from './_components/CardResults';
 import { CategoryFilterBar } from './_components/CategoryFilterBar';
 import { CategoryResultsToolbar } from './_components/CategoryResultsToolbar';
 import { PokemonCategoryContent } from './_components/PokemonCategoryContent';
@@ -26,6 +31,25 @@ beforeAll(() => {
     unobserve() {}
     disconnect() {}
   } as unknown as typeof ResizeObserver;
+  Object.defineProperty(window, 'requestAnimationFrame', {
+    configurable: true,
+    value: (callback: FrameRequestCallback) =>
+      window.setTimeout(() => callback(performance.now()), 0),
+  });
+  Object.defineProperty(window, 'cancelAnimationFrame', {
+    configurable: true,
+    value: (handle: number) => window.clearTimeout(handle),
+  });
+  Object.defineProperty(window, 'scrollTo', {
+    configurable: true,
+    value: vi.fn(),
+  });
+});
+
+beforeEach(() => {
+  window.sessionStorage.clear();
+  (window.scrollTo as unknown as { mockClear: () => void }).mockClear();
+  setWindowScrollY(0);
 });
 
 describe('PokemonCategoryContent', () => {
@@ -205,7 +229,9 @@ describe('CategoryResultsToolbar', () => {
     fireEvent.click(screen.getByRole('button', { name: /추천순/ }));
     fireEvent.click(screen.getByRole('button', { name: '이름 A→Z' }));
 
-    expect(replaceMock).toHaveBeenCalledWith('/categories/pokemon?sort=name-asc', { scroll: false });
+    expect(replaceMock).toHaveBeenCalledWith('/categories/pokemon?sort=name-asc', {
+      scroll: false,
+    });
   });
 
   it('switches to the list view via the view param', () => {
@@ -300,6 +326,217 @@ describe('CardResults pagination', () => {
   });
 });
 
+describe('CardResults scroll restoration', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('restores saved cards and scroll position for the same category state', async () => {
+    const initialCards = Array.from({ length: 2 }, (_, index) => createCard(index + 1));
+    const savedCards = Array.from({ length: 4 }, (_, index) => createCard(index + 1));
+    const storageKey = buildCardResultsStorageKey({
+      pathname: '/categories/pokemon',
+      page: 1,
+      pageSize: 24,
+      sort: 'best',
+      query: '',
+      rarities: [],
+      setSlugs: [],
+      view: 'grid',
+      totalCount: 50,
+    });
+
+    window.sessionStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        items: savedCards,
+        loadedPage: 2,
+        scrollY: 640,
+        totalCount: 50,
+        pageSize: 24,
+        savedAt: Date.now(),
+      }),
+    );
+    markCardResultsForRestore(storageKey);
+
+    render(
+      <CardResults
+        initialCards={initialCards}
+        totalCount={50}
+        page={1}
+        pageSize={24}
+        sort='best'
+        query=''
+        rarities={[]}
+        setSlugs={[]}
+        view='grid'
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('link', { name: /상세 보기/ })).toHaveLength(4);
+    });
+    await waitFor(() => {
+      expect(window.scrollTo).toHaveBeenCalledWith({ top: 640, behavior: 'auto' });
+    });
+  });
+
+  it('does not restore saved cards during a normal category entry', async () => {
+    const initialCards = Array.from({ length: 2 }, (_, index) => createCard(index + 1));
+    const savedCards = Array.from({ length: 4 }, (_, index) => createCard(index + 1));
+    const storageKey = buildCardResultsStorageKey({
+      pathname: '/categories/pokemon',
+      page: 1,
+      pageSize: 24,
+      sort: 'best',
+      query: '',
+      rarities: [],
+      setSlugs: [],
+      view: 'grid',
+      totalCount: 50,
+    });
+
+    window.sessionStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        items: savedCards,
+        loadedPage: 2,
+        scrollY: 640,
+        totalCount: 50,
+        pageSize: 24,
+        savedAt: Date.now(),
+      }),
+    );
+
+    render(
+      <CardResults
+        initialCards={initialCards}
+        totalCount={50}
+        page={1}
+        pageSize={24}
+        sort='best'
+        query=''
+        rarities={[]}
+        setSlugs={[]}
+        view='grid'
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('link', { name: /상세 보기/ })).toHaveLength(2);
+    });
+    expect(window.scrollTo).not.toHaveBeenCalled();
+  });
+
+  it('saves the current card list before opening a detail page', () => {
+    const cards = Array.from({ length: 2 }, (_, index) => createCard(index + 1));
+    const storageKey = buildCardResultsStorageKey({
+      pathname: '/categories/pokemon',
+      page: 1,
+      pageSize: 24,
+      sort: 'best',
+      query: '',
+      rarities: [],
+      setSlugs: [],
+      view: 'grid',
+      totalCount: 50,
+    });
+    setWindowScrollY(512);
+
+    render(
+      <CardResults
+        initialCards={cards}
+        totalCount={50}
+        page={1}
+        pageSize={24}
+        sort='best'
+        query=''
+        rarities={[]}
+        setSlugs={[]}
+        view='grid'
+      />,
+    );
+
+    const detailLink = screen.getByRole('link', { name: '샘플 카드 1 상세 보기' });
+    detailLink.addEventListener('click', (event) => event.preventDefault());
+    fireEvent.click(detailLink);
+
+    const saved = JSON.parse(window.sessionStorage.getItem(storageKey) ?? '{}') as {
+      items?: PokemonCatalogCard[];
+      loadedPage?: number;
+      scrollY?: number;
+    };
+    expect(saved.items).toHaveLength(2);
+    expect(saved.loadedPage).toBe(1);
+    expect(saved.scrollY).toBe(512);
+    expect(window.sessionStorage.getItem(CARD_RESULTS_RESTORE_MARKER_KEY)).toBe(storageKey);
+  });
+
+  it('keeps a saved restoration state when the server card props refresh', async () => {
+    const storageKey = buildCardResultsStorageKey({
+      pathname: '/categories/pokemon',
+      page: 1,
+      pageSize: 24,
+      sort: 'best',
+      query: '',
+      rarities: [],
+      setSlugs: [],
+      view: 'grid',
+      totalCount: 50,
+    });
+    const savedCards = Array.from({ length: 4 }, (_, index) => createCard(index + 1));
+
+    const { rerender } = render(
+      <CardResults
+        initialCards={Array.from({ length: 2 }, (_, index) => createCard(index + 1))}
+        totalCount={50}
+        page={1}
+        pageSize={24}
+        sort='best'
+        query=''
+        rarities={[]}
+        setSlugs={[]}
+        view='grid'
+      />,
+    );
+
+    window.sessionStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        items: savedCards,
+        loadedPage: 2,
+        scrollY: 720,
+        totalCount: 50,
+        pageSize: 24,
+        savedAt: Date.now(),
+      }),
+    );
+    markCardResultsForRestore(storageKey);
+
+    rerender(
+      <CardResults
+        initialCards={Array.from({ length: 2 }, (_, index) => createCard(index + 1))}
+        totalCount={50}
+        page={1}
+        pageSize={24}
+        sort='best'
+        query=''
+        rarities={[]}
+        setSlugs={[]}
+        view='grid'
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('link', { name: /상세 보기/ })).toHaveLength(4);
+    });
+    const saved = JSON.parse(window.sessionStorage.getItem(storageKey) ?? '{}') as {
+      items?: PokemonCatalogCard[];
+    };
+    expect(saved.items).toHaveLength(4);
+  });
+});
+
 function createCategoryData(count: number, query = ''): PokemonCategoryPageData {
   const cards = Array.from({ length: count }, (_, index) => createCard(index + 1));
 
@@ -349,4 +586,11 @@ function createCard(index: number): PokemonCatalogCard {
     },
     priceSnapshotCount: 0,
   };
+}
+
+function setWindowScrollY(value: number) {
+  Object.defineProperty(window, 'scrollY', {
+    configurable: true,
+    value,
+  });
 }
