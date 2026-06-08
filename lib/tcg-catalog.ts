@@ -584,6 +584,89 @@ const pokemonCategoryPageDataCached = unstable_cache(
   { tags: [CATALOG_CACHE_TAG, PRICES_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
 );
 
+interface PokemonSetRow {
+  id: string;
+  slug: string;
+  name: string;
+  name_ko: string | null;
+}
+
+export interface PokemonFilterOptions {
+  game: TcgGameRow;
+  allSets: PokemonSetRow[];
+  availableSets: AvailableSetOption[];
+  availableRarities: string[];
+}
+
+/**
+ * Sets and rarities for the pokemon category filter bar. They change only on
+ * catalog import (never on price updates), so they live in their own cache keyed
+ * solely by category — shared across every filter/sort/page combination instead
+ * of being recomputed inside each per-page cache entry. Previously every cold
+ * filter navigation re-fetched the full sets list and re-streamed every card's
+ * rarity; now that work happens once per revalidate window. Tagged CATALOG only
+ * so the daily price revalidation never busts it.
+ */
+const pokemonFilterOptionsCached = unstable_cache(
+  () => loadPokemonFilterOptions(createPublicClient()),
+  ['pokemon-filter-options'],
+  { tags: [CATALOG_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
+);
+
+async function getPokemonFilterOptions(
+  client?: SupabaseClient,
+): Promise<PokemonFilterOptions | null> {
+  if (client) return loadPokemonFilterOptions(client);
+  return pokemonFilterOptionsCached();
+}
+
+async function loadPokemonFilterOptions(
+  supabase: SupabaseClient,
+): Promise<PokemonFilterOptions | null> {
+  const { data: gameData, error: gameError } = await supabase
+    .from('tcg_games')
+    .select('id, slug, name, name_ko, description')
+    .eq('slug', 'pokemon')
+    .maybeSingle();
+
+  throwIfSupabaseError(gameError);
+
+  const game = gameData as TcgGameRow | null;
+  if (!game) return null;
+
+  const [setsResult, raritiesResult] = await Promise.all([
+    supabase
+      .from('card_sets')
+      .select('id, slug, name, name_ko')
+      .eq('game_id', game.id)
+      .order('slug', { ascending: true }),
+    supabase
+      .from('cards')
+      .select('rarity')
+      .eq('game_id', game.id)
+      .not('rarity', 'is', null),
+  ]);
+
+  throwIfSupabaseError(setsResult.error);
+  throwIfSupabaseError(raritiesResult.error);
+
+  const allSets = (setsResult.data ?? []) as PokemonSetRow[];
+  const availableSets: AvailableSetOption[] = allSets.map((row) => ({
+    slug: row.slug,
+    name: row.name_ko ?? row.name,
+  }));
+
+  const availableRarities = Array.from(
+    new Set(
+      ((raritiesResult.data ?? []) as Array<{ rarity: string | null }>)
+        .map((row) => row.rarity)
+        .filter((rarity): rarity is string => Boolean(rarity)),
+    ),
+  ).sort((a, b) => a.localeCompare(b, 'ko-KR'));
+
+  return { game, allSets, availableSets, availableRarities };
+}
+
 async function loadPokemonCategoryPageData(
   supabase: SupabaseClient,
   options: PokemonCategoryQueryOptions = {},
@@ -605,51 +688,10 @@ async function loadPokemonCategoryPageData(
   const rangeFrom = (safePage - 1) * safePageSize;
   const rangeTo = rangeFrom + safePageSize - 1;
 
-  const { data: gameData, error: gameError } = await supabase
-    .from('tcg_games')
-    .select('id, slug, name, name_ko, description')
-    .eq('slug', 'pokemon')
-    .maybeSingle();
+  const filterOptions = await getPokemonFilterOptions(options.client);
+  if (!filterOptions) return null;
 
-  throwIfSupabaseError(gameError);
-
-  const game = gameData as TcgGameRow | null;
-  if (!game) return null;
-
-  const { data: setRows, error: setError } = await supabase
-    .from('card_sets')
-    .select('id, slug, name, name_ko')
-    .eq('game_id', game.id)
-    .order('slug', { ascending: true });
-
-  throwIfSupabaseError(setError);
-
-  const allSets = (setRows ?? []) as Array<{
-    id: string;
-    slug: string;
-    name: string;
-    name_ko: string | null;
-  }>;
-  const availableSets: AvailableSetOption[] = allSets.map((row) => ({
-    slug: row.slug,
-    name: row.name_ko ?? row.name,
-  }));
-
-  const { data: rarityRows, error: rarityError } = await supabase
-    .from('cards')
-    .select('rarity')
-    .eq('game_id', game.id)
-    .not('rarity', 'is', null);
-
-  throwIfSupabaseError(rarityError);
-
-  const availableRarities = Array.from(
-    new Set(
-      ((rarityRows ?? []) as Array<{ rarity: string | null }>)
-        .map((row) => row.rarity)
-        .filter((rarity): rarity is string => Boolean(rarity)),
-    ),
-  ).sort((a, b) => a.localeCompare(b, 'ko-KR'));
+  const { game, allSets, availableSets, availableRarities } = filterOptions;
 
   const baseMapOptions: MapPokemonCategoryOptions = {
     availableSets,
