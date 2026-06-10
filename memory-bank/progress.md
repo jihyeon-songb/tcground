@@ -1,13 +1,15 @@
 # PROGRESS
 
 > 작업 진행 상황과 의사결정 로그.
-> 마지막 갱신: 2026-06-05 (Vercel main 배포 미반영 원인 확인)
+> 마지막 갱신: 2026-06-10 (Docusaurus docs Vercel 배포)
 
 ## 현재 작업
 
-- 2026-06-05: Docusaurus docs dev server가 `@tcground/ui` export를 찾지 못하는 webpack alias 문제를 수정한다. 영향 파일은 `apps/docs/plugins/ui-library-resolve.ts`, 필요 시 docs config/문서 memory-bank로 제한한다. 목표는 `pnpm --filter @tcground/docs start`와 `pnpm build:docs`가 workspace UI source를 안정적으로 해석하게 만드는 것이다.
+- 없음.
 
 ## 완료 로그
+
+- 2026-06-10: `apps/docs` Docusaurus 문서 사이트를 Vercel 프로젝트 `tcground-docs`에 production 배포했다. `apps/docs/vercel.json`에 docs 전용 install/build/output 설정을 추가하고, `apps/docs/docusaurus.config.ts`의 URL을 `https://tcground-docs.vercel.app`로 갱신했다. `pnpm --filter @tcground/docs build`와 `pnpm dlx vercel build -A apps/docs/vercel.json --yes`가 통과했고, `pnpm dlx vercel deploy --prebuilt -A apps/docs/vercel.json --project tcground-docs --scope devjerryb-2567s-projects --yes`로 `dpl_3oTj6UARQ2i5UkppgngY8aW7umDM` 배포가 `Ready` 상태가 됐다. production URL `https://tcground-docs.vercel.app`와 `/installation`, `/components/button`, `/accessibility`가 HTTP 200으로 응답함을 확인했다. Vercel CLI가 GitHub 연결을 보고 기존 `tcg-round` 프로젝트에 자동 link할 수 있으므로, docs 배포 명령에는 `--project tcground-docs`를 명시하기로 했다. Vercel prebuilt 산출물 `.vercel/output/**`이 root lint 대상에 들어와 `pnpm lint`가 실패했으므로 ESLint global ignore에 `.vercel/**`도 추가했다.
 
 - 2026-06-06: 카테고리/상세 스크롤 복원 조건을 보강했다. 저장된 목록 상태가 있어도 일반 카테고리 진입은 top에서 시작하도록 1회성 restore marker를 추가했고, 카테고리 카드 좌클릭으로 상세에 진입한 뒤 브라우저 뒤로가기를 했을 때만 목록/scrollY를 복원한다. 카드 상세 페이지에는 `CardDetailScrollReset`을 추가해 상세 진입 시 중간 스크롤에서 시작하는 현상을 막았다. Playwright 검증 결과 상세 진입 `scrollY=0`, 뒤로가기 후 목록 144개/6페이지와 `scrollY=6307` 복원, `/cards`→카테고리 일반 진입 `scrollY=0`을 확인했다. `pnpm lint`(기존 `packages/headless/dist` warning 7개), `pnpm exec tsc --noEmit`, `pnpm test --run`(284/284), 변경 파일 Prettier check가 통과했다.
 

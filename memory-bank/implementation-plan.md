@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-06-05 (KREAM Supabase 재대조 보강)
+> 마지막 갱신: 2026-06-10 (Docusaurus docs Vercel 배포)
 
 ## 현재 기준 PRD
 
@@ -600,6 +600,19 @@
 - [x] `@tcground/headless`/`@tcground/ui` build와 pack dry-run 결과에서 publish 산출물 import 계약을 확인한다.
 - [x] registry package dependency import 검증 후 Vitest의 임시 `@tcground/ui` source alias 제거 가능 여부를 판단한다. 현재 루트는 published `@tcground/ui@0.1.0`을 설치하므로 alias는 유지한다. registry의 `@tcground/ui@0.1.2`는 이전 산출물이라 같은 버전 재배포가 불가하므로, npm scope 권한 확보 후 `@tcground/headless@0.1.2`와 `@tcground/ui@0.1.3` 같은 새 patch 버전으로 배포하고 root dependency를 갱신한 뒤 alias를 제거한다.
 - [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
+
+### 6.9 Docusaurus docs Vercel 배포
+
+- 영향 파일: `apps/docs/vercel.json`, `apps/docs/docusaurus.config.ts`, `eslint.config.mjs`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: 기존 루트 Next.js/Vercel 프로젝트와 분리해 `apps/docs` Docusaurus 정적 문서를 docs 전용 Vercel 프로젝트(`tcground-docs`)에 배포한다. repo root에서 docs 전용 local config를 명시해 workspace package build와 정적 output 경로를 안정적으로 유지한다.
+- [x] `pnpm --filter @tcground/docs build`로 Docusaurus production build와 `@tcground/ui` dist alias를 검증.
+- [x] `apps/docs/vercel.json`에 docs 전용 install/build/output 설정 추가.
+- [x] `apps/docs/docusaurus.config.ts`의 production URL을 `https://tcground-docs.vercel.app`로 갱신.
+- [x] Vercel prebuilt 산출물 `.vercel/output/**`이 root lint 대상에 들어오지 않도록 ESLint global ignore에 `.vercel/**` 추가.
+- [x] Vercel 프로젝트 `tcground-docs` 생성.
+- [x] `pnpm dlx vercel build -A apps/docs/vercel.json --yes`로 Vercel Build Output API 산출물을 검증.
+- [x] `pnpm dlx vercel deploy --prebuilt -A apps/docs/vercel.json --project tcground-docs --scope devjerryb-2567s-projects --yes`로 production 배포.
+- [x] `https://tcground-docs.vercel.app`, `/installation`, `/components/button`, `/accessibility` HTTP 200과 배포 상태 `Ready` 확인.
 
 ## 다음 작업
 

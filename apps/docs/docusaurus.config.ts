@@ -4,7 +4,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'TCGround UI',
   tagline: 'Reusable React UI components extracted from TCGround',
-  url: 'https://example.com',
+  url: 'https://tcground-docs.vercel.app',
   baseUrl: '/',
   organizationName: 'tcground',
   projectName: 'tcground-ui',

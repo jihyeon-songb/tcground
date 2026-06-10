@@ -2,7 +2,7 @@
 
 > 기술 스택·디렉터리 구조·수정 범위·Next.js/UI 가이드.
 > 명명·코딩 스타일·테스트·커밋 룰은 `CONVENTIONS.md`.
-> 마지막 갱신: 2026-06-05 (UI 패키지 ESM 산출물 보강)
+> 마지막 갱신: 2026-06-10 (Docusaurus docs Vercel 배포)
 
 ## 1. 스택
 
@@ -12,6 +12,7 @@
 - shadcn/ui 계열 컴포넌트 + lucide-react + class-variance-authority + tailwind-merge + clsx + cmdk. `@tcground/headless`는 Button/Tabs/Dialog/Label/Separator/Checkbox/Switch/RadioGroup/AlertDialog/Sheet의 동작·접근성 primitive를 제공하고, `@tcground/ui`는 그 위에 cva/Tailwind 스타일을 입힌다. positioning 엔진이 필요한 Popover/DropdownMenu/Select/Tooltip과 Avatar/Command는 아직 Radix/cmdk 기반 wrapper를 유지한다.
 - `packages/ui`: `@tcground/ui` 패키지. 기존 앱의 `components/ui/*` 공통 UI 컴포넌트를 분리한 React 18/19 peer range UI 라이브러리. npm 공개 배포를 위해 `private: false`, public `publishConfig`, README, package metadata를 갖추며, `@tcground/ui/theme.css`는 빌드 후 `dist/theme.css`를 export한다. 루트 `tcground` 앱은 npm registry에 배포된 `@tcground/ui` semver 버전을 소비하고, `apps/docs`는 문서/개발 검증을 위해 workspace 패키지를 소비한다.
 - `apps/docs`: Docusaurus 3.9.2 classic preset. 최신 Docusaurus next 문서는 Node 24를 요구하므로 현재 Node 22 환경에서는 3.9.2를 고정한다. 컴포넌트 문서는 `apps/docs/docs/components/*.mdx`, preview 예제는 `apps/docs/src/components/examples/<component>/*`에 둔다.
+- `apps/docs` 배포: Vercel 프로젝트 `tcground-docs`에 정적 사이트로 배포한다. repo root에서 `apps/docs/vercel.json`을 local config로 지정해 `pnpm install --filter @tcground/docs...`, `pnpm --filter @tcground/docs build`, output `apps/docs/build` 계약을 사용한다. 기존 루트 Next.js 프로젝트(`tcground`)와 섞이지 않도록 CLI 배포 시 `--project tcground-docs --scope devjerryb-2567s-projects -A apps/docs/vercel.json`을 명시한다. production URL은 `https://tcground-docs.vercel.app`.
 - Supabase JS + Supabase SSR (Auth/서버 클라이언트)
 - Vitest 4 + Testing Library + jsdom
 - ESLint 9 (`next/core-web-vitals` + `next/typescript`)
@@ -242,3 +243,4 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 2026-06-05: 루트 앱의 `@tcground/ui` source alias와 직접 사용하지 않는 UI 내부 런타임 dependency를 제거해 npm 배포본 소비 검증 계약을 강화했다.
 - 2026-06-04: 수동 가격 CSV의 sold snapshot을 source별로 집계하고, 상세 차트의 sold/asking 분류를 `aggregation_method` 우선으로 변경했다. PriceCharting 개별 eBay completed-sale 행은 `pricecharting_ebay_sold` source로 보존하고, 번개장터 수동 sold와 asking은 같은 `source_name`이어도 서로 섞지 않는다.
 - 2026-06-05: 중고나라 자동 `asking` source를 추가했다. `JOONGNA_COLLECTION_ENABLED=true`와 `scripts/collect-prices.ts --joongna`로만 실행하며, 공개 search page에서 최소 상품 필드만 추출해 `joongna_asking_median` snapshot으로 저장한다.
+- 2026-06-10: Docusaurus docs를 Vercel 프로젝트 `tcground-docs`에 production 배포했다. docs 배포는 repo root에서 `apps/docs/vercel.json` local config와 `--project tcground-docs`를 명시해 기존 루트 Next.js 프로젝트와 분리한다.
