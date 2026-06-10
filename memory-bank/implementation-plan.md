@@ -614,6 +614,14 @@
 - [x] `pnpm dlx vercel deploy --prebuilt -A apps/docs/vercel.json --project tcground-docs --scope devjerryb-2567s-projects --yes`로 production 배포.
 - [x] `https://tcground-docs.vercel.app`, `/installation`, `/components/button`, `/accessibility` HTTP 200과 배포 상태 `Ready` 확인.
 
+### 6.10 README UI docs 배포 링크 추가
+
+- 영향 파일: `README.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: 이미 배포 완료된 Docusaurus docs production URL(`https://tcground-docs.vercel.app`)을 프로젝트 README의 상단 링크, 모노레포 구성, 문서, 배포 섹션에 반영한다. 이 사이트가 서비스 문서가 아니라 `@tcground/ui` 컴포넌트 라이브러리의 설치, theme CSS, 컴포넌트 사용법, 접근성 기준을 다루는 UI 문서임을 명확히 한다. 배포 설정이나 코드 동작은 변경하지 않는다.
+- [x] README 상단에 서비스 라이브 URL과 UI docs URL을 함께 표시.
+- [x] `apps/docs` 워크스페이스 설명에 UI docs 배포 링크 추가.
+- [x] 문서/배포 섹션에 `tcground-docs.vercel.app` 링크와 `@tcground/ui` UI 문서 설명 추가.
+
 ## 다음 작업
 
 최우선 다음 단계는 npm 로그인과 `@tcground` scope publish 권한을 확보한 뒤 로컬 package version을 새 patch로 올려 `@tcground/headless@0.1.2`, `@tcground/ui@0.1.3` 순서로 배포하는 것이다. 그 다음 루트 앱 dependency를 새 registry 버전으로 갱신하고 Vitest의 임시 `@tcground/ui` source alias를 제거한다. npm 배포 권한이 준비되지 않았다면, 가격 데이터 쪽은 `raw_payload_json.worklist_id` 기준 `KR-020`, `KR-028`, `KR-029`, `KR-032`~`KR-035`, `KR-038`, `KR-040`~`KR-060` priority pending worklist에서 카드별 source URL/item ID가 있는 sold 증거를 수동으로 채우는 것이 다음 순서다. CSV `sample_id`와 전체 카탈로그 pending backlog는 `PKMKR-*`로 보유하되, 증거가 확보된 카드만 실제 evidence 행으로 승격한다.
