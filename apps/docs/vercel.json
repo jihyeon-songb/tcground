@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm --filter @tcground/docs build",
+  "framework": null,
+  "installCommand": "pnpm install --filter @tcground/docs...",
+  "outputDirectory": "apps/docs/build"
+}
