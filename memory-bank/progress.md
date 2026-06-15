@@ -1,13 +1,21 @@
 # PROGRESS
 
 > 작업 진행 상황과 의사결정 로그.
-> 마지막 갱신: 2026-06-10 (Docusaurus docs Vercel 배포)
+> 마지막 갱신: 2026-06-13 (로컬 카드 목록 dev 캐시 복구)
 
 ## 현재 작업
 
 - 없음.
 
 ## 완료 로그
+
+- 2026-06-13: 로컬 Supabase에는 카드 데이터가 복원됐지만 `/categories/pokemon`이 `0개 결과`로 보이던 문제를 확인했다. `.env.local`이 로컬 Supabase(`127.0.0.1:54321`)를 가리키고 REST API 직접 조회는 `cards=4677`로 정상임을 확인한 뒤, 오래된 Next dev 생성 산출물/캐시가 원인으로 판단해 기존 dev 서버를 종료하고 `.next`를 `/private/tmp/tcg-next-before-local-data-full-20260613-card-list-debug`로 이동한 뒤 `pnpm dev`를 재시작했다. 재검증 결과 `/categories/pokemon` HTML이 `포켓몬 4,677개 결과`와 실제 카드 목록을 렌더했다.
+
+- 2026-06-13: 원격 Supabase 프로젝트 `fcaflidwlecbkbmtipjb`의 public 데이터를 로컬 Supabase DB로 복원했다. Supabase CLI를 원격 프로젝트에 link한 뒤 `supabase db dump --linked --data-only --schema public --exclude public.favorite_cards,public.card_ratings`로 `/private/tmp/tcground-remote-public-data.sql`을 생성했고, `supabase db reset` 후 로컬 Postgres 컨테이너에 복원했다. 자기참조 FK가 있는 `card_categories` 때문에 restore 세션에서만 `session_replication_role=replica`를 사용했다. 최종 로컬 row count는 `tcg_games=1`, `card_sets=42`, `cards=4677`, `card_printings=4677`, `card_categories=9`, `card_category_links=30`, `card_price_snapshots=321`, `price_observations=294`, `price_collection_runs=43`, `exchange_rates=1449`이며, 사용자 데이터 테이블 `favorite_cards`와 `card_ratings`는 제외해 0건으로 유지했다.
+
+- 2026-06-13: 로컬 Supabase reset이 `202606030001_add_fx_price_display.sql`에서 `public.card_price_snapshots` 부재로 실패하던 문제를 수정했다. 원격 MCP migration으로만 존재하던 MVP/가격/평점 public schema를 `supabase/migrations/202605200001_create_local_baseline_schema.sql` baseline migration으로 복원하고, 설정된 seed 경로가 비어 있어도 reset이 진행되도록 `supabase/seed.sql` placeholder를 추가했다. 검증 결과 `pnpm dlx supabase start --exclude edge-runtime --ignore-health-check`와 `pnpm dlx supabase db reset` 모두 baseline → FX/display → category counts migration 순서로 통과했다. 일반 `supabase start`는 DB migration 통과 뒤 edge-runtime health check 502로 실패하므로 로컬 DB 검증 시 edge-runtime 제외 옵션을 사용한다.
+
+- 2026-06-13: 카테고리 대분류 페이지(`/categories`) 최상위 래퍼 배경을 `bg-muted`에서 `bg-background`로 변경해 홈/인기/상세/세부 카테고리 페이지와 같은 전역 배경 토큰을 사용하도록 맞췄다. `pnpm lint`(기존 `packages/headless/dist` warning 7개), `pnpm exec tsc --noEmit`, `pnpm test --run`(284/284)이 통과했고, Playwright로 `/categories`와 `/cards`의 렌더된 body/header 배경색이 모두 `rgb(255, 248, 247)`이며 콘솔 에러가 없음을 확인했다.
 
 - 2026-06-10: 프로젝트 README에 Docusaurus UI docs production 배포 사이트(`https://tcground-docs.vercel.app`)를 추가했다. 상단 라이브 링크, `apps/docs` 워크스페이스 설명, 문서 섹션, 배포 섹션에 UI docs URL을 반영했고, 해당 사이트가 서비스 문서가 아니라 `@tcground/ui` 컴포넌트 라이브러리의 설치, theme CSS, 컴포넌트 사용법, 접근성 기준을 다루는 UI 문서임을 명확히 설명했다. 실행 계획에는 6.10 README UI docs 링크 추가 항목으로 완료 처리했다. 변경 파일 Markdown Prettier check가 통과했다.
 

@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-06-10 (Docusaurus docs Vercel 배포)
+> 마지막 갱신: 2026-06-13 (로컬 카드 목록 dev 캐시 복구)
 
 ## 현재 기준 PRD
 
@@ -49,10 +49,12 @@
 
 - 영향 파일: `memory-bank/db-schema.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
 - 최소 변경 범위: `memory-bank/db-schema.md` 기준 MVP 7개 테이블, FK, unique/index, `updated_at` trigger, RLS 정책을 Supabase MCP migration으로 적용한다.
+- 2026-06-13 로컬 reset 보정 영향 파일: `supabase/migrations/202605200001_create_local_baseline_schema.sql`, `supabase/seed.sql`, `memory-bank/db-schema.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`. 최소 변경 범위: 원격 MCP migration 기록으로만 존재하던 public schema를 로컬 Supabase migration baseline으로 복원해 후속 FX/display migration이 빈 DB에서도 적용되게 한다.
 - [x] `create_tcg_mvp_schema` migration으로 `tcg_games`, `card_sets`, `cards`, `card_categories`, `card_category_links`, `card_price_snapshots`, `favorite_cards` 생성.
 - [x] 공개 읽기 테이블과 사용자별 `favorite_cards` RLS 정책 적용.
 - [x] Supabase Performance Advisor 경고에 따라 `favorite_cards` RLS의 `auth.uid()` 호출을 `(select auth.uid())` 형태로 최적화.
 - [x] Supabase MCP로 테이블, RLS, 정책, 인덱스, 트리거, migration 기록 확인.
+- [x] 로컬 baseline migration을 추가해 `pnpm dlx supabase db reset`이 baseline → FX/display → category counts 순서로 통과하도록 복구.
 
 ### 3.2 포켓몬 가격 데이터 수집 모델 확장
 
@@ -159,15 +161,20 @@
 - [x] KREAM Supabase 재대조 CSV 검증: data row 283개, 27컬럼, malformed 0개, `manual_kream` sold 163개. `kream-supabase-resolved-inbox-20260605.json` 재실행 dry-run은 `new rows: 0`, `skipped(dup): 28`이고, `scripts/collect-prices.ts --csv --dry-run`은 `parsed=269`, `resolved=269`, `snapshots=258`이다.
 - [x] KREAM 현대 세트 재대조 CSV 검증: data row 308개, 27컬럼, malformed 0개, `manual_kream` sold 188개. `kream-supabase-resolved-modern-inbox-20260605.json` 재실행 dry-run은 `new rows: 0`, `skipped(dup): 25`이고, `scripts/collect-prices.ts --csv --dry-run`은 `parsed=294`, `resolved=294`, `snapshots=281`이다. `pnpm lint`(기존 `packages/headless/dist` warning 7개), `pnpm exec tsc --noEmit`, `pnpm test --run`(269/269)이 통과했다.
 - [x] `pnpm dev` 후 `/categories/pokemon`·우선 카드 상세에서 실가격/차트 표시 확인. 2026-06-05 `next dev -p 3003`에서 `/categories/pokemon`과 `/cards/sv2a-bs2023014201-리자몽-ex` 렌더, 한국판 기본값, 판본 선택, 가격/표본/차트 영역, 콘솔 에러 없음 확인.
+- [x] 원격 public 데이터 로컬 Supabase 복원:
+      `supabase db dump --linked --data-only --schema public --exclude public.favorite_cards,public.card_ratings`로 원격 public 데이터만 dump하고, `supabase db reset` 후 로컬 DB에 restore했다. 사용자 데이터 테이블은 제외했으며 최종 로컬 row count는 `cards=4677`, `card_printings=4677`, `card_price_snapshots=321`, `price_observations=294`, `exchange_rates=1449`다.
+- [x] 로컬 복원 후 `/categories/pokemon`이 오래된 `0개 결과`를 표시하던 Next dev 생성 산출물을 정리하고, `.next` 백업 이동 후 `pnpm dev` 재시작으로 `포켓몬 4,677개 결과`와 카드 목록 렌더를 확인했다.
 
 ### 4. UI 구현
 
 - 영향 파일: `app/page.tsx`, `app/search/page.tsx`, `app/categories/[categoryId]/page.tsx`, `app/cards/[cardId]/page.tsx`, `app/login/page.tsx`, `app/globals.css`, `app/layout.tsx`, `components/tcg/HomeSearchForm.tsx`, `components/tcg/HomeSearchForm.test.tsx`, `lib/tcg-data.ts`.
 - 최소 변경 범위: Stitch `TCGround Price Tracker` 화면 구조와 한국어 UI 문구를 우선 기준으로 P0 페이지의 정적 UI를 구현한다. 인증·실데이터 연동은 데이터 모델과 인증 수단 결정 이후 별도 단계로 진행한다.
+- 2026-06-13 보정 영향 파일: `app/categories/page.tsx`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`. 최소 변경 범위: 카테고리 대분류 페이지 최상위 배경 토큰만 다른 공개 페이지와 같은 `bg-background`로 맞춘다.
 - [x] Stitch `TCGround Price Tracker` 디자인 시스템 기반 전역 CSS 토큰과 `tcg-*` component utility 구조 수립.
 - [x] 홈페이지 검색/카테고리/인기 카드 영역을 `TCGround | Home (Search Optimized)` 기준으로 갱신.
 - [x] 검색 결과 목록과 상태 화면 구현 (`TCGround | Search: Charizard` 기반, 빈 검색어 안내 포함).
 - [x] 카테고리 탐색 화면 구현 (`/categories/[categoryId]`, `pokemon` 정상 상태와 준비 중 빈 상태).
+- [x] 카테고리 대분류 페이지(`/categories`) 배경색을 다른 공개 페이지와 같은 `bg-background` 토큰으로 정합화.
 - [x] 상품 상세 정보와 가격 차트 정적 UI 구현 (`/cards/[cardId]`, 404 분기 포함).
 - [x] 로그인 정적 화면 구현 (`/login`, 이메일/비밀번호 폼과 가입/소셜 진입 링크).
 - [ ] 로그인 입력 검증, 요청 중 상태, 실패 메시지, 성공 후 이동 동작 구현.
