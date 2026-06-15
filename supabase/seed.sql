@@ -1,0 +1,5 @@
+-- Local seed placeholder.
+--
+-- The hosted project data is managed through Supabase MCP/CLI workflows and
+-- ingestion scripts. Keeping this file present lets `supabase db reset` follow
+-- the configured seed path even when no local seed data is required.

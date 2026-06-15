@@ -31,7 +31,7 @@ export function PublicHeader({ currentPath, search = false }: PublicHeaderProps)
 
   return (
     <header className='sticky top-0 z-50 mx-auto flex w-full max-w-[1440px] items-center justify-between gap-4 bg-background px-5 py-4'>
-      <div className='flex items-center gap-6'>
+      <div className='flex items-center gap-6 h-[48px]'>
         <Link href='/' aria-label='TCGround home'>
           <Image
             src='/logo-transparent.png'

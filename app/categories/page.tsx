@@ -53,19 +53,19 @@ const CATEGORY_VISUALS: Record<
 
 export default function CategoriesPage() {
   return (
-    <div className='flex min-h-screen flex-col bg-muted text-foreground'>
+    <div className='bg-background text-foreground flex min-h-screen flex-col'>
       <PublicHeader currentPath='/categories' search={{ desktopOnly: true }} />
 
       <main className='mx-auto w-full max-w-[1440px] flex-grow px-5 pb-16'>
         <section className='grid gap-8 pt-10 pb-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-end'>
           <div>
-            <p className='mb-3 text-sm leading-none font-bold tracking-wider text-tcg-red uppercase'>
+            <p className='text-tcg-red mb-3 text-sm leading-none font-bold tracking-wider uppercase'>
               카테고리
             </p>
-            <h1 className='max-w-3xl text-4xl leading-[1.05] font-extrabold text-foreground md:text-[56px]'>
+            <h1 className='text-foreground max-w-3xl text-4xl leading-[1.05] font-extrabold md:text-[56px]'>
               대분류별로 카드 시장을 탐색하세요
             </h1>
-            <p className='mt-5 max-w-2xl text-lg leading-[1.6] text-muted-foreground'>
+            <p className='text-muted-foreground mt-5 max-w-2xl text-lg leading-[1.6]'>
               포켓몬, 유희왕, 원피스, 매직 더 개더링을 기본으로 보여주고 Supabase에 연결된 실제
               카드·세트·가격 기록 수만 집계합니다.
             </p>
@@ -141,7 +141,7 @@ export function CategoryOverviewList({
           <h2 id='categories-heading' className='text-[28px] leading-[1.2] font-bold'>
             대분류 카테고리
           </h2>
-          <p className='mt-2 text-base leading-[1.5] text-muted-foreground'>
+          <p className='text-muted-foreground mt-2 text-base leading-[1.5]'>
             데이터가 아직 없는 카테고리는 0으로 표시하고, 들어온 카탈로그는 자동 집계합니다.
           </p>
         </div>
@@ -168,7 +168,10 @@ export function CategoryOverviewList({
                 />
               ) : (
                 <div className={`absolute inset-0 bg-gradient-to-br ${visual.fallbackClass}`}>
-                  <visual.icon className='absolute right-6 bottom-8 size-28 text-white/20' aria-hidden />
+                  <visual.icon
+                    className='absolute right-6 bottom-8 size-28 text-white/20'
+                    aria-hidden
+                  />
                 </div>
               )}
               <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/10' />
@@ -244,30 +247,30 @@ function CategorySummary({ totals }: { totals: ReturnType<typeof summarizeCatego
   return (
     <aside
       aria-label='카테고리 데이터 요약'
-      className='rounded-lg border border-border bg-card p-5 shadow-sm'
+      className='border-border bg-card rounded-lg border p-5 shadow-sm'
     >
-      <p className='text-sm font-bold text-muted-foreground'>실데이터 집계</p>
+      <p className='text-muted-foreground text-sm font-bold'>실데이터 집계</p>
       <dl className='mt-5 grid grid-cols-2 gap-x-5 gap-y-4'>
         <div>
-          <dt className='text-xs font-semibold text-muted-foreground'>카테고리</dt>
+          <dt className='text-muted-foreground text-xs font-semibold'>카테고리</dt>
           <dd className='mt-1 text-3xl font-extrabold tabular-nums'>
             {totals.categoryCount.toLocaleString('ko-KR')}
           </dd>
         </div>
         <div>
-          <dt className='text-xs font-semibold text-muted-foreground'>가격 추적 중</dt>
+          <dt className='text-muted-foreground text-xs font-semibold'>가격 추적 중</dt>
           <dd className='mt-1 text-3xl font-extrabold tabular-nums'>
             {totals.liveCount.toLocaleString('ko-KR')}
           </dd>
         </div>
         <div>
-          <dt className='text-xs font-semibold text-muted-foreground'>등록 카드</dt>
+          <dt className='text-muted-foreground text-xs font-semibold'>등록 카드</dt>
           <dd className='mt-1 text-3xl font-extrabold tabular-nums'>
             {totals.cardCount.toLocaleString('ko-KR')}
           </dd>
         </div>
         <div>
-          <dt className='text-xs font-semibold text-muted-foreground'>등록 세트</dt>
+          <dt className='text-muted-foreground text-xs font-semibold'>등록 세트</dt>
           <dd className='mt-1 text-3xl font-extrabold tabular-nums'>
             {totals.setCount.toLocaleString('ko-KR')}
           </dd>
@@ -281,12 +284,12 @@ function EmptyCategoryOverviewState() {
   return (
     <section
       aria-live='polite'
-      className='rounded-lg border border-border bg-card px-6 py-16 text-center shadow-sm'
+      className='border-border bg-card rounded-lg border px-6 py-16 text-center shadow-sm'
     >
-      <h2 className='text-2xl leading-tight font-bold text-foreground'>
+      <h2 className='text-foreground text-2xl leading-tight font-bold'>
         연결된 카테고리가 없습니다
       </h2>
-      <p className='mx-auto mt-3 max-w-md text-base leading-[1.5] text-muted-foreground'>
+      <p className='text-muted-foreground mx-auto mt-3 max-w-md text-base leading-[1.5]'>
         Supabase 카탈로그에 게임 데이터가 추가되면 이곳에 카테고리별 집계가 표시됩니다.
       </p>
     </section>

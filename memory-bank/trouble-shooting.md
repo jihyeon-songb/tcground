@@ -1,7 +1,51 @@
 # TROUBLE SHOOTING
 
 > PRD에 없던 엣지 케이스, 예외 상황, source 리스크 기록.
-> 마지막 갱신: 2026-06-05 (Vercel main 배포 미반영)
+> 마지막 갱신: 2026-06-13 (로컬 카드 목록 dev 캐시)
+
+## 로컬 Supabase 복원 후 카드 목록이 0개로 보임
+
+### 문제
+
+2026-06-13 원격 public 데이터를 로컬 Supabase로 복원한 뒤에도 `/categories/pokemon`이 `포켓몬 0개 결과`와 빈 상태를 표시했다. 로컬 DB와 Supabase REST 직접 조회는 정상으로, `cards=4677`, `card_printings=4677`, `card_sets=42`가 확인됐다.
+
+### 처리
+
+- `.env.local`의 `NEXT_PUBLIC_SUPABASE_URL`이 로컬 Supabase URL을 가리키는지 확인했다.
+- Supabase REST 직접 조회로 publishable key/RLS/API 경로가 정상임을 확인했다.
+- 기존 Next dev 서버를 종료하고 `.next` 생성 산출물 전체를 `/private/tmp/tcg-next-before-local-data-full-20260613-card-list-debug`로 이동했다.
+- `pnpm dev`를 재시작한 뒤 `/categories/pokemon` HTML에서 `포켓몬 4,677개 결과`와 실제 카드 목록 렌더를 확인했다.
+
+### 재발 방지
+
+로컬 DB를 `supabase db reset` 또는 원격 dump restore로 크게 바꾼 직후 `unstable_cache` 기반 서버 데이터가 오래된 결과를 계속 표시하면, dev 서버 재시작만으로 부족할 수 있다. 이 경우 `.next` 생성 산출물을 삭제 또는 백업 이동한 뒤 dev 서버를 새로 띄우고, DB/API 직접 count와 페이지 HTML count를 같이 확인한다.
+
+## 로컬 Supabase reset baseline migration 누락
+
+### 문제
+
+2026-06-13 로컬 Supabase reset/start 중 `202606030001_add_fx_price_display.sql` 적용 단계에서 `public.card_price_snapshots`가 없어 실패했다.
+
+```text
+ERROR: relation "public.card_price_snapshots" does not exist (SQLSTATE 42P01)
+At statement: alter table public.card_price_snapshots ...
+```
+
+원인은 초기 MVP schema와 가격 수집 확장 schema가 과거 Supabase MCP migration으로 원격 프로젝트에만 적용됐고, 로컬 `supabase/migrations/`에는 후속 FX/display migration과 category counts migration만 있었기 때문이다. 로컬 reset은 빈 DB에 파일 migration만 순서대로 적용하므로, `card_price_snapshots`, `price_observations`, `card_printings`가 만들어지기 전에 후속 migration이 실행됐다.
+
+### 처리
+
+- `supabase/migrations/202605200001_create_local_baseline_schema.sql`를 추가해 현재 앱이 기대하는 public baseline schema를 빈 로컬 DB에 생성하도록 했다.
+- baseline에는 `tcg_games`, `card_sets`, `cards`, `card_printings`, `card_categories`, `card_category_links`, `card_price_snapshots`, `price_observations`, `price_collection_runs`, `favorite_cards`, `card_ratings`, `get_card_rating_summary` RPC, 주요 index/RLS/grant를 포함했다.
+- `supabase/config.toml`의 seed 경로(`./seed.sql`)가 항상 존재하도록 `supabase/seed.sql` placeholder를 추가했다.
+- 검증 결과 `pnpm dlx supabase db reset`이 baseline → FX/display → category counts migration 순서로 완료됐다.
+- 일반 `pnpm dlx supabase start`는 DB migration 적용 뒤 edge-runtime health check 502로 실패했다. DB reset 검증은 `pnpm dlx supabase start --exclude edge-runtime --ignore-health-check`로 로컬 stack을 띄운 뒤 수행했다.
+
+### 재발 방지
+
+- 원격 MCP로 schema를 변경했더라도 로컬 reset이 필요해지는 순간에는 파일 migration baseline 또는 동일 변경 migration을 함께 남긴다.
+- 후속 migration이 기존 테이블을 `alter`하거나 함수 SQL body에서 참조할 때는, 빈 로컬 DB에 선행 테이블 생성 migration이 있는지 확인한다.
+- 로컬 Supabase health check 실패와 SQL migration 실패를 분리해서 본다. migration 로그가 모두 통과한 뒤 edge-runtime 502가 발생하면 schema 문제가 아니라 컨테이너 기동 문제로 기록한다.
 
 ## Vercel main 배포가 최신 커밋을 반영하지 않음
 
