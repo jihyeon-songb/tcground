@@ -5,7 +5,7 @@
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts            # all enabled sources
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --guardian
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --browse
- *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --kream    # needs KREAM_COLLECTION_ENABLED
+ *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --kream    # KREAM asking; needs KREAM_COLLECTION_ENABLED
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --bunjang  # needs BUNJANG_COLLECTION_ENABLED
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --joongna  # needs JOONGNA_COLLECTION_ENABLED
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --ebay-scrape # needs EBAY_SCRAPE_ENABLED
@@ -14,6 +14,7 @@
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --csv --fx
  *   add --dry-run to compute without writing to the DB.
  *   add --offset N --limit N to verify/retry a catalog window.
+ *   add --daily-window-size N to process a rotating daily catalog window.
  *   add --source-batch-size N to write one run record per source batch.
  *
  * Source flags (--browse/--guardian/--kream/--bunjang/--joongna/--ebay-scrape) restrict the
@@ -77,6 +78,7 @@ async function main(): Promise<void> {
   const cliArgs = process.argv.slice(2);
   const cardOffset = parseNonNegativeIntOption(cliArgs, '--offset') ?? 0;
   const cardLimit = parsePositiveIntOption(cliArgs, '--limit');
+  const dailyWindowSize = parsePositiveIntOption(cliArgs, '--daily-window-size');
   const sourceBatchSize = parsePositiveIntOption(cliArgs, '--source-batch-size');
 
   const only = Object.entries(SOURCE_FLAGS)
@@ -155,7 +157,7 @@ async function main(): Promise<void> {
 
     try {
       console.log(
-        `[collect] dryRun=${dryRun} sources=${only.length > 0 ? only.join(',') : 'enabled'} offset=${cardOffset} limit=${cardLimit ?? 'all'} sourceBatchSize=${sourceBatchSize ?? 'all'}`,
+        `[collect] dryRun=${dryRun} sources=${only.length > 0 ? only.join(',') : 'enabled'} offset=${cardOffset} limit=${cardLimit ?? 'all'} dailyWindowSize=${dailyWindowSize ?? 'off'} sourceBatchSize=${sourceBatchSize ?? 'all'}`,
       );
       const result = await collectDailyPrices(supabase, {
         dryRun,
@@ -164,6 +166,7 @@ async function main(): Promise<void> {
         exchangeRates,
         cardOffset,
         cardLimit,
+        dailyWindowSize,
         sourceBatchSize,
         onProgress: (event) => {
           const range = `${event.cardStart}-${event.cardEnd}`;

@@ -152,6 +152,7 @@ export class EbayAccessNotGrantedError extends PriceSourceAccessNotGrantedError 
  */
 export const ASKING_SOURCE_NAMES: ReadonlySet<string> = new Set([
   'ebay_browse',
+  'kream',
   'bunjang',
   'manual_bunjang',
   'joongna',

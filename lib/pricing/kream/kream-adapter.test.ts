@@ -1,13 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  buildKreamAsksUrl,
   buildKreamTradesUrl,
+  collectKreamAskingSnapshots,
   collectKreamTrades,
   extractKreamProductId,
+  mapKreamAsksToSnapshots,
   mapKreamTradesToObservations,
   parseKreamOption,
 } from './kream-adapter';
 import { KREAM_SOURCE_NAME } from './kream-config';
-import { PriceSourceAccessNotGrantedError } from '../price-source.types';
+import { PriceSourceAccessNotGrantedError, isAskingSource } from '../price-source.types';
+import asksPayload from './fixtures/asks.sample.json';
 import tradesPayload from './fixtures/trades.sample.json';
 
 describe('parseKreamOption', () => {
@@ -85,6 +89,47 @@ describe('extractKreamProductId / buildKreamTradesUrl', () => {
       'https://kream.co.kr/api/products/804751/trading_infos',
     );
   });
+
+  it('builds the asking-options URL for a product', () => {
+    expect(buildKreamAsksUrl('804751')).toBe(
+      'https://kream.co.kr/api/products/804751/sales_options',
+    );
+  });
+});
+
+describe('mapKreamAsksToSnapshots', () => {
+  it('reduces active asks into median asking snapshots by grade bucket', () => {
+    const snapshots = mapKreamAsksToSnapshots(asksPayload, {
+      cardPrintingId: 'printing-4',
+      snapshotDate: '2026-06-15',
+      productUrl: 'https://kream.co.kr/products/804751',
+    });
+
+    expect(snapshots).toHaveLength(3);
+    const psa10 = snapshots.find((snapshot) => snapshot.gradeCompany === 'PSA');
+    expect(psa10).toMatchObject({
+      cardPrintingId: 'printing-4',
+      sourceName: KREAM_SOURCE_NAME,
+      sourceUrl: 'https://kream.co.kr/products/804751',
+      market: 'KR',
+      currency: 'KRW',
+      variant: 'graded',
+      gradeCompany: 'PSA',
+      gradeValue: '10',
+      avgPrice: 560000,
+      minPrice: 560000,
+      maxPrice: 560000,
+      sampleCount: 1,
+      aggregationMethod: 'kream_asking_median',
+    });
+
+    const raw = snapshots.find((snapshot) => snapshot.variant === 'raw');
+    expect(raw?.avgPrice).toBe(95000);
+  });
+
+  it('marks the automated KREAM source as asking', () => {
+    expect(isAskingSource(KREAM_SOURCE_NAME)).toBe(true);
+  });
 });
 
 describe('collectKreamTrades', () => {
@@ -120,5 +165,44 @@ describe('collectKreamTrades', () => {
     );
     expect(observations).toHaveLength(3);
     expect(observations[0].sourceUrl).toBe('https://kream.co.kr/products/804751');
+  });
+});
+
+describe('collectKreamAskingSnapshots', () => {
+  it('throws PriceSourceAccessNotGrantedError when access is not granted', async () => {
+    const fetchImpl = vi.fn();
+
+    await expect(
+      collectKreamAskingSnapshots(
+        'https://kream.co.kr/products/804751',
+        { cardPrintingId: 'printing-4', snapshotDate: '2026-06-15' },
+        { accessGranted: false, fetchImpl },
+      ),
+    ).rejects.toBeInstanceOf(PriceSourceAccessNotGrantedError);
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('fetches and maps asks when access is granted', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => asksPayload,
+    } as Response);
+
+    const snapshots = await collectKreamAskingSnapshots(
+      'https://kream.co.kr/products/804751',
+      { cardPrintingId: 'printing-4', snapshotDate: '2026-06-15' },
+      { accessGranted: true, fetchImpl },
+    );
+
+    expect(fetchImpl).toHaveBeenCalledWith(
+      'https://kream.co.kr/api/products/804751/sales_options',
+      expect.objectContaining({ method: 'GET' }),
+    );
+    expect(snapshots).toHaveLength(3);
+    expect(snapshots[0].sourceUrl).toBe('https://kream.co.kr/products/804751');
+    expect(
+      snapshots.every((snapshot) => snapshot.aggregationMethod === 'kream_asking_median'),
+    ).toBe(true);
   });
 });

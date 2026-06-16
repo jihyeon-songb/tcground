@@ -143,10 +143,10 @@ export interface PricePoint {
 }
 
 /**
- * Price history for the detail chart. `askingSeries` is the daily eBay Browse
+ * Price history for the detail chart. `askingSeries` is the daily marketplace
  * asking trend; `soldPoints` are aggregated sold observations overlaid as
  * reference points. `gradeLabel` names the grade of the trend series when it is
- * a graded fallback (e.g. KREAM PSA 10 체결가), and is null when the trend is raw.
+ * a graded fallback, and is null when the trend is raw.
  */
 export interface PriceHistory {
   askingSeries: PricePoint[];
@@ -255,6 +255,8 @@ export interface CatalogCardDetail {
     collectorNumber: string;
     finish: string;
     sampleId: string;
+    nameEn: string | null;
+    nameJa: string | null;
   };
   priceHistory: PriceHistory;
   backHref: string;
@@ -404,9 +406,7 @@ async function fetchTcgCategoryCounts(supabase: SupabaseClient): Promise<{
   };
 }
 
-async function loadTcgCategoryOverview(
-  supabase: SupabaseClient,
-): Promise<TcgCategoryOverview[]> {
+async function loadTcgCategoryOverview(supabase: SupabaseClient): Promise<TcgCategoryOverview[]> {
   const gameResult = await supabase
     .from('tcg_games')
     .select('id, slug, name, name_ko, description')
@@ -640,11 +640,7 @@ async function loadPokemonFilterOptions(
       .select('id, slug, name, name_ko')
       .eq('game_id', game.id)
       .order('slug', { ascending: true }),
-    supabase
-      .from('cards')
-      .select('rarity')
-      .eq('game_id', game.id)
-      .not('rarity', 'is', null),
+    supabase.from('cards').select('rarity').eq('game_id', game.id).not('rarity', 'is', null),
   ]);
 
   throwIfSupabaseError(setsResult.error);
@@ -718,10 +714,7 @@ async function loadPokemonCategoryPageData(
     columns = POKEMON_CARD_LIST_SELECT,
     selectOptions: { count?: 'exact'; head?: boolean } = { count: 'exact' },
   ) => {
-    let cardQuery = supabase
-      .from('cards')
-      .select(columns, selectOptions)
-      .eq('game_id', game.id);
+    let cardQuery = supabase.from('cards').select(columns, selectOptions).eq('game_id', game.id);
 
     if (trimmedQuery) {
       cardQuery = cardQuery.ilike('name', `%${trimmedQuery}%`);
@@ -748,10 +741,7 @@ async function loadPokemonCategoryPageData(
     throwIfSupabaseError(countError);
 
     const totalCount = count ?? 0;
-    const pricedRows = await fetchCardRowsByIdsInOrder(
-      filteredCardQuery,
-      recommendedCardIds,
-    );
+    const pricedRows = await fetchCardRowsByIdsInOrder(filteredCardQuery, recommendedCardIds);
     const pricedCardIds = new Set(pricedRows.map((row) => row.id));
     const pricedCount = pricedRows.length;
     const selectedRows = pricedRows.slice(rangeFrom, rangeTo + 1);
@@ -1041,8 +1031,7 @@ export async function getCardDetailBySlug(
 }
 
 const cardDetailBySlugCached = unstable_cache(
-  (slug: string, edition: CardEdition) =>
-    loadCardDetailBySlug(createPublicClient(), slug, edition),
+  (slug: string, edition: CardEdition) => loadCardDetailBySlug(createPublicClient(), slug, edition),
   ['card-detail-by-slug'],
   { tags: [CATALOG_CACHE_TAG, PRICES_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
 );
@@ -1129,6 +1118,10 @@ export async function getViewerRating(
     .select('score')
     .eq('card_id', cardId)
     .maybeSingle();
+
+  if (error && isSupabasePermissionDenied(error.message)) {
+    return null;
+  }
 
   throwIfSupabaseError(error);
 
@@ -1314,6 +1307,8 @@ export function mapCardDetailRow(
       collectorNumber,
       finish: printing?.finish ?? 'unknown',
       sampleId,
+      nameEn: getExternalString(printing, 'name_en'),
+      nameJa: getExternalString(printing, 'name_ja'),
     },
     backHref: '/categories/pokemon',
     backLabel: '포켓몬 카테고리로 돌아가기',
@@ -1352,14 +1347,14 @@ export function createDeterministicPriceDisplay(slug: string, sampleId: string):
  * sold points overlaid only when an asking trend is present.
  *
  * Raw (ungraded) buckets are preferred so the trend axis stays on comparable
- * prices. Graded sold data (e.g. KREAM PSA 10 체결가) only forms the trend as a
- * fallback when no raw data exists — in that case `gradeLabel` records the grade
- * so the UI can tell the user which grade the chart is showing.
+ * prices. Graded-only data only forms the trend as a fallback when no raw data
+ * exists — in that case `gradeLabel` records the grade so the UI can tell the
+ * user which grade the chart is showing.
  */
 export function buildPriceHistory(snapshots: readonly CardPriceSnapshotRow[]): PriceHistory {
   const priced = snapshots.filter((snapshot) => snapshotAvgPrice(snapshot) !== null);
-  // Asking sources (eBay Browse, 번개장터) form the trend line; sold sources
-  // (eBay sold, KREAM 체결, manual sold imports) form the overlay/sold series.
+  // Asking sources (eBay Browse, KREAM, 번개장터, 중고나라) form the trend line;
+  // sold sources (eBay sold, manual completed-sale imports) form the overlay.
   const askingRows = priced.filter((snapshot) => isAskingSnapshot(snapshot));
   const soldRows = priced.filter((snapshot) => !isAskingSnapshot(snapshot));
 
@@ -1720,12 +1715,12 @@ function normalizeStringList(list: readonly string[] | undefined): string[] {
   return Array.from(new Set(list.map((value) => value.trim()).filter((value) => value.length > 0)));
 }
 
+function isSupabasePermissionDenied(message: string): boolean {
+  return message.toLowerCase().includes('permission denied');
+}
+
 function selectPrimaryPrinting(row: PokemonCatalogCardRow): CardPrintingRow | null {
-  return (
-    findPrintingForEdition(row, 'kr') ??
-    row.card_printings[0] ??
-    null
-  );
+  return findPrintingForEdition(row, 'kr') ?? row.card_printings[0] ?? null;
 }
 
 function selectPrintingForEdition(
@@ -1752,9 +1747,7 @@ function printingMatchesEdition(printing: CardPrintingRow, edition: CardEdition)
 
 function getPrintingEdition(printing: CardPrintingRow | null): CardEdition | null {
   if (!printing) return null;
-  return (
-    CARD_EDITION_ORDER.find((edition) => printingMatchesEdition(printing, edition)) ?? null
-  );
+  return CARD_EDITION_ORDER.find((edition) => printingMatchesEdition(printing, edition)) ?? null;
 }
 
 function buildEditionOptions(
@@ -1790,6 +1783,11 @@ function getSampleId(printing: CardPrintingRow | null): string {
 
   const sampleId = printing?.external_ids?.sample_id;
   return typeof sampleId === 'string' && sampleId.length > 0 ? sampleId : 'PKMKR-UNKNOWN';
+}
+
+function getExternalString(printing: CardPrintingRow | null, key: string): string | null {
+  const value = printing?.external_ids?.[key];
+  return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
 function getChangeTone(rate: number): ChangeTone {

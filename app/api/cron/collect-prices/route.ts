@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { collectDailyPrices } from '@/lib/pricing/collect-prices';
+import { PRICES_CACHE_TAG } from '@/lib/tcg-catalog';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -29,6 +31,9 @@ export async function GET(request: Request) {
   try {
     const supabase = createAdminClient();
     const result = await collectDailyPrices(supabase);
+    if (result.snapshotsUpserted > 0) {
+      revalidateTag(PRICES_CACHE_TAG, 'max');
+    }
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

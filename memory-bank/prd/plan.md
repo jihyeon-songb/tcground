@@ -58,7 +58,8 @@ TCG(Trading Card Game) 카드의 가격을 추적하고, 컬렉터가 정보를 
 - `memory-bank/price-source-validation.csv`의 `sample_id`는 공식 한국 카드 번호 기반 `PKMKR-<card_num>`으로 통일한다. 기존 `KR-*` priority 번호는 `raw_payload_json.worklist_id`에 남기는 alias이며, `exclude_reason=pending_evidence` 후보는 증거가 채워지기 전까지 공개 가격에 쓰지 않는다.
 - eBay 원문 접근이 차단된 경우 PriceCharting의 개별 eBay completed-sale 행은 수동 evidence 보조 source로 사용할 수 있다. 집계값/현재가가 아니라 날짜·제목·가격이 있는 개별 sold row만 허용하고, `pricecharting_ebay_sold`로 별도 표기한다.
 - eBay Marketplace Insights는 sold 자동화에 가장 적합한 공식 경로지만 restricted 상태이므로, 접근 승인과 API License Agreement 준수 범위가 확인된 뒤에만 production adapter를 활성화한다.
-- KREAM, 번개장터, 중고나라 등 국내 source는 공개 API/재사용 권한 확인 전까지 자동 수집하지 않고 수동 evidence source로만 둔다.
+- KREAM 자동 수집은 체결 내역(sold)이 아니라 판매중 호가(`asking`) daily snapshot으로만 사용한다. 기존에 사람이 검증해 넣은 `manual_kream` CSV 행은 과거 체결(sold) evidence로 보존하되, 새 KREAM 자동 결과와 섞지 않는다.
+- 번개장터, 중고나라 등 국내 source는 공개 API/재사용 권한 확인 전까지 자동 수집을 opt-in/gated로 두고, 가격 성격(`asking`/`sold`)을 명확히 분리한다.
 - USD 등 외화 가격은 원천 통화와 원천 금액을 보존하고, 관측일 또는 snapshot 기준일 환율로 KRW 표시값을 계산한다.
 - UI에는 가격 출처, 마지막 업데이트, 표본 수, sold/asking 구분, 환율 기준일을 노출해 가격 신뢰도를 숨기지 않는다.
 
@@ -104,3 +105,4 @@ TCG(Trading Card Game) 카드의 가격을 추적하고, 컬렉터가 정보를 
 - 2026-05-27: UI 라이브러리 과제 방향을 기존 앱 `components/ui/*` 공통 UI의 패키지화로 전환하고, `packages/ui`를 `@tcground/ui`로 재정의.
 - 2026-06-03: 한국판 카탈로그는 약 3,600개로 충분하므로 증설하지 않고, 가격 데이터는 eBay Browse asking daily snapshot + 검증된 수동 sold CSV + 기준일 FX 환산을 P0 전략으로 확정. Marketplace Insights sold 자동화와 국내 source 자동화는 승인/권한 확인 전까지 보류.
 - 2026-06-03: 전체 한국판 포켓몬 카탈로그는 `PKMKR-<card_num>` sample id의 `pending_evidence` backlog로 CSV에 추가할 수 있도록 확정. 이는 실제 가격 데이터가 아니라 증거 수집 대기 목록이며, source URL/item ID와 거래일/가격/상태/variant가 검증되기 전까지 공개 가격 산정에서 제외한다.
+- 2026-06-15: KREAM 자동 수집 범위를 체결(sold)에서 판매중 호가(asking) snapshot으로 변경. `kream` 자동 source는 `kream_asking_median` snapshot으로 상세 차트 trend에 쓰고, 기존 `manual_kream` CSV sold evidence는 참조점/레거시 체결 근거로 보존한다.

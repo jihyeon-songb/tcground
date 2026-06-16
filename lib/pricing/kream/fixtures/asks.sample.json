@@ -1,0 +1,25 @@
+{
+  "sales_options": [
+    {
+      "product_id": 804751,
+      "lowest_ask_price": "560000",
+      "option": "PSA 10",
+      "seller": { "username": "should-not-be-stored" }
+    },
+    {
+      "product_id": 804751,
+      "ask_price": 240000,
+      "option_name": "BRG 9 영문"
+    },
+    {
+      "product_id": 804751,
+      "immediate_purchase_price": "95000",
+      "name": "미감정"
+    },
+    {
+      "product_id": 804751,
+      "lowest_ask_price": "N/A",
+      "option": "PSA 9"
+    }
+  ]
+}

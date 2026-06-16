@@ -2,7 +2,7 @@
  * Daily price collection orchestration.
  *
  * Loads the catalog cards and runs every *enabled* price source over them:
- *   - eBay Browse → daily asking snapshots
+ *   - eBay Browse / KREAM / domestic listing sources → daily asking snapshots
  *   - gated domestic/listing scaffolds → disabled unless compliant access is enabled
  *   - manual sold/asking evidence → imported through `scripts/collect-prices.ts --csv*`
  *
@@ -29,7 +29,7 @@ import {
   JOONGNA_SOURCE_NAME,
   isJoongnaCollectionEnabled,
 } from './joongna/joongna-config';
-import { collectKreamTrades, resolveKreamProductByName } from './kream/kream-adapter';
+import { collectKreamAskingSnapshots, resolveKreamProductByName } from './kream/kream-adapter';
 import { KREAM_SOURCE_NAME, isKreamCollectionEnabled, KREAM_MARKET } from './kream/kream-config';
 import type { MatchTarget } from './match-confidence';
 import { collectGuardianSnapshots } from './guardian/guardian-adapter';
@@ -74,6 +74,13 @@ export interface CollectPricesOptions {
   cardOffset?: number;
   /** Optional local-run guard for verifying or retrying a catalog subset. */
   cardLimit?: number;
+  /**
+   * Optional daily rotating catalog window size. Useful for launchd/Vercel cron:
+   * each date processes one deterministic slice instead of the full catalog.
+   */
+  dailyWindowSize?: number;
+  /** Optional date override for tests. Defaults to the snapshot date. */
+  dailyWindowDate?: string;
   /** Optional per-source batch size. Each batch writes its own run record. */
   sourceBatchSize?: number;
   /** Restrict the run to these source names (defaults to all enabled sources). */
@@ -104,6 +111,7 @@ interface CardPrintingPick {
   region: string | null;
   set_name: string | null;
   set_code: string | null;
+  rarity: string | null;
   external_ids: Record<string, unknown> | null;
 }
 
@@ -124,6 +132,7 @@ export interface CardQuery {
   /** Set name / code tokens for relevance scoring. */
   setName: string | null;
   setCode: string | null;
+  rarity: string | null;
   /** KREAM product URL from `external_ids`, when mapped; null otherwise. */
   kreamProductUrl: string | null;
 }
@@ -139,7 +148,7 @@ export async function getCardQueries(supabase: SupabaseClient): Promise<CardQuer
     const { data, error } = await supabase
       .from('cards')
       .select(
-        'name, card_printings(id, collector_number, language, region, set_name, set_code, external_ids)',
+        'name, card_printings(id, collector_number, language, region, set_name, set_code, rarity, external_ids)',
       )
       .order('slug', { ascending: true })
       .range(from, from + CARD_PAGE_SIZE - 1);
@@ -160,6 +169,7 @@ export async function getCardQueries(supabase: SupabaseClient): Promise<CardQuer
         nameJa: readStringId(printing.external_ids, 'name_ja'),
         setName: printing.set_name,
         setCode: printing.set_code,
+        rarity: printing.rarity,
         kreamProductUrl: readKreamProductUrl(printing.external_ids),
       });
     }
@@ -234,6 +244,8 @@ export async function collectDailyPrices(
   const cards = selectCardWindow(allCards, {
     cardOffset: options.cardOffset,
     cardLimit: options.cardLimit,
+    dailyWindowSize: options.dailyWindowSize,
+    dailyWindowDate: options.dailyWindowDate ?? snapshotDate,
   });
 
   const sources = buildSourceRunners(snapshotDate, options.fetchImpl);
@@ -282,11 +294,34 @@ export async function collectDailyPrices(
 
 export function selectCardWindow<T>(
   cards: readonly T[],
-  options: Pick<CollectPricesOptions, 'cardOffset' | 'cardLimit'>,
+  options: Pick<
+    CollectPricesOptions,
+    'cardOffset' | 'cardLimit' | 'dailyWindowSize' | 'dailyWindowDate'
+  >,
 ): T[] {
-  const offset = options.cardOffset ?? 0;
-  const limit = options.cardLimit;
+  const dailyOffset = options.dailyWindowSize
+    ? resolveDailyWindowOffset(cards.length, options.dailyWindowSize, options.dailyWindowDate)
+    : 0;
+  const offset = dailyOffset + (options.cardOffset ?? 0);
+  const limit = options.cardLimit ?? options.dailyWindowSize;
   return limit ? cards.slice(offset, offset + limit) : cards.slice(offset);
+}
+
+export function resolveDailyWindowOffset(
+  cardCount: number,
+  windowSize: number,
+  dateString?: string,
+): number {
+  if (cardCount <= 0) return 0;
+
+  const date = dateString ? new Date(`${dateString}T00:00:00.000Z`) : new Date();
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`Invalid daily window date: ${dateString}`);
+  }
+
+  const windowCount = Math.ceil(cardCount / windowSize);
+  const dayNumber = Math.floor(date.getTime() / 86_400_000);
+  return (dayNumber % windowCount) * windowSize;
 }
 
 export function splitIntoSourceBatches<T>(cards: readonly T[], batchSize?: number): T[][] {
@@ -357,10 +392,7 @@ export async function upsertExchangeRates(
 function uniqueExchangeRates(rates: readonly ExchangeRateInput[]): ExchangeRateInput[] {
   const byKey = new Map<string, ExchangeRateInput>();
   for (const rate of rates) {
-    byKey.set(
-      `${rate.baseCurrency}|${rate.quoteCurrency}|${rate.rateDate}|${rate.provider}`,
-      rate,
-    );
+    byKey.set(`${rate.baseCurrency}|${rate.quoteCurrency}|${rate.rateDate}|${rate.provider}`, rate);
   }
   return Array.from(byKey.values());
 }
@@ -404,6 +436,8 @@ interface SourceRunner {
   collect: AskingCollector | SoldCollector;
   /** Delay between per-card calls, ms. Throttles rate-limited sources. */
   delayMs?: number;
+  /** Abort the source after this many consecutive card-level failures. */
+  maxConsecutiveFailures?: number;
   /**
    * True for sources that need a real browser session + residential/Korean IP
    * (KREAM, eBay scrape). These run only via `scripts/collect-prices.ts` with an
@@ -420,11 +454,14 @@ function buildSourceRunners(snapshotDate: string, fetchImpl?: typeof fetch): Sou
       market: 'NA',
       kind: 'asking',
       enabled: isEbayConfigured,
+      maxConsecutiveFailures: 10,
       collect: async (card) => {
         const snapshot = await collectBrowseSnapshot(
           {
             cardPrintingId: card.cardPrintingId,
             cardName: card.cardName,
+            nameEn: card.nameEn,
+            nameJa: card.nameJa,
             collectorNumber: card.collectorNumber,
           },
           { snapshotDate },
@@ -481,15 +518,15 @@ function buildSourceRunners(snapshotDate: string, fetchImpl?: typeof fetch): Sou
     {
       sourceName: KREAM_SOURCE_NAME,
       market: KREAM_MARKET,
-      kind: 'sold',
+      kind: 'asking',
       requiresBrowser: true,
-      // KREAM search + trade fetch per card; pace to stay under rate limits.
+      // KREAM search + asking-option fetch per card; pace to stay under rate limits.
       delayMs: 200,
+      maxConsecutiveFailures: 5,
       enabled: isKreamCollectionEnabled,
       collect: async (card) => {
         // Prefer an explicitly mapped product; otherwise resolve by name search.
         let productUrl = card.kreamProductUrl;
-        let confidence = DEFAULT_QUERY_CONFIDENCE;
         if (!productUrl) {
           const resolved = await resolveKreamProductByName(
             buildKoreanKeyword(card),
@@ -498,11 +535,10 @@ function buildSourceRunners(snapshotDate: string, fetchImpl?: typeof fetch): Sou
           );
           if (!resolved) return [];
           productUrl = resolved.productUrl;
-          confidence = resolved.confidence;
         }
-        return collectKreamTrades(
+        return collectKreamAskingSnapshots(
           productUrl,
-          { cardPrintingId: card.cardPrintingId, confidenceScore: confidence, productUrl },
+          { cardPrintingId: card.cardPrintingId, snapshotDate, productUrl },
           { fetchImpl },
         );
       },
@@ -628,6 +664,7 @@ async function runSourceBatch(
   const snapshots: SnapshotAggregate[] = [];
   const observations: PriceObservationInput[] = [];
   let aborted = false;
+  let consecutiveFailures = 0;
 
   for (let i = 0; i < cards.length; i += 1) {
     const card = cards[i];
@@ -637,10 +674,16 @@ async function runSourceBatch(
       } else {
         observations.push(...(await (source.collect as SoldCollector)(card)));
       }
+      consecutiveFailures = 0;
     } catch (error) {
       const message = errorMessage(error);
       failures.push({ cardPrintingId: card.cardPrintingId, error: message });
+      consecutiveFailures += 1;
       if (source.requiresBrowser && isBrowserContextClosedError(message)) {
+        aborted = true;
+        break;
+      }
+      if (source.maxConsecutiveFailures && consecutiveFailures >= source.maxConsecutiveFailures) {
         aborted = true;
         break;
       }
@@ -720,7 +763,7 @@ function buildMatchTarget(card: CardQuery, locale: 'ko' | 'intl'): MatchTarget {
   return {
     names,
     collectorNumber: card.collectorNumber,
-    setTokens: [card.setCode, card.setName],
+    setTokens: [card.setCode, card.setName, card.rarity],
   };
 }
 
@@ -1115,7 +1158,9 @@ function resolveOverallStatus(results: readonly SourceRunResult[]): CollectPrice
   return 'succeeded';
 }
 
-function resolveBatchStatuses(statuses: readonly SourceRunResult['status'][]): SourceRunResult['status'] {
+function resolveBatchStatuses(
+  statuses: readonly SourceRunResult['status'][],
+): SourceRunResult['status'] {
   const ran = statuses.filter((status) => status !== 'skipped');
   if (ran.length === 0) return 'succeeded';
   if (ran.every((status) => status === 'failed')) return 'failed';
