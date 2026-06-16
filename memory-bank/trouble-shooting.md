@@ -1,7 +1,7 @@
 # TROUBLE SHOOTING
 
 > PRD에 없던 엣지 케이스, 예외 상황, source 리스크 기록.
-> 마지막 갱신: 2026-06-16 (일일 가격 수집 안정화)
+> 마지막 갱신: 2026-06-16 (KREAM segmented search 수집)
 
 ## KREAM/eBay daily cron은 실행되지만 snapshot이 적재되지 않음
 
@@ -26,8 +26,8 @@
 - KREAM 검색 결과 페이지(`포켓몬카드 한글판`)는 실제 브라우저에서 상품 카드 DOM을 제공하므로 API 500 fallback으로 사용할 수 있음을 확인했다.
 - `scripts/collect-kream-search-page.ts`를 추가해 렌더된 검색 페이지에서 product id, 상품명, 현재 표시가, 거래 수를 추출하고, 상품명+세트명+레어도 기준으로 동률 없는 confidence match만 `kream_search_page_asking` snapshot으로 저장한다.
 - 2026-06-16 검증 결과 검색 결과 40개 중 12개가 안전 매칭됐고, `card_price_snapshots`에 `source_name='kream'`, `aggregation_method='kream_search_page_asking'`, `snapshot_date='2026-06-16'` 12건이 upsert됐다.
-- 이후 `--limit` 기본값을 제거해 KREAM 검색 페이지를 product link 수가 더 이상 증가하지 않을 때까지 스크롤하도록 바꿨다. `--max-scrolls 120`은 무한 루프 방지용이다.
-- KREAM은 반복 자동 접근 후 headless/headed 브라우저 모두에 500/빈 응답을 간헐적으로 반환할 수 있다. 이 경우 스크립트는 최대 3회 재시도하고, 상품 link가 끝내 없으면 0건으로 종료한다. 앞선 성공 실행에서 적재된 기존 snapshot은 지우지 않는다.
+- 이후 단일 검색어가 약 50개만 노출되는 한계를 확인해, `collect:kream:daily`를 catalog 세트명/세트명+레어도 검색어를 순회하는 segmented search로 바꿨다. 각 검색 결과는 product id 기준으로 합치고, 기존 안전 매칭을 통과한 상품만 snapshot으로 저장한다.
+- KREAM은 반복 자동 접근 후 headless/headed 브라우저 모두에 500/빈 응답을 간헐적으로 반환할 수 있다. 이 경우 스크립트는 검색어별 timeout 뒤 다음 segment로 넘어가며, 상품 link가 끝내 없으면 0건으로 종료한다. 앞선 성공 실행에서 적재된 기존 snapshot은 지우지 않는다.
 
 ### 재발 방지
 
@@ -37,6 +37,7 @@
 - KREAM API 500이 반복되면 JSON API 기반 수집은 partial로만 기록하고, 렌더된 검색 페이지 fallback 또는 product id 매핑 기반 수동 evidence 경로를 우선한다.
 - 검색 페이지 fallback은 현재 표시가/호가만 저장한다. 체결(sold)로 승격하지 않는다.
 - 검색 페이지 fallback이 0건으로 끝난 날에는 `/tmp/tcground-daily-price-collection.out.log`를 확인해 KREAM 차단/빈 응답인지, 실제 검색 결과 변경인지 구분한다.
+- segmented search는 KREAM이 제공하는 검색 결과 표면을 넓히는 fallback이다. KREAM이 자동 브라우저에 빈 응답을 주는 날에는 단일 검색/segmented 검색 모두 0건일 수 있다.
 
 ## 상세 페이지 eBay on-demand 갱신과 로컬 권한 fallback
 

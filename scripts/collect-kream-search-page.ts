@@ -9,7 +9,11 @@
  *   KREAM_COLLECTION_ENABLED=true node --env-file=.env.local --import tsx scripts/collect-kream-search-page.ts
  *   add --dry-run to compute without DB writes.
  *   add --limit N to cap extracted products (default: no cap).
- *   add --max-scrolls N to cap infinite-scroll attempts (default: 120).
+ *   add --segmented to search by catalog set/rarity keywords and dedupe products.
+ *   add --max-keywords N to cap segmented keywords for tests.
+ *   add --navigation-timeout-ms N to cap each navigation (default: 25000, segmented: 8000).
+ *   add --search-timeout-ms N to cap each keyword wait (default: 20000, segmented: 5000).
+ *   add --max-scrolls N to cap infinite-scroll attempts (default: 120, segmented: 0).
  */
 
 import { createAdminClient } from '../lib/supabase/admin';
@@ -19,14 +23,15 @@ import {
   upsertSnapshots,
 } from '../lib/pricing/collect-prices';
 import {
+  KREAM_BASE_SEARCH_KEYWORD,
+  buildKreamSegmentedSearchKeywords,
   mapKreamSearchProductsToSnapshots,
   parseKreamSearchProductText,
   type KreamSearchPageProduct,
 } from '../lib/pricing/kream/search-page-adapter';
 import { isKreamCollectionEnabled } from '../lib/pricing/kream/kream-config';
 
-const SEARCH_URL =
-  'https://kream.co.kr/search?keyword=%ED%8F%AC%EC%BC%93%EB%AA%AC%EC%B9%B4%EB%93%9C+%ED%95%9C%EA%B8%80%ED%8C%90&footer=home';
+const KREAM_SEARCH_ORIGIN = 'https://kream.co.kr/search';
 
 async function main(): Promise<void> {
   if (!isKreamCollectionEnabled()) {
@@ -35,13 +40,32 @@ async function main(): Promise<void> {
 
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run');
+  const segmented = args.includes('--segmented');
   const limit = parsePositiveIntOption(args, '--limit');
-  const maxScrolls = parsePositiveIntOption(args, '--max-scrolls') ?? 120;
+  const maxKeywords = parsePositiveIntOption(args, '--max-keywords');
+  const maxScrolls = parseNonNegativeIntOption(args, '--max-scrolls') ?? (segmented ? 0 : 120);
+  const queryDelayMs = parseNonNegativeIntOption(args, '--query-delay-ms') ?? 750;
+  const navigationTimeoutMs =
+    parsePositiveIntOption(args, '--navigation-timeout-ms') ?? (segmented ? 8000 : 25_000);
+  const searchTimeoutMs =
+    parsePositiveIntOption(args, '--search-timeout-ms') ?? (segmented ? 5000 : 20_000);
+  const retryAttempts = segmented ? 1 : 3;
   const snapshotDate = new Date().toISOString().slice(0, 10);
 
   const supabase = createAdminClient();
   const cards = await getCardQueries(supabase);
-  const products = await collectRenderedProducts({ limit, maxScrolls });
+  const keywords = (
+    segmented ? buildKreamSegmentedSearchKeywords(cards) : [KREAM_BASE_SEARCH_KEYWORD]
+  ).slice(0, maxKeywords);
+  const products = await collectRenderedProductsForKeywords({
+    keywords,
+    limit,
+    maxScrolls,
+    queryDelayMs,
+    navigationTimeoutMs,
+    retryAttempts,
+    searchTimeoutMs,
+  });
   const mapped = mapKreamSearchProductsToSnapshots(products, cards, snapshotDate);
   const displaySnapshots = await attachDisplayPrices(supabase, mapped.snapshots, {});
 
@@ -49,6 +73,8 @@ async function main(): Promise<void> {
     JSON.stringify(
       {
         dryRun,
+        segmented,
+        keywords: keywords.length,
         products: products.length,
         matches: mapped.matches.length,
         snapshots: displaySnapshots.length,
@@ -73,10 +99,48 @@ async function main(): Promise<void> {
   }
 }
 
-async function collectRenderedProducts(options: {
+async function collectRenderedProductsForKeywords(options: {
+  keywords: readonly string[];
   limit?: number;
   maxScrolls: number;
+  queryDelayMs: number;
+  navigationTimeoutMs: number;
+  retryAttempts: number;
+  searchTimeoutMs: number;
 }): Promise<KreamSearchPageProduct[]> {
+  const page = await createKreamPage();
+  const products = new Map<string, KreamSearchPageProduct>();
+
+  try {
+    for (const keyword of options.keywords) {
+      if (options.limit && products.size >= options.limit) break;
+
+      const remainingLimit = options.limit ? options.limit - products.size : undefined;
+      const keywordProducts = await collectRenderedProductsFromPage(page, {
+        keyword,
+        limit: remainingLimit,
+        maxScrolls: options.maxScrolls,
+        navigationTimeoutMs: options.navigationTimeoutMs,
+        retryAttempts: options.retryAttempts,
+        searchTimeoutMs: options.searchTimeoutMs,
+      });
+
+      for (const product of keywordProducts) {
+        products.set(product.productId, product);
+      }
+
+      if (options.queryDelayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, options.queryDelayMs));
+      }
+    }
+  } finally {
+    await page.browser.close();
+  }
+
+  return Array.from(products.values());
+}
+
+async function createKreamPage(): Promise<PlaywrightPage> {
   const moduleName = 'playwright';
   const { chromium } = (await import(moduleName)) as { chromium: PlaywrightChromium };
   const browser = await chromium.launch({ headless: true });
@@ -86,35 +150,55 @@ async function collectRenderedProducts(options: {
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
       '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
   });
-
-  try {
-    const loaded = await gotoSearchWithRetry(page);
-    if (!loaded) return [];
-
-    await scrollUntilStable(page, options);
-
-    const rawProducts = await readRawProducts(page);
-    const byProductId = new Map<string, KreamSearchPageProduct>();
-    for (const raw of rawProducts) {
-      const productId = raw.href.match(/\/products\/(\d+)/)?.[1];
-      if (!productId || byProductId.has(productId)) continue;
-      const parsed = parseKreamSearchProductText(productId, raw.text);
-      if (!parsed) continue;
-      byProductId.set(productId, parsed);
-      if (options.limit && byProductId.size >= options.limit) break;
-    }
-
-    return Array.from(byProductId.values());
-  } finally {
-    await browser.close();
-  }
+  return Object.assign(page, { browser });
 }
 
-async function gotoSearchWithRetry(page: PlaywrightPage): Promise<boolean> {
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
+async function collectRenderedProductsFromPage(
+  page: PlaywrightPage,
+  options: {
+    keyword: string;
+    limit?: number;
+    maxScrolls: number;
+    navigationTimeoutMs?: number;
+    retryAttempts?: number;
+    searchTimeoutMs?: number;
+  },
+): Promise<KreamSearchPageProduct[]> {
+  const loaded = await gotoSearchWithRetry(page, options.keyword, {
+    navigationTimeoutMs: options.navigationTimeoutMs ?? 25_000,
+    retryAttempts: options.retryAttempts ?? 3,
+    searchTimeoutMs: options.searchTimeoutMs ?? 20_000,
+  });
+  if (!loaded) return [];
+
+  await scrollUntilStable(page, options);
+
+  const rawProducts = await readRawProducts(page);
+  const byProductId = new Map<string, KreamSearchPageProduct>();
+  for (const raw of rawProducts) {
+    const productId = raw.href.match(/\/products\/(\d+)/)?.[1];
+    if (!productId || byProductId.has(productId)) continue;
+    const parsed = parseKreamSearchProductText(productId, raw.text);
+    if (!parsed) continue;
+    byProductId.set(productId, parsed);
+    if (options.limit && byProductId.size >= options.limit) break;
+  }
+
+  return Array.from(byProductId.values());
+}
+
+async function gotoSearchWithRetry(
+  page: PlaywrightPage,
+  keyword: string,
+  options: { navigationTimeoutMs: number; retryAttempts: number; searchTimeoutMs: number },
+): Promise<boolean> {
+  for (let attempt = 1; attempt <= options.retryAttempts; attempt += 1) {
     try {
-      await page.goto(SEARCH_URL, { waitUntil: 'domcontentloaded', timeout: 25_000 });
-      if (await waitForProductLinks(page, 20_000)) return true;
+      await page.goto(buildSearchUrl(keyword), {
+        waitUntil: 'domcontentloaded',
+        timeout: options.navigationTimeoutMs,
+      });
+      if (await waitForProductLinks(page, options.searchTimeoutMs)) return true;
     } catch {
       // KREAM intermittently returns 500/empty responses to automated browsers.
       // Retry from a fresh navigation before giving up for this run.
@@ -123,6 +207,13 @@ async function gotoSearchWithRetry(page: PlaywrightPage): Promise<boolean> {
   }
 
   return false;
+}
+
+function buildSearchUrl(keyword: string): string {
+  const url = new URL(KREAM_SEARCH_ORIGIN);
+  url.searchParams.set('keyword', keyword);
+  url.searchParams.set('footer', 'home');
+  return url.toString();
 }
 
 async function waitForProductLinks(page: PlaywrightPage, timeoutMs: number): Promise<boolean> {
@@ -200,8 +291,15 @@ function parsePositiveIntOption(args: readonly string[], flag: string): number |
   return value;
 }
 
+function parseNonNegativeIntOption(args: readonly string[], flag: string): number | undefined {
+  const value = parseIntegerOption(args, flag);
+  if (value === undefined) return undefined;
+  if (value < 0) throw new Error(`${flag} requires a non-negative integer value`);
+  return value;
+}
+
 function parseIntegerOption(args: readonly string[], flag: string): number | undefined {
-  const index = args.indexOf(flag);
+  const index = args.lastIndexOf(flag);
   if (index === -1) return undefined;
 
   const raw = args[index + 1];
@@ -225,6 +323,7 @@ interface PlaywrightBrowser {
 }
 
 interface PlaywrightPage {
+  browser: PlaywrightBrowser;
   goto(url: string, options?: { waitUntil?: string; timeout?: number }): Promise<unknown>;
   waitForSelector(selector: string, options?: { timeout?: number }): Promise<unknown>;
   waitForTimeout(ms: number): Promise<void>;

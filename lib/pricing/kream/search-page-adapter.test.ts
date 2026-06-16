@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildKreamSegmentedSearchKeywords,
   mapKreamSearchProductsToSnapshots,
   parseKreamSearchProductText,
 } from './search-page-adapter';
@@ -92,5 +93,16 @@ describe('mapKreamSearchProductsToSnapshots', () => {
 
     expect(result.snapshots).toHaveLength(0);
     expect(result.skipped[0]?.reason).toBe('ambiguous_match');
+  });
+});
+
+describe('buildKreamSegmentedSearchKeywords', () => {
+  it('builds base, set, and set-rarity keywords without duplicates', () => {
+    expect(buildKreamSegmentedSearchKeywords([charizard151, charizard151Rr])).toEqual([
+      '포켓몬카드 한글판',
+      '포켓몬 카드 151 한글판',
+      '포켓몬 카드 151 SAR 한글판',
+      '포켓몬 카드 151 RR 한글판',
+    ]);
   });
 });

@@ -31,6 +31,8 @@ export interface KreamSearchPageMapResult {
   skipped: Array<{ product: KreamSearchPageProduct; reason: string }>;
 }
 
+export const KREAM_BASE_SEARCH_KEYWORD = '포켓몬카드 한글판';
+
 const DEFAULT_MIN_CONFIDENCE = 0.7;
 const RARITY_TOKENS = ['SAR', 'SR', 'UR', 'AR', 'CHR', 'CSR', 'HR', 'RRR', 'RR', 'R'];
 
@@ -105,6 +107,30 @@ export function mapKreamSearchProductsToSnapshots(
   return { snapshots, matches, skipped };
 }
 
+export function buildKreamSegmentedSearchKeywords(cards: readonly CardQuery[]): string[] {
+  const keywords = new Map<string, string>();
+  addKeyword(keywords, KREAM_BASE_SEARCH_KEYWORD);
+
+  const rarityBySet = new Map<string, Set<string>>();
+  for (const card of cards) {
+    if (!card.setName) continue;
+    addKeyword(keywords, `${card.setName} 한글판`);
+    if (!card.rarity) continue;
+
+    const rarities = rarityBySet.get(card.setName) ?? new Set<string>();
+    rarities.add(card.rarity);
+    rarityBySet.set(card.setName, rarities);
+  }
+
+  for (const [setName, rarities] of rarityBySet) {
+    for (const rarity of Array.from(rarities).sort(sortRarity)) {
+      addKeyword(keywords, `${setName} ${rarity} 한글판`);
+    }
+  }
+
+  return Array.from(keywords.values());
+}
+
 function scoreProduct(
   product: KreamSearchPageProduct,
   cards: readonly CardQuery[],
@@ -120,6 +146,25 @@ function scoreProduct(
           setTokens: [card.setCode, card.setName, card.rarity],
         }),
   }));
+}
+
+function addKeyword(keywords: Map<string, string>, keyword: string): void {
+  const normalized = normalize(keyword);
+  if (normalized.length > 0 && !keywords.has(normalized)) {
+    keywords.set(normalized, keyword);
+  }
+}
+
+function sortRarity(a: string, b: string): number {
+  const aIndex = RARITY_TOKENS.indexOf(a);
+  const bIndex = RARITY_TOKENS.indexOf(b);
+  if (aIndex !== -1 || bIndex !== -1) {
+    return (
+      (aIndex === -1 ? RARITY_TOKENS.length : aIndex) -
+      (bIndex === -1 ? RARITY_TOKENS.length : bIndex)
+    );
+  }
+  return a.localeCompare(b);
 }
 
 function hasRarityConflict(title: string, rarity: string | null): boolean {

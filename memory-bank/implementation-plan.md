@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-06-16 (일일 가격 수집 안정화)
+> 마지막 갱신: 2026-06-16 (KREAM segmented search 수집)
 
 ## 현재 기준 PRD
 
@@ -90,6 +90,7 @@
 - [x] API License Agreement 기준 데이터 저장/표시/집계 범위를 검토하고, raw eBay content와 공개 snapshot 표시 계약을 분리한다. → 데이터 최소화 정책(저장/미저장 필드)과 `card_price_snapshots` 공개 표시 분리를 `architecture.md`에 문서화.
 - [x] `ebay_sold` adapter 입력 계약 확정: keyword/category/date window/condition filters, card_printing 매칭 필드, 단일 카드 판정 규칙. → `lib/pricing/price-source.types.ts` 계약과 `marketplace-insights-adapter.ts`/`csv-import.ts` 매핑·단일 카드 규칙으로 구현.
 - [x] `lastSoldDate`, `lastSoldPrice`, `totalSoldQuantity`, condition, item/itemSales ID, item URL, seller/user 관련 필드 저장 최소화 정책 확정. → 가격·일자·상태·등급·item id/url·축소 raw_payload만 저장하고 seller/user 식별 정보는 저장하지 않도록 확정·구현.
+- [x] eBay Developer 계정 production keyset 사용 준비를 위해 Marketplace account deletion/closure notification 검증 endpoint 추가. → `app/api/ebay/account-deletion/route.ts`가 challenge response GET과 POST ACK를 처리하며, `EBAY_DELETION_VERIFICATION_TOKEN`/`EBAY_DELETION_ENDPOINT`를 서버 env로 둔다.
 - [ ] 승인 후 `price_observations` import adapter와 collection run logging 구현. → Browse 기반 collection run logging은 구현(`collect-prices.ts`/cron). Marketplace Insights import adapter는 승인 전까지 scaffold(`EbayAccessNotGrantedError`)로 보류.
 
 ### 3.5 한국판 전체 가격 수집 실행 (로컬 런북)
@@ -101,6 +102,7 @@
 - 2026-06-15 상세 현재 호가 변경: 상품 상세 페이지는 eBay/Supabase 서버 credential이 있을 때 선택된 printing의 `ebay_browse` 당일 snapshot을 on-demand로 갱신한다. 이미 당일 snapshot이 있으면 API를 재호출하지 않고 uncached detail read만 수행한다. eBay 호출은 3.5초 타임아웃과 permission fallback을 둬 상세 렌더를 막지 않는다. eBay 검색어는 `external_ids.name_en`/`name_ja`를 한국어명보다 우선해 listing 매칭 가능성을 높인다. 전체 카탈로그 daily cron은 계속 유지하며, cron 쓰기 후 `prices` cache tag를 revalidate한다.
 - 2026-06-15 KREAM 호가 전환 영향 파일: `lib/pricing/kream/**`, `lib/pricing/collect-prices.ts`, `lib/pricing/price-source.types.ts`, 관련 테스트, `memory-bank/db-schema.md`, `memory-bank/prd/plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`. 최소 변경 범위: `--kream` 자동 수집은 KREAM 체결(sold) 관측치가 아니라 판매중 호가(asking) snapshot을 수집해 `aggregation_method='kream_asking_median'`으로 저장한다. 기존 `manual_kream` CSV sold evidence는 검증된 과거 체결 근거로 보존하고, 새 자동 KREAM 결과와 sold/asking을 섞지 않는다.
 - 2026-06-16 일일 스케줄 보정 영향 파일: `package.json`, `scripts/collect-prices.ts`, `scripts/collect-kream-search-page.ts`, `lib/pricing/collect-prices.ts`, `lib/pricing/ebay/browse-adapter.ts`, `lib/pricing/kream/search-page-adapter.ts`, 관련 테스트, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`. 최소 변경 범위: Vercel Cron의 eBay daily 경로는 유지하고, 로컬 `pnpm collect:daily`는 eBay Browse를 날짜별 50장 rotating window로 처리한 뒤 KREAM 검색 페이지 렌더 결과에서 현재 표시가를 수집한다. eBay fetch timeout과 source별 연속 실패 abort를 추가해 KREAM API 500/eBay fetch 실패가 전체 cron을 장시간 점유하지 않게 한다. 같은 snapshot date/source는 upsert되므로 중복 row는 만들지 않는다.
+- 2026-06-16 KREAM 전체 검색 보강 영향 파일: `scripts/collect-kream-search-page.ts`, `package.json`, 관련 KREAM search-page 테스트, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`. 최소 변경 범위: KREAM 검색 페이지가 단일 검색어에서 초기 50개만 노출하는 한계를 인정하고, 카탈로그의 세트명/레어도 조합 검색어를 여러 번 실행해 product id 기준으로 합친 뒤 기존 안전 매칭 로직으로 snapshot을 만든다. 새 DB staging이나 상세 페이지 순회는 도입하지 않는다.
 - 2026-06-05 batch/progress 변경: eBay scrape 전체 실행이 browser context 종료로 `partial/0`이었으므로, `--offset`, `--limit`, `--source-batch-size` 옵션을 추가해 50~100장 단위로 실행/기록/재시도 가능하게 바꿨다. 이어 offset 0~49, 50~99가 모두 succeeded/0이어서 단순 재시도 대신 parser/challenge를 점검했고, eBay live HTML의 `s-card` markup과 HTTP 200 browser verification page를 처리하도록 `lib/pricing/ebay/scrape-adapter.ts`를 보강했다. 영향 파일은 `scripts/collect-prices.ts`, `lib/pricing/collect-prices.ts`, `lib/pricing/collect-prices.test.ts`, `lib/pricing/ebay/scrape-adapter.ts`, `lib/pricing/ebay/scrape-adapter.test.ts`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`로 제한했다.
 - 2026-06-05 중고나라 변경: `joongna` 자동 asking source를 추가했다. 공개 search page hydration 데이터에서 상품 `seq`/title/price만 최소 추출하고, 카드명 검색 + 세트/번호 confidence + 중고나라 전용 제외어로 단일 카드 호가만 `joongna_asking_median` snapshot에 저장한다. 영향 파일은 `lib/pricing/joongna/**`, `lib/pricing/collect-prices.ts`, `scripts/collect-prices.ts`, `lib/pricing/price-source.types.ts`, `lib/tcg-catalog.ts`, `.env.example`, 관련 테스트, memory-bank 문서로 제한한다.
 
@@ -146,7 +148,7 @@
       결과는 `kream_asking_median` snapshot 수와 `observationsCollected=0`으로 검증한다.
 - [x] KREAM + eBay Browse 일일 로컬 수집 명령 추가:
       `pnpm collect:daily`
-      내부적으로 `pnpm collect:ebay:daily; pnpm collect:kream:daily`를 실행한다. `collect:ebay:daily`는 eBay Browse 날짜별 50장 window를 처리하고, `collect:kream:daily`는 KREAM 검색 페이지 렌더 결과를 처리한다. KREAM은 eBay 실패 여부와 독립적으로 매일 실행된다. KREAM 검색 페이지 수집은 기본 `--limit` 없이 product link 수가 안정화될 때까지 스크롤하며, `--max-scrolls 120`만 안전장치로 둔다.
+      내부적으로 `pnpm collect:ebay:daily; pnpm collect:kream:daily`를 실행한다. `collect:ebay:daily`는 eBay Browse 날짜별 50장 window를 처리하고, `collect:kream:daily`는 KREAM 검색 페이지 렌더 결과를 처리한다. KREAM은 eBay 실패 여부와 독립적으로 매일 실행된다. KREAM 검색 페이지 수집은 단일 검색어 약 50개 한계를 줄이기 위해 catalog 세트명/세트명+레어도 검색어를 순회하는 segmented search를 사용하고, product id 기준으로 중복 제거한다.
 - [x] KREAM + eBay Browse 일일 로컬 수집 안정화:
       전체 4,677장을 한 번에 처리하지 않고 eBay는 날짜별 50장 window만 처리한다. `ebay_browse`는 fetch timeout을 적용하고, API 기반 `kream`은 연속 실패 threshold를 넘으면 해당 source batch를 중단한다. 2026-06-16 수동 kickstart 검증 결과 LaunchAgent는 exit code 0으로 종료했고, DB에는 `ebay_browse` succeeded 2개 batch와 API 기반 `kream` partial 1개 batch가 기록됐다. 이후 KREAM 검색 페이지 렌더 결과 수집을 추가해 검색 결과 40개 중 안전 매칭 12개를 `aggregation_method='kream_search_page_asking'` snapshot으로 upsert했다. 현재 `.env.local`은 `EBAY_ENV=sandbox`라 eBay snapshot은 0건이다.
 - [x] macOS launchd 스케줄 템플릿 추가:
