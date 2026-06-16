@@ -263,6 +263,8 @@ function createCardDetail(): CatalogCardDetail {
       collectorNumber: '201/165',
       finish: 'unknown',
       sampleId: 'PKMKR-BS2023014201',
+      nameEn: 'Charizard ex',
+      nameJa: 'リザードンex',
     },
     backHref: '/categories/pokemon',
     backLabel: '포켓몬 카테고리로 돌아가기',

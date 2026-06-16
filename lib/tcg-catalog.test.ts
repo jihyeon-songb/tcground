@@ -246,11 +246,9 @@ describe('tcg catalog view models', () => {
       makeSimpleCard('kr-002-card', 'https://assets.tcgdex.net/2.webp'),
     ];
 
-    expect(sortPokemonCatalogCardsByRecommendation(cards, 'name-asc').map((card) => card.slug)).toEqual([
-      'kr-003-card',
-      'kr-001-card',
-      'kr-002-card',
-    ]);
+    expect(
+      sortPokemonCatalogCardsByRecommendation(cards, 'name-asc').map((card) => card.slug),
+    ).toEqual(['kr-003-card', 'kr-001-card', 'kr-002-card']);
   });
 
   it('maps card detail with set, rarity, collector number, and printing identity', () => {
@@ -368,7 +366,7 @@ describe('tcg catalog view models', () => {
           rarity: 'SAR',
           cardImageUrl,
         }),
-    ).imageUrl,
+      ).imageUrl,
     ).toBe(cardImageUrl);
   });
 
@@ -496,14 +494,8 @@ describe('tcg catalog view models', () => {
   });
 
   it('creates deterministic price display values without DB snapshots', () => {
-    const first = createDeterministicPriceDisplay(
-      'kr-004-charizard-ex-151',
-      'PKMKR-BS2023014201',
-    );
-    const second = createDeterministicPriceDisplay(
-      'kr-004-charizard-ex-151',
-      'PKMKR-BS2023014201',
-    );
+    const first = createDeterministicPriceDisplay('kr-004-charizard-ex-151', 'PKMKR-BS2023014201');
+    const second = createDeterministicPriceDisplay('kr-004-charizard-ex-151', 'PKMKR-BS2023014201');
 
     expect(first).toEqual(second);
     expect(first.avgPrice).toBeGreaterThan(first.minPrice);
@@ -857,9 +849,10 @@ describe('price history view models', () => {
 
   it('draws graded sold data as the trend (with a grade label) only when no raw data exists', () => {
     const history = buildPriceHistory([
-      // KREAM PSA 10 체결가 — the only data this card has, so it becomes the line
+      // Legacy KREAM PSA 10 sold evidence — the only data this card has, so it becomes the line
       snapshotRow({
         source_name: 'kream',
+        aggregation_method: 'median_filtered',
         market: 'KR',
         currency: 'KRW',
         variant: 'graded',
@@ -870,6 +863,7 @@ describe('price history view models', () => {
       }),
       snapshotRow({
         source_name: 'kream',
+        aggregation_method: 'median_filtered',
         market: 'KR',
         currency: 'KRW',
         variant: 'graded',
@@ -901,6 +895,7 @@ describe('price history view models', () => {
       // KREAM PSA 10 — far higher; excluded from the raw line and overlay
       snapshotRow({
         source_name: 'kream',
+        aggregation_method: 'median_filtered',
         market: 'KR',
         currency: 'KRW',
         variant: 'graded',
@@ -963,7 +958,42 @@ describe('price history view models', () => {
     expect(history.hasData).toBe(false);
   });
 
-  it('treats 번개장터 as an asking trend and KREAM as a sold overlay', () => {
+  it('treats KREAM asking snapshots as the asking trend', () => {
+    const history = buildPriceHistory([
+      snapshotRow({
+        source_name: 'kream',
+        aggregation_method: 'kream_asking_median',
+        market: 'KR',
+        currency: 'KRW',
+        snapshot_date: '2026-05-28',
+        avg_price: 60000,
+      }),
+      snapshotRow({
+        source_name: 'kream',
+        aggregation_method: 'kream_asking_median',
+        market: 'KR',
+        currency: 'KRW',
+        snapshot_date: '2026-05-29',
+        avg_price: 72000,
+      }),
+      snapshotRow({
+        source_name: 'manual_kream',
+        aggregation_method: 'median_filtered',
+        market: 'KR',
+        currency: 'KRW',
+        snapshot_date: '2026-05-20',
+        avg_price: 90000,
+      }),
+    ]);
+
+    expect(history.askingSeries).toHaveLength(2);
+    expect(history.askingSeries.map((point) => point.avgPrice)).toEqual([60000, 72000]);
+    expect(history.soldPoints).toHaveLength(1);
+    expect(history.soldPoints[0].avgPrice).toBe(90000);
+    expect(history.currency).toBe('KRW');
+  });
+
+  it('keeps legacy KREAM median_filtered snapshots as sold overlay points', () => {
     const history = buildPriceHistory([
       snapshotRow({
         source_name: 'bunjang',
@@ -981,6 +1011,7 @@ describe('price history view models', () => {
       }),
       snapshotRow({
         source_name: 'kream',
+        aggregation_method: 'median_filtered',
         market: 'KR',
         currency: 'KRW',
         snapshot_date: '2026-05-20',

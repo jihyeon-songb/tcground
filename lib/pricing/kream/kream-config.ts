@@ -2,31 +2,34 @@
  * KREAM source configuration.
  *
  * KREAM (https://kream.co.kr) is a Korean escrow-based resale marketplace that
- * publishes per-product *completed trade* history (체결 시세) — real sold prices,
- * not asking prices. That makes it a high-value `sold` source for Korean-print
- * Pokémon cards.
+ * exposes per-product buying options and completed trade history. TCGround's
+ * automated KREAM source intentionally records only current asking prices
+ * (판매중 호가) as daily snapshots, keeping them separate from completed-sale
+ * evidence.
  *
  * KREAM exposes no official public API, and reuse rights are unconfirmed, so
  * automated collection is GATED behind `KREAM_COLLECTION_ENABLED` and must stay
- * off until a compliant access path (partner/API agreement) is in place. Until
- * then, real KREAM data comes only through the manual CSV import path
- * (`manual_kream` rows). See `memory-bank/trouble-shooting.md`.
+ * off until a compliant access path (partner/API agreement) is in place. Legacy
+ * manually verified KREAM completed trades remain in the CSV as `manual_kream`
+ * sold evidence. See `memory-bank/trouble-shooting.md`.
  */
 
 import type { PriceMarket } from '../price-source.types';
 
-/** Source name for automated KREAM completed-trade observations. */
+/** Source name for automated KREAM asking snapshots. */
 export const KREAM_SOURCE_NAME = 'kream';
 
-/** KREAM site origin; product trade-history (체결 내역) lives under its API path. */
+/** KREAM site origin; product trade-history and ask data live under API paths. */
 export const KREAM_API_BASE_URL = 'https://kream.co.kr';
 export const KREAM_TRADES_PATH = (productId: string) => `/api/products/${productId}/trading_infos`;
+export const KREAM_ASKS_PATH = (productId: string) => `/api/products/${productId}/sales_options`;
 
 /** Product search endpoint used to resolve a card name → KREAM product. */
 export const KREAM_SEARCH_PATH = '/api/search';
 
 /** Canonical product URL for attribution and trade-history resolution. */
-export const KREAM_PRODUCT_URL = (productId: string) => `${KREAM_API_BASE_URL}/products/${productId}`;
+export const KREAM_PRODUCT_URL = (productId: string) =>
+  `${KREAM_API_BASE_URL}/products/${productId}`;
 
 /** KREAM trades are Korean-market, settled in KRW. */
 export const KREAM_MARKET: PriceMarket = 'KR';

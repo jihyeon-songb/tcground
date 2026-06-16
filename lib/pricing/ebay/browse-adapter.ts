@@ -25,6 +25,8 @@ export const BROWSE_SOURCE_NAME = 'ebay_browse';
 export interface BrowseCardQuery {
   cardPrintingId: string;
   cardName: string;
+  nameEn?: string | null;
+  nameJa?: string | null;
   collectorNumber: string | null;
 }
 
@@ -51,6 +53,8 @@ export interface CollectBrowseOptions {
   /** `YYYY-MM-DD` for the snapshot. Defaults to today (UTC). */
   snapshotDate?: string;
   limit?: number;
+  /** Per OAuth/search request timeout, ms. */
+  timeoutMs?: number;
   /** Marketplace prices to bucket under. eBay.com asks are USD/NA. */
   market?: PriceMarket;
   currency?: string;
@@ -58,7 +62,8 @@ export interface CollectBrowseOptions {
 
 /** Builds a search keyword biased toward the Korean-language printing. */
 export function buildBrowseKeyword(query: BrowseCardQuery): string {
-  return [query.cardName, query.collectorNumber, 'Korean'].filter(Boolean).join(' ');
+  const searchableName = query.nameEn ?? query.nameJa ?? query.cardName;
+  return [searchableName, query.collectorNumber, 'Korean'].filter(Boolean).join(' ');
 }
 
 /** Builds the Browse item_summary/search URL. Pure. */
@@ -124,12 +129,16 @@ export async function collectBrowseSnapshot(
   const market = options.market ?? 'NA';
   const currency = options.currency ?? 'USD';
   const limit = options.limit ?? 50;
+  const fetchWithTimeout = withTimeout(fetchImpl, options.timeoutMs ?? 8_000);
 
-  const token = await getApplicationAccessToken(BROWSE_SCOPE, { config, fetchImpl });
+  const token = await getApplicationAccessToken(BROWSE_SCOPE, {
+    config,
+    fetchImpl: fetchWithTimeout,
+  });
   const keyword = buildBrowseKeyword(query);
   const url = buildItemSummarySearchUrl(config, keyword, limit);
 
-  const response = await fetchImpl(url, {
+  const response = await fetchWithTimeout(url, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -169,4 +178,21 @@ async function safeReadText(response: Response): Promise<string> {
   } catch {
     return '<no body>';
   }
+}
+
+function withTimeout(fetchImpl: typeof fetch, timeoutMs: number): typeof fetch {
+  return (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetchImpl(input, { ...init, signal: init?.signal ?? controller.signal });
+    } catch (error) {
+      if (controller.signal.aborted) {
+        throw new Error(`fetch timed out after ${timeoutMs}ms`);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }) as typeof fetch;
 }

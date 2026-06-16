@@ -7,6 +7,8 @@ import { ArrowLeft, Bell, CirclePlus, Info } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { PageFooter } from '@/components/tcg/layout/PageFooter';
 import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
+import { refreshEbayBrowseSnapshotForCardDetail } from '@/lib/pricing/ebay/current-asking';
+import { createPublicClient } from '@/lib/supabase/public';
 import { createClient } from '@/lib/supabase/server';
 import {
   getCardDetailBySlug,
@@ -53,11 +55,13 @@ export default async function CardDetailPage({ params, searchParams }: CardDetai
   const { cardId } = await params;
   const { edition: rawEdition } = (await searchParams) ?? {};
   const edition = parseCardEdition(rawEdition);
-  const card = await getCardDetailBySlug(cardId, undefined, { edition });
+  let card = await getCardDetailBySlug(cardId, undefined, { edition });
 
   if (!card) {
     notFound();
   }
+
+  card = await refreshEbayBrowsePriceForPage(cardId, card, edition);
 
   const currentPath =
     card.selectedEdition === 'kr'
@@ -87,6 +91,25 @@ export default async function CardDetailPage({ params, searchParams }: CardDetai
       <PageFooter />
     </div>
   );
+}
+
+async function refreshEbayBrowsePriceForPage(
+  cardId: string,
+  card: CatalogCardDetail,
+  edition: ReturnType<typeof parseCardEdition>,
+): Promise<CatalogCardDetail> {
+  try {
+    const refresh = await refreshEbayBrowseSnapshotForCardDetail(card);
+    if (!refresh.shouldReloadDetail) return card;
+
+    return (await getCardDetailBySlug(cardId, createPublicClient(), { edition })) ?? card;
+  } catch (error) {
+    console.warn(
+      'Failed to refresh eBay Browse asking snapshot',
+      error instanceof Error ? error.message : error,
+    );
+    return card;
+  }
 }
 
 async function CardRatingSection({ cardId, slug }: { cardId: string; slug: string }) {

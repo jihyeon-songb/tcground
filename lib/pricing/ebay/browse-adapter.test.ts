@@ -17,9 +17,24 @@ const config: EbayConfig = {
 };
 
 describe('buildBrowseKeyword', () => {
-  it('biases toward the Korean printing', () => {
+  it('prefers the English card name while biasing toward the Korean printing', () => {
     expect(
-      buildBrowseKeyword({ cardPrintingId: 'p1', cardName: '리자몽 ex', collectorNumber: '201/165' }),
+      buildBrowseKeyword({
+        cardPrintingId: 'p1',
+        cardName: '리자몽 ex',
+        nameEn: 'Charizard ex',
+        collectorNumber: '201/165',
+      }),
+    ).toBe('Charizard ex 201/165 Korean');
+  });
+
+  it('falls back to the catalog card name when no external name is available', () => {
+    expect(
+      buildBrowseKeyword({
+        cardPrintingId: 'p1',
+        cardName: '리자몽 ex',
+        collectorNumber: '201/165',
+      }),
     ).toBe('리자몽 ex 201/165 Korean');
   });
 });

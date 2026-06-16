@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-06-13 (로컬 카드 목록 dev 캐시 복구)
+> 마지막 갱신: 2026-06-16 (일일 가격 수집 안정화)
 
 ## 현재 기준 PRD
 
@@ -98,6 +98,9 @@
 - 목적: `card_price_snapshots`에 실데이터를 적재해 목록/상세의 "시세 정보 없음"을 실제 가격으로 전환한다. 범위 = 우선 카드 sold evidence + 자동 전체 asking 2트랙.
 - 제약: 실거래가 소스(PriceCharting/eBay/KREAM/번개/중고나라)는 Claude 환경(WebFetch)에서 전부 차단되므로 **수집은 한국 IP 로컬에서 사용자가 실행**한다. 가격 조작 금지(증거 없는 행은 만들지 않는다).
 - 현재 baseline(2026-06-04, Supabase `tcground` 조회): ko/KR 프린팅 3,668개 중 snapshot 보유 34개, total snapshot 113, observation 107. 기존 snapshot `source_name`은 구식 `aggregate`라 `--csv` 재import 시 소스별로 갱신된다.
+- 2026-06-15 상세 현재 호가 변경: 상품 상세 페이지는 eBay/Supabase 서버 credential이 있을 때 선택된 printing의 `ebay_browse` 당일 snapshot을 on-demand로 갱신한다. 이미 당일 snapshot이 있으면 API를 재호출하지 않고 uncached detail read만 수행한다. eBay 호출은 3.5초 타임아웃과 permission fallback을 둬 상세 렌더를 막지 않는다. eBay 검색어는 `external_ids.name_en`/`name_ja`를 한국어명보다 우선해 listing 매칭 가능성을 높인다. 전체 카탈로그 daily cron은 계속 유지하며, cron 쓰기 후 `prices` cache tag를 revalidate한다.
+- 2026-06-15 KREAM 호가 전환 영향 파일: `lib/pricing/kream/**`, `lib/pricing/collect-prices.ts`, `lib/pricing/price-source.types.ts`, 관련 테스트, `memory-bank/db-schema.md`, `memory-bank/prd/plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`. 최소 변경 범위: `--kream` 자동 수집은 KREAM 체결(sold) 관측치가 아니라 판매중 호가(asking) snapshot을 수집해 `aggregation_method='kream_asking_median'`으로 저장한다. 기존 `manual_kream` CSV sold evidence는 검증된 과거 체결 근거로 보존하고, 새 자동 KREAM 결과와 sold/asking을 섞지 않는다.
+- 2026-06-16 일일 스케줄 보정 영향 파일: `package.json`, `scripts/collect-prices.ts`, `scripts/collect-kream-search-page.ts`, `lib/pricing/collect-prices.ts`, `lib/pricing/ebay/browse-adapter.ts`, `lib/pricing/kream/search-page-adapter.ts`, 관련 테스트, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`. 최소 변경 범위: Vercel Cron의 eBay daily 경로는 유지하고, 로컬 `pnpm collect:daily`는 eBay Browse를 날짜별 50장 rotating window로 처리한 뒤 KREAM 검색 페이지 렌더 결과에서 현재 표시가를 수집한다. eBay fetch timeout과 source별 연속 실패 abort를 추가해 KREAM API 500/eBay fetch 실패가 전체 cron을 장시간 점유하지 않게 한다. 같은 snapshot date/source는 upsert되므로 중복 row는 만들지 않는다.
 - 2026-06-05 batch/progress 변경: eBay scrape 전체 실행이 browser context 종료로 `partial/0`이었으므로, `--offset`, `--limit`, `--source-batch-size` 옵션을 추가해 50~100장 단위로 실행/기록/재시도 가능하게 바꿨다. 이어 offset 0~49, 50~99가 모두 succeeded/0이어서 단순 재시도 대신 parser/challenge를 점검했고, eBay live HTML의 `s-card` markup과 HTTP 200 browser verification page를 처리하도록 `lib/pricing/ebay/scrape-adapter.ts`를 보강했다. 영향 파일은 `scripts/collect-prices.ts`, `lib/pricing/collect-prices.ts`, `lib/pricing/collect-prices.test.ts`, `lib/pricing/ebay/scrape-adapter.ts`, `lib/pricing/ebay/scrape-adapter.test.ts`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`로 제한했다.
 - 2026-06-05 중고나라 변경: `joongna` 자동 asking source를 추가했다. 공개 search page hydration 데이터에서 상품 `seq`/title/price만 최소 추출하고, 카드명 검색 + 세트/번호 confidence + 중고나라 전용 제외어로 단일 카드 호가만 `joongna_asking_median` snapshot에 저장한다. 영향 파일은 `lib/pricing/joongna/**`, `lib/pricing/collect-prices.ts`, `scripts/collect-prices.ts`, `lib/pricing/price-source.types.ts`, `lib/tcg-catalog.ts`, `.env.example`, 관련 테스트, memory-bank 문서로 제한한다.
 
@@ -122,7 +125,7 @@
       `node --env-file=.env.local --import tsx scripts/collect-prices.ts --dry-run --limit 2`
       결과: `ebay_browse`, `bunjang`, `ebay_scrape`는 실패 없이 종료, `guardian_tcg`는 한국 카드 표본 404, `kream`은 500으로 실패. 전체 status는 `partial`.
 - [ ] 자동 전체 수집(핵심): `node --env-file=.env.local --import tsx scripts/collect-prices.ts`
-      = enabled 소스 전부(eBay Browse asking 전 3,668 + KREAM/eBay-scrape sold). Playwright 자동 기동.
+      = enabled 소스 전부(eBay Browse/KREAM asking 전 3,668 + eBay-scrape sold). Playwright 자동 기동.
   - 2026-06-05 production 전환 없이 `--bunjang --ebay-scrape` 실제 쓰기를 실행했다. Bunjang은 succeeded로 26개 snapshot을 생성했고, eBay scrape는 browser context 종료로 partial/0 observations/0 snapshots라 후속 batch/progress 재시도가 필요하다. KREAM은 제한 dry-run에서 5/5 500이라 제외했다.
 - [x] eBay scrape batch/progress 재시도 옵션 추가:
       `node --env-file=.env.local --import tsx scripts/collect-prices.ts --ebay-scrape --offset 0 --limit 50 --source-batch-size 50`
@@ -138,6 +141,17 @@
       `JOONGNA_COLLECTION_ENABLED=true node --env-file=.env.local --import tsx scripts/collect-prices.ts --joongna --source-batch-size 100`
       100장 단위로 `price_collection_runs` batch를 기록한다.
 - [ ] (선택) 단일 소스 재시도: `--kream` / `--ebay-scrape` / `--browse`. 실패 batch만 재시도할 때는 `--offset <batch start> --limit <batch size> --source-batch-size <batch size>`를 같이 쓴다.
+- [ ] KREAM 자동 asking 제한 실행:
+      `KREAM_COLLECTION_ENABLED=true node --env-file=.env.local --import tsx scripts/collect-prices.ts --kream --dry-run --limit 5`
+      결과는 `kream_asking_median` snapshot 수와 `observationsCollected=0`으로 검증한다.
+- [x] KREAM + eBay Browse 일일 로컬 수집 명령 추가:
+      `pnpm collect:daily`
+      내부적으로 `pnpm collect:ebay:daily; pnpm collect:kream:daily`를 실행한다. `collect:ebay:daily`는 eBay Browse 날짜별 50장 window를 처리하고, `collect:kream:daily`는 KREAM 검색 페이지 렌더 결과를 처리한다. KREAM은 eBay 실패 여부와 독립적으로 매일 실행된다. KREAM 검색 페이지 수집은 기본 `--limit` 없이 product link 수가 안정화될 때까지 스크롤하며, `--max-scrolls 120`만 안전장치로 둔다.
+- [x] KREAM + eBay Browse 일일 로컬 수집 안정화:
+      전체 4,677장을 한 번에 처리하지 않고 eBay는 날짜별 50장 window만 처리한다. `ebay_browse`는 fetch timeout을 적용하고, API 기반 `kream`은 연속 실패 threshold를 넘으면 해당 source batch를 중단한다. 2026-06-16 수동 kickstart 검증 결과 LaunchAgent는 exit code 0으로 종료했고, DB에는 `ebay_browse` succeeded 2개 batch와 API 기반 `kream` partial 1개 batch가 기록됐다. 이후 KREAM 검색 페이지 렌더 결과 수집을 추가해 검색 결과 40개 중 안전 매칭 12개를 `aggregation_method='kream_search_page_asking'` snapshot으로 upsert했다. 현재 `.env.local`은 `EBAY_ENV=sandbox`라 eBay snapshot은 0건이다.
+- [x] macOS launchd 스케줄 템플릿 추가:
+      `scripts/launchd/com.tcground.daily-price-collection.plist`
+      매일 03:00 로컬 시간에 `pnpm collect:daily`를 실행하며 stdout/stderr는 `/tmp/tcground-daily-price-collection.*.log`에 남긴다.
 - [x] 로그인 Playwright 기반 KREAM 수동 evidence 수집 1차:
       `포켓몬카드 한글판` 검색 결과에서 product link 2,045개, 거래 표시 상품 272개를 확인했다. 현재 DOM에 유지된 246개를 상세 수집해 176개 상품의 체결 446건을 `memory-bank/kream-scrape/kream-product-details.json`에 저장했다. 기존 카탈로그와 확실히 매칭된 2건(`803225` 이브이 ex SAR 223/187, `804730` 파이리 AR 168/165)은 `price-source-validation.csv`에 `manual_kream`으로 추가했고, 174개 상품 444건은 카탈로그 미등록/미매칭으로 `memory-bank/kream-scrape/kream-matching-report.json`/`kream-worklist-inbox.md`에 보류했다. 70개 상품은 상세 HTML 기본 페이지/HTTP 500/로그인 리다이렉트로 재로그인 후 재수집이 필요하다.
 - [x] 재로그인 후 KREAM 직접 상세 보강:
@@ -628,6 +642,15 @@
 - [x] README 상단에 서비스 라이브 URL과 UI docs URL을 함께 표시.
 - [x] `apps/docs` 워크스페이스 설명에 UI docs 배포 링크 추가.
 - [x] 문서/배포 섹션에 `tcground-docs.vercel.app` 링크와 `@tcground/ui` UI 문서 설명 추가.
+
+### 6.11 로컬 개발 서버 실행 실패 점검
+
+- 영향 파일: `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`.
+- 최소 변경 범위: `npm run dev` 실행 실패 보고를 재현하고, 프로젝트 표준 명령과 현재 포트 점유 상태를 확인한다. 코드 동작 변경은 하지 않는다.
+- [x] `npm run dev` 실패 증상 재현.
+- [x] 프로젝트 표준 개발 명령이 `pnpm dev`임을 README/AGENTS 기준으로 확인.
+- [x] 기존 Next dev 서버가 PID `32264`로 `localhost:3000`에 이미 떠 있으며 HTTP 200으로 응답함을 확인.
+- [x] 중복 dev 서버 실행 시 `.next/dev/logs/next-development.log`와 Next 메시지에서 기존 서버를 종료하거나 기존 URL을 사용해야 함을 확인.
 
 ## 다음 작업
 

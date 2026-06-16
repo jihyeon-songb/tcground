@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it } from 'vitest';
 import {
   insertPriceObservations,
+  resolveDailyWindowOffset,
   selectCardWindow,
   splitIntoSourceBatches,
   upsertExchangeRates,
@@ -56,6 +57,27 @@ describe('selectCardWindow', () => {
 
   it('keeps the remainder when limit is omitted', () => {
     expect(selectCardWindow([0, 1, 2, 3], { cardOffset: 1 })).toEqual([1, 2, 3]);
+  });
+
+  it('selects a deterministic rotating daily window', () => {
+    expect(
+      selectCardWindow([0, 1, 2, 3, 4, 5], {
+        dailyWindowSize: 2,
+        dailyWindowDate: '1970-01-01',
+      }),
+    ).toEqual([0, 1]);
+    expect(
+      selectCardWindow([0, 1, 2, 3, 4, 5], {
+        dailyWindowSize: 2,
+        dailyWindowDate: '1970-01-02',
+      }),
+    ).toEqual([2, 3]);
+  });
+});
+
+describe('resolveDailyWindowOffset', () => {
+  it('wraps daily windows over the catalog size', () => {
+    expect(resolveDailyWindowOffset(6, 2, '1970-01-04')).toBe(0);
   });
 });
 
@@ -115,9 +137,8 @@ describe('insertPriceObservations', () => {
         select: () => {
           const builder = {
             in: () => builder,
-            then: (
-              resolve: (value: { data: typeof existing; error: null }) => void,
-            ) => resolve({ data: existing, error: null }),
+            then: (resolve: (value: { data: typeof existing; error: null }) => void) =>
+              resolve({ data: existing, error: null }),
           };
           return builder;
         },

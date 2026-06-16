@@ -1,13 +1,27 @@
 # PROGRESS
 
 > 작업 진행 상황과 의사결정 로그.
-> 마지막 갱신: 2026-06-13 (로컬 카드 목록 dev 캐시 복구)
+> 마지막 갱신: 2026-06-16 (일일 가격 수집 안정화)
 
 ## 현재 작업
 
 - 없음.
 
 ## 완료 로그
+
+- 2026-06-16: KREAM 검색 페이지 daily 수집의 고정 개수 제한을 제거했다. `scripts/collect-kream-search-page.ts`는 이제 기본적으로 `--limit` 없이 실행되며, product link 수가 더 이상 증가하지 않을 때까지 스크롤한다. 무한 루프 방지를 위해 `--max-scrolls`만 남겼고, `pnpm collect:kream:daily`는 `--max-scrolls 120`으로 실행된다. KREAM이 자동 브라우저에 500/빈 페이지를 간헐적으로 반환하는 경우를 대비해 페이지 로드를 최대 3회 재시도하고, 그래도 상품 link가 없으면 0건으로 종료하게 했다. 현재 2026-06-16 로컬 Supabase에는 앞선 성공 실행에서 적재된 `kream_search_page_asking` snapshot 15건이 유지된다.
+
+- 2026-06-16: KREAM/eBay daily cron이 launchd에서 실행되지만 장시간 실패하거나 snapshot을 적재하지 못하던 문제를 보정했다. `pnpm collect:daily`의 eBay 경로를 전체 카탈로그 처리에서 날짜별 50장 rotating window로 바꾸고, `scripts/collect-prices.ts`에 `--daily-window-size`를 추가했다. eBay Browse에는 8초 fetch timeout을 적용했고, API 기반 `ebay_browse`/`kream` source는 연속 실패 threshold를 넘으면 batch를 abort하게 했다. 기존에 멈춰 있던 LaunchAgent를 내리고 재등록한 뒤 `launchctl kickstart`로 검증했으며, 새 실행은 exit code 0으로 종료되고 DB에 `ebay_browse` succeeded batch 2개와 API 기반 `kream` partial batch 1개가 기록됐다. 이후 KREAM 검색 페이지가 실제 브라우저에서 상품명/product id/현재 표시가/거래 수를 DOM으로 제공하는 것을 확인하고, `scripts/collect-kream-search-page.ts`와 `lib/pricing/kream/search-page-adapter.ts`를 추가했다. 검색 결과 40개 dry-run에서 12개가 안전 매칭됐고, 실제 실행으로 `kream_search_page_asking` snapshot 12건을 2026-06-16 로컬 Supabase에 upsert했다. 현재 `.env.local`은 eBay sandbox라 eBay snapshot은 0건이다.
+
+- 2026-06-15: 일일 가격 수집 LaunchAgent가 실행 후 `env: node: No such file or directory`로 종료되어 6월 5일 이후 새 snapshot이 생기지 않던 원인을 확인하고 수정했다. `pnpm` 실행 파일의 shebang이 `/usr/bin/env node`라 launchd 기본 PATH(`/usr/bin:/bin:/usr/sbin:/sbin`)에서는 Node를 찾지 못했으므로, `scripts/launchd/com.tcground.daily-price-collection.plist`와 설치본 LaunchAgent에 Node 22 bin 경로를 `EnvironmentVariables.PATH`로 추가하고 재등록했다. 재검증 결과 launchd 환경에서 `pnpm --version`과 `node --version`이 정상 출력되고, repo/설치 plist `plutil -lint`가 통과했다. 추가 확인 결과 현재 `.env.local`은 로컬 Supabase와 eBay sandbox를 가리키며, 설정된 service key는 로컬 price table 읽기/쓰기에서 permission denied가 나므로 실제 적재 전 DB target/key 정합화가 필요하다.
+
+- 2026-06-15: KREAM/eBay 가격 데이터 일일 수집 경로를 추가했다. `package.json`에 `pnpm collect:daily`를 추가해 eBay Browse asking과 KREAM asking을 `--source-batch-size 100`으로 수집하게 했고, `scripts/launchd/com.tcground.daily-price-collection.plist`로 macOS LaunchAgent 매일 03:00 실행 템플릿을 추가했다. 실제 사용자 LaunchAgent(`/Users/songjihyeon/Library/LaunchAgents/com.tcground.daily-price-collection.plist`)에도 등록했고 `launchctl print`로 calendar trigger를 확인했다. `package.json` 파싱, repo/설치 plist `plutil -lint`, `pnpm exec tsc --noEmit`, focused Vitest 25개, `pnpm lint`(기존 `packages/headless/dist` warning 7개)가 통과했다. 실제 외부 수집은 API/DB 쓰기와 KREAM 접근 제한이 걸려 있어 즉시 kickstart하지 않았다.
+
+- 2026-06-15: KREAM 자동 가격 수집을 체결(sold) observation 적재에서 판매중 호가(asking) snapshot 적재로 전환했다. `collect-prices`의 `kream` source는 이제 `kind='asking'`으로 동작하며 `collectKreamAskingSnapshots`가 KREAM product의 sales option/ask payload를 `kream_asking_median` snapshot으로 줄인다. `kream`은 asking source 목록에 추가했지만, 기존 `manual_kream` CSV sold evidence와 과거 `median_filtered` KREAM snapshot은 `aggregation_method` 우선 판정으로 sold 참조점에 남긴다. focused test 56개, `pnpm lint`(기존 `packages/headless/dist` warning 7개), `pnpm exec tsc --noEmit`, `pnpm test --run`(291/291)이 통과했다. `pnpm format:check`는 저장소 전체 기존 포맷 이슈 66개로 실패해 변경 코드 파일만 Prettier 적용했다.
+
+- 2026-06-15: `npm run dev` 실행 실패 보고를 점검했다. 프로젝트 표준 명령은 `pnpm dev`이며, 현재 로컬 Next dev 서버가 이미 PID `32264`로 `localhost:3000`에서 실행 중이고 HTTP 200으로 응답함을 확인했다. 같은 프로젝트에서 새 dev 서버를 중복 실행하면 Next가 `.next/dev/logs/next-development.log`의 기존 서버 정보를 기준으로 종료하므로, 기존 브라우저에서 `http://localhost:3000`을 열거나 `kill 32264` 후 다시 `pnpm dev`/`npm run dev`를 실행하면 된다.
+
+- 2026-06-15: 상품 상세 페이지 진입 시 선택된 card printing에 대해 eBay Buy Browse API 판매중 호가(`ebay_browse`)를 당일 1회 on-demand로 갱신하도록 연결했다. eBay/Supabase 서버 credential이 없거나 service role 권한이 맞지 않으면 기존 스냅샷 표시로 안전하게 fallback하고, 당일 `ebay_browse` snapshot이 이미 있으면 API를 재호출하지 않는다. eBay 호출은 3.5초 타임아웃을 둬 상세 렌더를 붙잡지 않게 했고, 검색어는 `card_printings.external_ids.name_en`/`name_ja`를 우선 사용하고 없을 때 한국어 카드명으로 fallback하도록 보강했다. Cron 가격 수집 후에는 `prices` cache tag를 즉시 revalidate해 새 snapshot이 UI에 반영되게 했다. 브라우저 검증 중 게스트 평점 조회가 `card_ratings` 권한 오류로 상세 Suspense를 깨뜨리는 현상을 확인해 permission denied를 미평가 상태로 fallback하도록 수정했다.
 
 - 2026-06-13: 로컬 Supabase에는 카드 데이터가 복원됐지만 `/categories/pokemon`이 `0개 결과`로 보이던 문제를 확인했다. `.env.local`이 로컬 Supabase(`127.0.0.1:54321`)를 가리키고 REST API 직접 조회는 `cards=4677`로 정상임을 확인한 뒤, 오래된 Next dev 생성 산출물/캐시가 원인으로 판단해 기존 dev 서버를 종료하고 `.next`를 `/private/tmp/tcg-next-before-local-data-full-20260613-card-list-debug`로 이동한 뒤 `pnpm dev`를 재시작했다. 재검증 결과 `/categories/pokemon` HTML이 `포켓몬 4,677개 결과`와 실제 카드 목록을 렌더했다.
 
