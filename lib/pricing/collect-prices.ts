@@ -15,7 +15,11 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { collectBrowseSnapshot, BROWSE_SOURCE_NAME } from './ebay/browse-adapter';
+import {
+  collectBrowseSnapshot,
+  AUCTION_SOURCE_NAME,
+  BROWSE_SOURCE_NAME,
+} from './ebay/browse-adapter';
 import { collectEbayScrape, EBAY_SCRAPE_SOURCE_NAME } from './ebay/scrape-adapter';
 import { collectBunjangSnapshots } from './bunjang/bunjang-adapter';
 import {
@@ -463,8 +467,30 @@ function buildSourceRunners(snapshotDate: string, fetchImpl?: typeof fetch): Sou
             nameEn: card.nameEn,
             nameJa: card.nameJa,
             collectorNumber: card.collectorNumber,
+            setCode: card.setCode,
           },
           { snapshotDate },
+        );
+        return snapshot ? [snapshot] : [];
+      },
+    },
+    {
+      sourceName: AUCTION_SOURCE_NAME,
+      market: 'NA',
+      kind: 'asking',
+      enabled: isEbayConfigured,
+      maxConsecutiveFailures: 10,
+      collect: async (card) => {
+        const snapshot = await collectBrowseSnapshot(
+          {
+            cardPrintingId: card.cardPrintingId,
+            cardName: card.cardName,
+            nameEn: card.nameEn,
+            nameJa: card.nameJa,
+            collectorNumber: card.collectorNumber,
+            setCode: card.setCode,
+          },
+          { snapshotDate, buyingOption: 'AUCTION' },
         );
         return snapshot ? [snapshot] : [];
       },

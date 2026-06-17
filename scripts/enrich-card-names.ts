@@ -1,12 +1,12 @@
 /**
- * Backfills English / Japanese card names onto `card_printings.external_ids`.
+ * Backfills English card names onto `card_printings.external_ids.name_en`.
  *
  * The catalog comes from pokemoncard.co.kr and carries only Korean names, but
- * eBay listings are English/Japanese. To match them we enrich each printing with
- * TCGdex names: for every set we fetch `/ja/sets/{id}` and `/en/sets/{id}` and map
- * each card's `localId` (the collector number's left part) → name. Missing names
- * are written as `null` so collection knows the lookup was attempted (many sets
- * are JP-exclusive and have no English name).
+ * eBay is an English marketplace. The sets mirror Japanese ones, so TCGdex has
+ * no English names for them — instead we translate the Korean species name with
+ * `koreanCardNameToEnglish` (PokéAPI-derived map, see build-pokemon-name-map.ts).
+ * Cards with no resolvable species (Trainers/Items/Energy) get `name_en: null`,
+ * so collection falls back to a number-based keyword.
  *
  * Usage (Node 20+ loads env from .env.local):
  *   node --env-file=.env.local --import tsx scripts/enrich-card-names.ts            # all printings
@@ -15,42 +15,13 @@
  */
 
 import { createAdminClient } from '../lib/supabase/admin';
+import { koreanCardNameToEnglish } from '../lib/pricing/ebay/korean-card-name';
 
-const TCGDEX_BASE_URL = 'https://api.tcgdex.net/v2';
-type Locale = 'en' | 'ja';
+const PAGE_SIZE = 1000;
 
-interface PrintingRow {
-  id: string;
-  set_code: string | null;
-  collector_number: string | null;
-  external_ids: Record<string, unknown> | null;
-}
-
-/** localId → name map for one set+locale; empty when the set is absent in that locale. */
-async function fetchSetNames(setId: string, locale: Locale): Promise<Map<string, string>> {
-  const response = await fetch(`${TCGDEX_BASE_URL}/${locale}/sets/${setId}`);
-  if (!response.ok) return new Map();
-
-  const set = (await response.json()) as { cards?: Array<{ localId?: string; name?: string }> };
-  const map = new Map<string, string>();
-  for (const card of set.cards ?? []) {
-    if (card.localId != null && card.name) {
-      map.set(String(card.localId), card.name);
-    }
-  }
-  return map;
-}
-
-/** Looks up a name by localId, tolerating leading-zero differences ("092" vs "92"). */
-function lookupName(names: Map<string, string>, localId: string): string | null {
-  return names.get(localId) ?? names.get(localId.replace(/^0+/, '')) ?? null;
-}
-
-/** The collector number's left part is the TCGdex localId (e.g. "217/187" → "217"). */
-function toLocalId(collectorNumber: string | null): string | null {
-  if (!collectorNumber) return null;
-  const left = collectorNumber.split('/')[0]?.trim();
-  return left && left.length > 0 ? left : null;
+interface CardRow {
+  name: string;
+  card_printings: Array<{ id: string; external_ids: Record<string, unknown> | null }>;
 }
 
 async function main(): Promise<void> {
@@ -61,60 +32,44 @@ async function main(): Promise<void> {
 
   const supabase = createAdminClient();
 
-  let query = supabase
-    .from('card_printings')
-    .select('id, set_code, collector_number, external_ids')
-    .order('set_code', { ascending: true });
-  if (limit && Number.isFinite(limit)) query = query.limit(limit);
-
-  const { data, error } = await query;
-  if (error) throw new Error(`Failed to load printings: ${error.message}`);
-  const printings = (data ?? []) as PrintingRow[];
-
-  // Cache one names map per (setId, locale) so each set is fetched at most twice.
-  const cache = new Map<string, Map<string, string>>();
-  async function namesFor(setId: string, locale: Locale): Promise<Map<string, string>> {
-    const key = `${locale}:${setId}`;
-    let names = cache.get(key);
-    if (!names) {
-      names = await fetchSetNames(setId, locale);
-      cache.set(key, names);
-    }
-    return names;
-  }
-
-  let updated = 0;
+  let processed = 0;
   let withEn = 0;
-  let withJa = 0;
 
-  for (const printing of printings) {
-    const setId = printing.set_code?.toLowerCase();
-    const localId = toLocalId(printing.collector_number);
-    if (!setId || !localId) continue;
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from('cards')
+      .select('name, card_printings(id, external_ids)')
+      .order('slug', { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw new Error(`Failed to load cards: ${error.message}`);
 
-    const nameEn = lookupName(await namesFor(setId, 'en'), localId);
-    const nameJa = lookupName(await namesFor(setId, 'ja'), localId);
-    if (nameEn) withEn += 1;
-    if (nameJa) withJa += 1;
+    const rows = (data ?? []) as unknown as CardRow[];
+    for (const row of rows) {
+      const nameEn = koreanCardNameToEnglish(row.name);
+      for (const printing of row.card_printings ?? []) {
+        if (limit && processed >= limit) break;
+        if (nameEn) withEn += 1;
 
-    const externalIds = { ...(printing.external_ids ?? {}), name_en: nameEn, name_ja: nameJa };
-
-    if (!dryRun) {
-      const { error: updateError } = await supabase
-        .from('card_printings')
-        .update({ external_ids: externalIds })
-        .eq('id', printing.id);
-      if (updateError) {
-        console.warn(`[enrich] update failed for ${printing.id}: ${updateError.message}`);
-        continue;
+        const externalIds = { ...(printing.external_ids ?? {}), name_en: nameEn };
+        if (!dryRun) {
+          const { error: updateError } = await supabase
+            .from('card_printings')
+            .update({ external_ids: externalIds })
+            .eq('id', printing.id);
+          if (updateError) {
+            console.warn(`[enrich] update failed for ${printing.id}: ${updateError.message}`);
+            continue;
+          }
+        }
+        processed += 1;
       }
+      if (limit && processed >= limit) break;
     }
-    updated += 1;
+
+    if (rows.length < PAGE_SIZE || (limit && processed >= limit)) break;
   }
 
-  console.log(
-    `[enrich] printings=${printings.length} processed=${updated} withEn=${withEn} withJa=${withJa} dryRun=${dryRun}`,
-  );
+  console.log(`[enrich] processed=${processed} withEn=${withEn} dryRun=${dryRun}`);
 }
 
 main().catch((error) => {

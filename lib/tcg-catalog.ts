@@ -123,6 +123,8 @@ export interface PriceDisplay {
   sourceLabel: string;
   currency: string;
   sampleCount: number;
+  /** Link to the cheapest listing behind this price (eBay listing or search URL). */
+  sourceUrl?: string | null;
   sourceCurrency?: string | null;
   fxRateDate?: string | null;
   fxProvider?: string | null;
@@ -137,6 +139,8 @@ export interface PricePoint {
   sampleCount: number;
   currency: string;
   sourceNames: string[];
+  /** Link to the cheapest listing in this point's group (eBay listing or search URL). */
+  sourceUrl?: string | null;
   sourceCurrency?: string | null;
   fxRateDate?: string | null;
   fxProvider?: string | null;
@@ -173,6 +177,7 @@ interface CardPriceSnapshotRow {
   fx_provider?: string | null;
   variant: string;
   source_name: string;
+  source_url?: string | null;
   aggregation_method?: string | null;
   condition_label?: string | null;
   avg_price: number | null;
@@ -333,10 +338,10 @@ interface PrintingCardIdRow {
 }
 
 const PRICE_SNAPSHOT_SELECT_WITH_DISPLAY =
-  'snapshot_date, market, currency, source_currency, source_avg_price, source_min_price, source_max_price, display_currency, display_avg_price, display_min_price, display_max_price, fx_rate, fx_rate_date, fx_provider, variant, condition_label, source_name, aggregation_method, avg_price, min_price, max_price, sample_count, grade_company, grade_value';
+  'snapshot_date, market, currency, source_currency, source_avg_price, source_min_price, source_max_price, display_currency, display_avg_price, display_min_price, display_max_price, fx_rate, fx_rate_date, fx_provider, variant, condition_label, source_name, source_url, aggregation_method, avg_price, min_price, max_price, sample_count, grade_company, grade_value';
 
 const PRICE_SNAPSHOT_SELECT_LEGACY =
-  'snapshot_date, market, currency, variant, condition_label, source_name, aggregation_method, avg_price, min_price, max_price, sample_count, grade_company, grade_value';
+  'snapshot_date, market, currency, variant, condition_label, source_name, source_url, aggregation_method, avg_price, min_price, max_price, sample_count, grade_company, grade_value';
 
 const CARD_EDITION_CONFIG: Record<
   CardEdition,
@@ -1519,6 +1524,7 @@ function collapseByDate(rows: readonly CardPriceSnapshotRow[]): PricePoint[] {
       sampleCount: group.reduce((sum, row) => sum + (row.sample_count ?? 0), 0),
       currency: snapshotDisplayCurrency(group[0]),
       sourceNames: uniqueSorted(group.map((row) => row.source_name)),
+      sourceUrl: cheapestSourceUrl(group),
       sourceCurrency: pointSourceCurrency(group),
       fxRateDate: latestFxRateDate(group),
       fxProvider: pointFxProvider(group),
@@ -1554,6 +1560,7 @@ export function derivePriceDisplayFromHistory(history: PriceHistory): PriceDispl
       : `최근 ${formatSourceNames(latest.sourceNames) || '수동 evidence'} ${history.gradeLabel ? `${history.gradeLabel} ` : ''}실거래가 집계 ${latest.sampleCount}건 기준${formatFxSuffix(latest)}`,
     currency: latest.currency,
     sampleCount: latest.sampleCount,
+    sourceUrl: latest.sourceUrl,
     sourceCurrency: latest.sourceCurrency,
     fxRateDate: latest.fxRateDate,
     fxProvider: latest.fxProvider,
@@ -1574,6 +1581,15 @@ function snapshotMinPrice(snapshot: CardPriceSnapshotRow): number {
 
 function snapshotMaxPrice(snapshot: CardPriceSnapshotRow): number {
   return snapshot.display_max_price ?? snapshot.max_price ?? snapshotAvgPrice(snapshot) ?? 0;
+}
+
+/** Source URL of the cheapest-min row in a date group, so the link tracks 최저가. */
+function cheapestSourceUrl(group: readonly CardPriceSnapshotRow[]): string | null {
+  const withUrl = group.filter((row) => Boolean(row.source_url));
+  if (withUrl.length === 0) return null;
+  return withUrl.reduce((cheapest, row) =>
+    snapshotMinPrice(row) < snapshotMinPrice(cheapest) ? row : cheapest,
+  ).source_url ?? null;
 }
 
 function pointSourceCurrency(group: readonly CardPriceSnapshotRow[]): string | null {

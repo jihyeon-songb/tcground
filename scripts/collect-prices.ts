@@ -56,6 +56,7 @@ import type { ParsedPriceObservation } from '../lib/pricing/price-source.types';
 /** Maps a CLI flag to its source name. */
 const SOURCE_FLAGS: Record<string, string> = {
   '--browse': 'ebay_browse',
+  '--auction': 'ebay_auction',
   '--bunjang': 'bunjang',
   '--joongna': 'joongna',
   '--guardian': 'guardian_tcg',

@@ -13,6 +13,7 @@
 
 import {
   BROWSE_SCOPE,
+  EBAY_WEB_BASE_URL,
   ITEM_SUMMARY_SEARCH_PATH,
   loadEbayConfig,
   type EbayConfig,
@@ -21,6 +22,10 @@ import { getApplicationAccessToken } from './ebay-oauth';
 import type { PriceMarket, SnapshotAggregate } from '../price-source.types';
 
 export const BROWSE_SOURCE_NAME = 'ebay_browse';
+export const AUCTION_SOURCE_NAME = 'ebay_auction';
+
+/** eBay buying option a Browse search is scoped to. */
+export type BrowseBuyingOption = 'FIXED_PRICE' | 'AUCTION';
 
 export interface BrowseCardQuery {
   cardPrintingId: string;
@@ -28,12 +33,15 @@ export interface BrowseCardQuery {
   nameEn?: string | null;
   nameJa?: string | null;
   collectorNumber: string | null;
+  setCode?: string | null;
 }
 
 interface ItemSummary {
   itemId?: string;
   title?: string;
   price?: { value?: string; currency?: string };
+  /** Auction listings expose the current bid here instead of a fixed price. */
+  currentBidPrice?: { value?: string; currency?: string };
   itemWebUrl?: string;
 }
 
@@ -45,6 +53,14 @@ interface ItemSummaryResponse {
 export interface MapSnapshotContext {
   cardPrintingId: string;
   snapshotDate: string;
+  /** Source bucket the snapshot is recorded under. Defaults to fixed-price browse. */
+  sourceName?: string;
+  /** Aggregation label stored on the snapshot. */
+  aggregationMethod?: string;
+  /** `buyingOption` the listings came from; picks fixed price vs current bid. */
+  buyingOption?: BrowseBuyingOption;
+  /** Keyword used to build a fallback eBay search link when no listing URL exists. */
+  keyword?: string;
 }
 
 export interface CollectBrowseOptions {
@@ -58,12 +74,23 @@ export interface CollectBrowseOptions {
   /** Marketplace prices to bucket under. eBay.com asks are USD/NA. */
   market?: PriceMarket;
   currency?: string;
+  /** Fixed-price asks (default) or auction current bids. */
+  buyingOption?: BrowseBuyingOption;
 }
 
-/** Builds a search keyword biased toward the Korean-language printing. */
+/**
+ * Builds an eBay search keyword for a Korean-language printing.
+ *
+ * eBay is an English marketplace, so the Korean card name returns nothing. We
+ * key off the enriched English species name when present; otherwise (Trainers,
+ * unmapped cards) we fall back to the collector number + set code, which eBay
+ * sellers reliably include in their titles.
+ */
 export function buildBrowseKeyword(query: BrowseCardQuery): string {
-  const searchableName = query.nameEn ?? query.nameJa ?? query.cardName;
-  return [searchableName, query.collectorNumber, 'Korean'].filter(Boolean).join(' ');
+  if (query.nameEn) {
+    return [query.nameEn, query.collectorNumber, 'Korean'].filter(Boolean).join(' ');
+  }
+  return [query.collectorNumber, query.setCode, 'Korean Pokemon'].filter(Boolean).join(' ');
 }
 
 /** Builds the Browse item_summary/search URL. Pure. */
@@ -71,11 +98,22 @@ export function buildItemSummarySearchUrl(
   config: EbayConfig,
   keyword: string,
   limit: number,
+  buyingOption: BrowseBuyingOption = 'FIXED_PRICE',
 ): string {
   const url = new URL(`${config.apiBaseUrl}${ITEM_SUMMARY_SEARCH_PATH}`);
   url.searchParams.set('q', keyword);
   url.searchParams.set('limit', String(limit));
-  url.searchParams.set('filter', 'buyingOptions:{FIXED_PRICE|AUCTION}');
+  // FIXED_PRICE asks are a real asking price; AUCTION listings expose the current
+  // bid (collected as a separate ebay_auction source). Completed auction (sold)
+  // prices come from the ebay_scrape source.
+  url.searchParams.set('filter', `buyingOptions:{${buyingOption}}`);
+  return url.toString();
+}
+
+/** Builds the human-facing eBay search results URL for a keyword (link fallback). */
+function buildEbaySearchPageUrl(keyword: string): string {
+  const url = new URL(`${EBAY_WEB_BASE_URL}/sch/i.html`);
+  url.searchParams.set('_nkw', keyword);
   return url.toString();
 }
 
@@ -90,14 +128,24 @@ export function mapItemSummariesToSnapshot(
   market: PriceMarket = 'NA',
   currency = 'USD',
 ): SnapshotAggregate | null {
-  const prices = (payload.itemSummaries ?? [])
-    .filter((item) => (item.price?.currency ?? currency) === currency)
-    .map((item) => Number.parseFloat(item.price?.value ?? ''))
-    .filter((value) => Number.isFinite(value) && value > 0);
+  const isAuction = context.buyingOption === 'AUCTION';
+  // Auctions expose the live bid in `currentBidPrice`; fixed-price asks in `price`.
+  const priced = (payload.itemSummaries ?? [])
+    .map((item) => {
+      const amount = isAuction ? (item.currentBidPrice ?? item.price) : item.price;
+      return { value: Number.parseFloat(amount?.value ?? ''), currency: amount?.currency, item };
+    })
+    .filter((row) => row.currency === currency || row.currency === undefined)
+    .filter((row) => Number.isFinite(row.value) && row.value > 0);
 
-  if (prices.length === 0) return null;
+  if (priced.length === 0) return null;
 
-  const sorted = [...prices].sort((a, b) => a - b);
+  const sorted = [...priced].sort((a, b) => a.value - b.value);
+  const cheapest = sorted[0];
+  // Link to the cheapest listing; fall back to the search page when it has no URL.
+  const sourceUrl =
+    cheapest.item.itemWebUrl ??
+    (context.keyword ? buildEbaySearchPageUrl(context.keyword) : null);
 
   return {
     cardPrintingId: context.cardPrintingId,
@@ -108,13 +156,14 @@ export function mapItemSummariesToSnapshot(
     conditionLabel: null,
     gradeCompany: null,
     gradeValue: null,
-    avgPrice: roundCurrency(median(sorted)),
-    minPrice: roundCurrency(sorted[0]),
-    maxPrice: roundCurrency(sorted[sorted.length - 1]),
+    avgPrice: roundCurrency(median(sorted.map((row) => row.value))),
+    minPrice: roundCurrency(sorted[0].value),
+    maxPrice: roundCurrency(sorted[sorted.length - 1].value),
     sampleCount: sorted.length,
-    sourceName: BROWSE_SOURCE_NAME,
-    sourceUrl: null,
-    aggregationMethod: 'browse_asking_median',
+    sourceName: context.sourceName ?? (isAuction ? AUCTION_SOURCE_NAME : BROWSE_SOURCE_NAME),
+    sourceUrl,
+    aggregationMethod:
+      context.aggregationMethod ?? (isAuction ? 'auction_bid_median' : 'browse_asking_median'),
   };
 }
 
@@ -129,6 +178,7 @@ export async function collectBrowseSnapshot(
   const market = options.market ?? 'NA';
   const currency = options.currency ?? 'USD';
   const limit = options.limit ?? 50;
+  const buyingOption = options.buyingOption ?? 'FIXED_PRICE';
   const fetchWithTimeout = withTimeout(fetchImpl, options.timeoutMs ?? 8_000);
 
   const token = await getApplicationAccessToken(BROWSE_SCOPE, {
@@ -136,7 +186,7 @@ export async function collectBrowseSnapshot(
     fetchImpl: fetchWithTimeout,
   });
   const keyword = buildBrowseKeyword(query);
-  const url = buildItemSummarySearchUrl(config, keyword, limit);
+  const url = buildItemSummarySearchUrl(config, keyword, limit, buyingOption);
 
   const response = await fetchWithTimeout(url, {
     method: 'GET',
@@ -154,7 +204,13 @@ export async function collectBrowseSnapshot(
   const payload = (await response.json()) as ItemSummaryResponse;
   return mapItemSummariesToSnapshot(
     payload,
-    { cardPrintingId: query.cardPrintingId, snapshotDate },
+    {
+      cardPrintingId: query.cardPrintingId,
+      snapshotDate,
+      buyingOption,
+      keyword,
+      sourceName: buyingOption === 'AUCTION' ? AUCTION_SOURCE_NAME : BROWSE_SOURCE_NAME,
+    },
     market,
     currency,
   );

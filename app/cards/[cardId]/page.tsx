@@ -238,6 +238,16 @@ export function CardDetailContent({ card, ratingSlot }: CardDetailContentProps) 
                 </span>
               </div>
             </div>
+            {card.price.sourceUrl && (
+              <a
+                href={card.price.sourceUrl}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='text-muted-foreground hover:text-foreground mt-2 inline-flex w-fit items-center gap-1 text-sm font-medium underline'
+              >
+                eBay에서 보기
+              </a>
+            )}
           </div>
 
           <dl className='bg-card grid grid-cols-2 gap-3 rounded-2xl p-6 md:grid-cols-4'>
