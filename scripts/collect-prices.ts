@@ -4,7 +4,7 @@
  * Usage (Node 20+ loads env from .env.local):
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts            # all enabled sources
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --guardian
- *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --browse
+ *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --browse  # ebay_browse + ebay_auction (1 call/card)
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --kream    # KREAM asking; needs KREAM_COLLECTION_ENABLED
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --bunjang  # needs BUNJANG_COLLECTION_ENABLED
  *   node --env-file=.env.local --import tsx scripts/collect-prices.ts --joongna  # needs JOONGNA_COLLECTION_ENABLED
@@ -55,6 +55,8 @@ import type { ParsedPriceObservation } from '../lib/pricing/price-source.types';
 
 /** Maps a CLI flag to its source name. */
 const SOURCE_FLAGS: Record<string, string> = {
+  // `--browse` collects both fixed-price (ebay_browse) and auction (ebay_auction)
+  // snapshots in one Browse call per card; there is no separate `--auction` flag.
   '--browse': 'ebay_browse',
   '--bunjang': 'bunjang',
   '--joongna': 'joongna',

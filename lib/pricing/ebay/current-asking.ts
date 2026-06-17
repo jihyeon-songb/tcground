@@ -9,8 +9,20 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { CatalogCardDetail } from '@/lib/tcg-catalog';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { SnapshotAggregate } from '../price-source.types';
 import { attachDisplayPrices, upsertSnapshots } from '../collect-prices';
-import { BROWSE_SOURCE_NAME, collectBrowseSnapshot } from './browse-adapter';
+import {
+  AUCTION_SOURCE_NAME,
+  BROWSE_SOURCE_NAME,
+  collectBrowseSnapshot,
+  type BrowseBuyingOption,
+} from './browse-adapter';
+
+/** Asking sources refreshed on a card-detail visit: fixed-price asks + auction bids. */
+const REFRESH_SOURCES: ReadonlyArray<{ buyingOption: BrowseBuyingOption; sourceName: string }> = [
+  { buyingOption: 'FIXED_PRICE', sourceName: BROWSE_SOURCE_NAME },
+  { buyingOption: 'AUCTION', sourceName: AUCTION_SOURCE_NAME },
+];
 
 export type EbayBrowseRefreshStatus = 'updated' | 'fresh' | 'empty' | 'skipped';
 
@@ -43,27 +55,33 @@ export async function refreshEbayBrowseSnapshotForCardDetail(
   const fetchImpl =
     options.fetchImpl ?? timeoutFetch(options.timeoutMs ?? DEFAULT_REFRESH_TIMEOUT_MS);
 
+  const query = {
+    cardPrintingId: card.printing.id,
+    cardName: card.cardName,
+    nameEn: card.printing.nameEn,
+    nameJa: card.printing.nameJa,
+    collectorNumber: card.printing.collectorNumber,
+    setCode: card.printing.setCode,
+  };
+
   try {
-    if (await hasBrowseSnapshotForDate(supabase, card.printing.id, snapshotDate)) {
-      return {
-        status: 'fresh',
-        snapshotsUpserted: 0,
-        shouldReloadDetail: true,
-      };
+    const collected: SnapshotAggregate[] = [];
+    let allFresh = true;
+
+    for (const { buyingOption, sourceName } of REFRESH_SOURCES) {
+      if (await hasSnapshotForDate(supabase, card.printing.id, snapshotDate, sourceName)) {
+        continue;
+      }
+      allFresh = false;
+      const snapshot = await collectBrowseSnapshot(query, { snapshotDate, fetchImpl, buyingOption });
+      if (snapshot) collected.push(snapshot);
     }
 
-    const snapshot = await collectBrowseSnapshot(
-      {
-        cardPrintingId: card.printing.id,
-        cardName: card.cardName,
-        nameEn: card.printing.nameEn,
-        nameJa: card.printing.nameJa,
-        collectorNumber: card.printing.collectorNumber,
-      },
-      { snapshotDate, fetchImpl },
-    );
+    if (allFresh) {
+      return { status: 'fresh', snapshotsUpserted: 0, shouldReloadDetail: true };
+    }
 
-    if (!snapshot) {
+    if (collected.length === 0) {
       return {
         status: 'empty',
         snapshotsUpserted: 0,
@@ -72,7 +90,7 @@ export async function refreshEbayBrowseSnapshotForCardDetail(
       };
     }
 
-    const displaySnapshots = await attachDisplayPrices(supabase, [snapshot], {});
+    const displaySnapshots = await attachDisplayPrices(supabase, collected, {});
     const snapshotsUpserted = await upsertSnapshots(supabase, displaySnapshots);
 
     return {
@@ -88,21 +106,22 @@ export async function refreshEbayBrowseSnapshotForCardDetail(
   }
 }
 
-async function hasBrowseSnapshotForDate(
+async function hasSnapshotForDate(
   supabase: SupabaseClient,
   cardPrintingId: string,
   snapshotDate: string,
+  sourceName: string,
 ): Promise<boolean> {
   const { data, error } = await supabase
     .from('card_price_snapshots')
     .select('id')
     .eq('card_printing_id', cardPrintingId)
     .eq('snapshot_date', snapshotDate)
-    .eq('source_name', BROWSE_SOURCE_NAME)
+    .eq('source_name', sourceName)
     .limit(1);
 
   if (error) {
-    throw new Error(`Failed to check eBay Browse snapshot freshness: ${error.message}`);
+    throw new Error(`Failed to check eBay snapshot freshness: ${error.message}`);
   }
 
   return (data ?? []).length > 0;

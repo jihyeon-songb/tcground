@@ -75,7 +75,8 @@ const SOLD_RE =
 const LINK_RE =
   /<a[^>]*class=(?:"[^"]*(?:s-item__link|s-card__link)[^"]*"|[^\s>]*(?:s-item__link|s-card__link)[^\s>]*)[^>]*href="?([^"\s>]+)"?/;
 const ITEM_HREF_RE = /href="?([^"\s>]*\/itm\/\d+[^"\s>]*)"?/;
-const PRICE_TEXT_RE = /(?:US\s*)?[$]\s*[\d,]+(?:\.\d+)?|[£€]\s*[\d,]+(?:\.\d+)?/;
+const PRICE_TEXT_RE =
+  /(?:US\s*)?[$£€¥₩]\s*[\d,]+(?:\.\d+)?|(?:KRW|JPY|USD|GBP|EUR)\s*[\d,]+(?:\.\d+)?/i;
 const SOLD_TEXT_RE =
   /(?:Sold|판매됨)\s*(?:on\s*)?(?:[A-Z][a-z]{2,}\s+\d{1,2},\s+\d{4}|\d{4}[.\-/년]\s*\d{1,2}[.\-/월]\s*\d{1,2})/i;
 
@@ -181,10 +182,19 @@ function parsePrice(text: string): number | null {
   return Number.isFinite(value) && value > 0 ? value : null;
 }
 
-/** Picks an ISO-4217 currency from a price string. Defaults to USD. */
+/**
+ * Picks an ISO-4217 currency from a price string. Defaults to USD. KRW/JPY are
+ * detected because eBay localizes sold prices to the viewer's region (a Korean
+ * IP renders "KRW461,937.75"); mislabeling those as USD inflated stored prices
+ * ~1000x.
+ */
 function parseCurrency(text: string): string {
-  if (text.includes('£') || /\bGBP\b/.test(text)) return 'GBP';
-  if (text.includes('€') || /\bEUR\b/.test(text)) return 'EUR';
+  // No \b around the codes: eBay renders "KRW461,937.75" with the digits flush
+  // against the code, so a trailing word boundary never matches.
+  if (text.includes('₩') || /KRW/i.test(text) || text.includes('원')) return 'KRW';
+  if (text.includes('¥') || /JPY/i.test(text)) return 'JPY';
+  if (text.includes('£') || /GBP/i.test(text)) return 'GBP';
+  if (text.includes('€') || /EUR/i.test(text)) return 'EUR';
   return 'USD';
 }
 
