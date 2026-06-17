@@ -29,6 +29,19 @@ const SOLD_CARD_HTML = `
   </ul>
 `;
 
+// eBay localizes prices to a Korean viewer's region: "KRW461,937.75".
+const SOLD_KRW_HTML = `
+  <ul class="srp-results srp-list clearfix">
+    <li class="s-card s-card--horizontal" data-listingid="205979361572">
+      <a class="s-card__link" href=https://www.ebay.com/itm/205979361572>
+        <span class="s-card__title">Charizard SAR 201/165 Pokemon Card 151 Korean</span>
+      </a>
+      <div class="s-card__price"><span>KRW461,937.75</span></div>
+      <div class="s-card__subtitle"><span>Sold May 18, 2026</span></div>
+    </li>
+  </ul>
+`;
+
 const CHARIZARD_TARGET = {
   names: ['Charizard'],
   collectorNumber: '201/165',
@@ -114,6 +127,17 @@ describe('parseEbaySoldHtml', () => {
     expect(graded.gradeCompany).toBe('PSA');
     expect(graded.gradeValue).toBe('10');
     expect(graded.soldAt).toBe(new Date(Date.UTC(2026, 4, 17)).toISOString());
+  });
+
+  it('classifies KRW-localized prices as KRW, not USD', () => {
+    const [raw] = parseEbaySoldHtml(SOLD_KRW_HTML, {
+      cardPrintingId: 'printing-krw',
+      target: { ...CHARIZARD_TARGET, setTokens: ['151'] },
+      observedAt: '2026-06-05T00:00:00Z',
+    });
+
+    expect(raw.currency).toBe('KRW');
+    expect(raw.soldPrice).toBe(461937.75);
   });
 });
 
