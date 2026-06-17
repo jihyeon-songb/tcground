@@ -43,6 +43,8 @@ interface ItemSummary {
   /** Auction listings expose the current bid here instead of a fixed price. */
   currentBidPrice?: { value?: string; currency?: string };
   itemWebUrl?: string;
+  /** eBay tags each item with its buying options, e.g. `['FIXED_PRICE']` or `['AUCTION']`. */
+  buyingOptions?: string[];
 }
 
 interface ItemSummaryResponse {
@@ -93,12 +95,19 @@ export function buildBrowseKeyword(query: BrowseCardQuery): string {
   return [query.collectorNumber, query.setCode, 'Korean Pokemon'].filter(Boolean).join(' ');
 }
 
-/** Builds the Browse item_summary/search URL. Pure. */
+/**
+ * Builds the Browse item_summary/search URL. Pure.
+ *
+ * Pass a single buying option for a scoped search, or both
+ * (`['FIXED_PRICE', 'AUCTION']`) to fetch fixed-price asks and auction bids in
+ * one call — eBay supports the `{A|B}` OR syntax and tags each returned item
+ * with its `buyingOptions`, so the caller can partition the results.
+ */
 export function buildItemSummarySearchUrl(
   config: EbayConfig,
   keyword: string,
   limit: number,
-  buyingOption: BrowseBuyingOption = 'FIXED_PRICE',
+  buyingOption: BrowseBuyingOption | readonly BrowseBuyingOption[] = 'FIXED_PRICE',
 ): string {
   const url = new URL(`${config.apiBaseUrl}${ITEM_SUMMARY_SEARCH_PATH}`);
   url.searchParams.set('q', keyword);
@@ -106,7 +115,8 @@ export function buildItemSummarySearchUrl(
   // FIXED_PRICE asks are a real asking price; AUCTION listings expose the current
   // bid (collected as a separate ebay_auction source). Completed auction (sold)
   // prices come from the ebay_scrape source.
-  url.searchParams.set('filter', `buyingOptions:{${buyingOption}}`);
+  const options = Array.isArray(buyingOption) ? buyingOption : [buyingOption];
+  url.searchParams.set('filter', `buyingOptions:{${options.join('|')}}`);
   return url.toString();
 }
 
@@ -214,6 +224,73 @@ export async function collectBrowseSnapshot(
     market,
     currency,
   );
+}
+
+/**
+ * Fetches active listings for one card in a SINGLE Browse search and returns
+ * both its fixed-price (ebay_browse) and auction (ebay_auction) snapshots.
+ *
+ * One search returns items tagged with their `buyingOptions`, so we partition
+ * the payload instead of issuing two separate calls. This halves the API call
+ * count (one per card, not two), keeping a full-catalog daily census under the
+ * Browse API's 5,000 calls/day limit.
+ */
+export async function collectBrowseAuctionSnapshots(
+  query: BrowseCardQuery,
+  options: CollectBrowseOptions = {},
+): Promise<SnapshotAggregate[]> {
+  const config = options.config ?? loadEbayConfig();
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const snapshotDate = options.snapshotDate ?? new Date().toISOString().slice(0, 10);
+  const market = options.market ?? 'NA';
+  const currency = options.currency ?? 'USD';
+  // Wider than the single-option limit so both fixed-price and auction listings
+  // get a usable sample from one response. Still one API call.
+  const limit = options.limit ?? 100;
+  const fetchWithTimeout = withTimeout(fetchImpl, options.timeoutMs ?? 8_000);
+
+  const token = await getApplicationAccessToken(BROWSE_SCOPE, {
+    config,
+    fetchImpl: fetchWithTimeout,
+  });
+  const keyword = buildBrowseKeyword(query);
+  const url = buildItemSummarySearchUrl(config, keyword, limit, ['FIXED_PRICE', 'AUCTION']);
+
+  const response = await fetchWithTimeout(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
+    },
+  });
+
+  if (!response.ok) {
+    const detail = await safeReadText(response);
+    throw new Error(`eBay Browse search failed (${response.status}): ${detail}`);
+  }
+
+  const payload = (await response.json()) as ItemSummaryResponse;
+  const items = payload.itemSummaries ?? [];
+
+  const snapshots: SnapshotAggregate[] = [];
+  for (const buyingOption of ['FIXED_PRICE', 'AUCTION'] as const) {
+    const subset = items.filter((item) => (item.buyingOptions ?? []).includes(buyingOption));
+    const snapshot = mapItemSummariesToSnapshot(
+      { itemSummaries: subset },
+      {
+        cardPrintingId: query.cardPrintingId,
+        snapshotDate,
+        buyingOption,
+        keyword,
+        sourceName: buyingOption === 'AUCTION' ? AUCTION_SOURCE_NAME : BROWSE_SOURCE_NAME,
+      },
+      market,
+      currency,
+    );
+    if (snapshot) snapshots.push(snapshot);
+  }
+
+  return snapshots;
 }
 
 function median(sortedValues: readonly number[]): number {

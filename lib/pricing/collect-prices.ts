@@ -15,11 +15,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import {
-  collectBrowseSnapshot,
-  AUCTION_SOURCE_NAME,
-  BROWSE_SOURCE_NAME,
-} from './ebay/browse-adapter';
+import { collectBrowseAuctionSnapshots, BROWSE_SOURCE_NAME } from './ebay/browse-adapter';
 import { collectEbayScrape, EBAY_SCRAPE_SOURCE_NAME } from './ebay/scrape-adapter';
 import { collectBunjangSnapshots } from './bunjang/bunjang-adapter';
 import {
@@ -454,13 +450,17 @@ interface SourceRunner {
 function buildSourceRunners(snapshotDate: string, fetchImpl?: typeof fetch): SourceRunner[] {
   return [
     {
+      // One Browse search per card returns both fixed-price (ebay_browse) and
+      // auction (ebay_auction) snapshots, partitioned by each item's
+      // buyingOptions. One API call per card instead of two keeps a full-catalog
+      // daily census under the Browse API's 5,000 calls/day limit.
       sourceName: BROWSE_SOURCE_NAME,
       market: 'NA',
       kind: 'asking',
       enabled: isEbayConfigured,
       maxConsecutiveFailures: 10,
-      collect: async (card) => {
-        const snapshot = await collectBrowseSnapshot(
+      collect: (card) =>
+        collectBrowseAuctionSnapshots(
           {
             cardPrintingId: card.cardPrintingId,
             cardName: card.cardName,
@@ -470,30 +470,7 @@ function buildSourceRunners(snapshotDate: string, fetchImpl?: typeof fetch): Sou
             setCode: card.setCode,
           },
           { snapshotDate },
-        );
-        return snapshot ? [snapshot] : [];
-      },
-    },
-    {
-      sourceName: AUCTION_SOURCE_NAME,
-      market: 'NA',
-      kind: 'asking',
-      enabled: isEbayConfigured,
-      maxConsecutiveFailures: 10,
-      collect: async (card) => {
-        const snapshot = await collectBrowseSnapshot(
-          {
-            cardPrintingId: card.cardPrintingId,
-            cardName: card.cardName,
-            nameEn: card.nameEn,
-            nameJa: card.nameJa,
-            collectorNumber: card.collectorNumber,
-            setCode: card.setCode,
-          },
-          { snapshotDate, buyingOption: 'AUCTION' },
-        );
-        return snapshot ? [snapshot] : [];
-      },
+        ),
     },
     {
       sourceName: BUNJANG_SOURCE_NAME,

@@ -4,6 +4,7 @@ import {
   BROWSE_SOURCE_NAME,
   buildBrowseKeyword,
   buildItemSummarySearchUrl,
+  collectBrowseAuctionSnapshots,
   mapItemSummariesToSnapshot,
 } from './browse-adapter';
 import type { EbayConfig } from './ebay-config';
@@ -124,5 +125,77 @@ describe('buildItemSummarySearchUrl buyingOption', () => {
   it('filters auctions when buyingOption is AUCTION', () => {
     const url = new URL(buildItemSummarySearchUrl(config, 'Charizard', 50, 'AUCTION'));
     expect(url.searchParams.get('filter')).toBe('buyingOptions:{AUCTION}');
+  });
+
+  it('ORs both buying options for a combined search', () => {
+    const url = new URL(
+      buildItemSummarySearchUrl(config, 'Charizard', 100, ['FIXED_PRICE', 'AUCTION']),
+    );
+    expect(url.searchParams.get('filter')).toBe('buyingOptions:{FIXED_PRICE|AUCTION}');
+  });
+});
+
+describe('collectBrowseAuctionSnapshots', () => {
+  const query = {
+    cardPrintingId: 'p1',
+    cardName: '리자몽 ex',
+    nameEn: 'Charizard ex',
+    collectorNumber: '201/165',
+  };
+
+  /** Mock fetch: OAuth token URL → token, search URL → the given payload. */
+  function mockFetch(payload: unknown): typeof fetch {
+    return (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/oauth2/token')) {
+        return new Response(JSON.stringify({ access_token: 'tok', expires_in: 7200 }), {
+          status: 200,
+        });
+      }
+      return new Response(JSON.stringify(payload), { status: 200 });
+    }) as typeof fetch;
+  }
+
+  it('partitions one response into ebay_browse and ebay_auction snapshots', async () => {
+    const snapshots = await collectBrowseAuctionSnapshots(query, {
+      config,
+      snapshotDate: '2026-06-17',
+      fetchImpl: mockFetch({
+        itemSummaries: [
+          {
+            buyingOptions: ['FIXED_PRICE'],
+            price: { value: '150.00', currency: 'USD' },
+            itemWebUrl: 'https://www.ebay.com/itm/1',
+          },
+          {
+            buyingOptions: ['AUCTION'],
+            currentBidPrice: { value: '80.00', currency: 'USD' },
+            itemWebUrl: 'https://www.ebay.com/itm/2',
+          },
+        ],
+      }),
+    });
+
+    const browse = snapshots.find((s) => s.sourceName === BROWSE_SOURCE_NAME);
+    const auction = snapshots.find((s) => s.sourceName === AUCTION_SOURCE_NAME);
+    expect(browse?.avgPrice).toBe(150);
+    expect(browse?.sampleCount).toBe(1);
+    expect(auction?.avgPrice).toBe(80);
+    expect(auction?.sampleCount).toBe(1);
+  });
+
+  it('returns only the populated source when the other has no listings', async () => {
+    const snapshots = await collectBrowseAuctionSnapshots(query, {
+      config,
+      snapshotDate: '2026-06-17',
+      fetchImpl: mockFetch({
+        itemSummaries: [
+          { buyingOptions: ['FIXED_PRICE'], price: { value: '150.00', currency: 'USD' } },
+        ],
+      }),
+    });
+
+    expect(snapshots).toHaveLength(1);
+    expect(snapshots[0].sourceName).toBe(BROWSE_SOURCE_NAME);
   });
 });

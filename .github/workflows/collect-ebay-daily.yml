@@ -1,0 +1,55 @@
+name: Collect eBay daily
+
+# Full-catalog daily eBay asking collection (ebay_browse + ebay_auction).
+# Runs in the cloud — no Mac required — because the eBay Browse API is a plain
+# OAuth API reachable from any IP. KREAM / eBay sold-scrape stay on the local
+# launchd job since they need a residential / Korean IP + a real browser.
+
+on:
+  schedule:
+    # 03:00 KST == 18:00 UTC. GitHub may delay scheduled runs by minutes.
+    - cron: '0 18 * * *'
+  workflow_dispatch: # allow manual runs from the Actions tab
+
+# One run at a time; a slow run never overlaps the next day's.
+concurrency:
+  group: collect-ebay-daily
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # The collect script loads env via `node --env-file=.env.local`, so
+      # materialize it from repo secrets. eBay is production; DB is the
+      # production Supabase project.
+      - name: Write .env.local from secrets
+        run: |
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}"
+            echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+            echo "EBAY_ENV=production"
+            echo "EBAY_CLIENT_ID=${{ secrets.EBAY_CLIENT_ID }}"
+            echo "EBAY_CLIENT_SECRET=${{ secrets.EBAY_CLIENT_SECRET }}"
+          } > .env.local
+
+      - name: Collect eBay browse + auction (full catalog)
+        run: pnpm collect:ebay:daily
+
+      - name: Remove secrets file
+        if: always()
+        run: rm -f .env.local

@@ -1,10 +1,4 @@
 {
   "installCommand": "pnpm install --filter=tcg-round...",
-  "regions": ["sin1"],
-  "crons": [
-    {
-      "path": "/api/cron/collect-prices",
-      "schedule": "0 0 * * *"
-    }
-  ]
+  "regions": ["sin1"]
 }
