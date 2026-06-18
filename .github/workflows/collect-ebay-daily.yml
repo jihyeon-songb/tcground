@@ -45,6 +45,7 @@ jobs:
             echo "EBAY_ENV=production"
             echo "EBAY_CLIENT_ID=${{ secrets.EBAY_CLIENT_ID }}"
             echo "EBAY_CLIENT_SECRET=${{ secrets.EBAY_CLIENT_SECRET }}"
+            echo "KOREA_EXIM_FX_API_KEY=${{ secrets.KOREA_EXIM_FX_API_KEY }}"
           } > .env.local
 
       - name: Collect eBay browse + auction (full catalog)

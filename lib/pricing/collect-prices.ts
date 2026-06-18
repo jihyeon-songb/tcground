@@ -827,7 +827,11 @@ async function loadExchangeRatesForSnapshots(
   if (foreignCurrencies.length === 0) return [];
 
   const dates = snapshots.map((snapshot) => snapshot.snapshotDate).sort();
-  const fromDate = shiftDate(dates[0], -10);
+  // Wide lookback so a lagging FX feed still yields the most recent available
+  // rate. `findExchangeRate` always picks the newest rate <= snapshot date, so a
+  // stale table converts at the last known rate instead of silently skipping
+  // conversion (which would render a USD figure under a ₩ label).
+  const fromDate = shiftDate(dates[0], -60);
   const toDate = dates[dates.length - 1];
 
   const { data, error } = await supabase

@@ -100,7 +100,13 @@ async function main(): Promise<void> {
   let exchangeRates: ExchangeRateInput[] | undefined;
   if (runFx) {
     const dates = collectFxDates([...parsedSold, ...parsedAsking], runCollect);
-    exchangeRates = await fetchAndStoreExchangeRates(supabase, dates, dryRun);
+    try {
+      exchangeRates = await fetchAndStoreExchangeRates(supabase, dates, dryRun);
+    } catch (error) {
+      // A failed FX refresh must not abort price collection: downstream
+      // conversion falls back to the most recent rate already in the DB.
+      console.error('[fx] refresh failed, continuing with stored rates:', error);
+    }
   }
 
   if (runCsv) {
