@@ -19,7 +19,10 @@ import {
   type EbayConfig,
 } from './ebay-config';
 import { getApplicationAccessToken } from './ebay-oauth';
-import type { PriceMarket, SnapshotAggregate } from '../price-source.types';
+import type { PriceMarket, SnapshotAggregate, SnapshotListing } from '../price-source.types';
+
+/** Max individual listings kept on an asking snapshot for the detail page. */
+const MAX_LISTINGS = 10;
 
 export const BROWSE_SOURCE_NAME = 'ebay_browse';
 export const AUCTION_SOURCE_NAME = 'ebay_auction';
@@ -157,6 +160,20 @@ export function mapItemSummariesToSnapshot(
     cheapest.item.itemWebUrl ??
     (context.keyword ? buildEbaySearchPageUrl(context.keyword) : null);
 
+  // Keep the cheapest N listings (with a real per-listing URL) so the detail page
+  // can link to individual asks, not just the cheapest. Auctions are excluded.
+  const listings: SnapshotListing[] = isAuction
+    ? []
+    : sorted
+        .filter((row) => Boolean(row.item.itemWebUrl))
+        .slice(0, MAX_LISTINGS)
+        .map((row) => ({
+          price: roundCurrency(row.value),
+          currency,
+          url: row.item.itemWebUrl as string,
+          title: row.item.title ?? null,
+        }));
+
   return {
     cardPrintingId: context.cardPrintingId,
     snapshotDate: context.snapshotDate,
@@ -172,6 +189,7 @@ export function mapItemSummariesToSnapshot(
     sampleCount: sorted.length,
     sourceName: context.sourceName ?? (isAuction ? AUCTION_SOURCE_NAME : BROWSE_SOURCE_NAME),
     sourceUrl,
+    listings: listings.length > 0 ? listings : undefined,
     aggregationMethod:
       context.aggregationMethod ?? (isAuction ? 'auction_bid_median' : 'browse_asking_median'),
   };

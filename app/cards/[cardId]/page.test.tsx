@@ -255,6 +255,8 @@ function createCardDetail(): CatalogCardDetail {
       gradeLabel: null,
       hasData: true,
     },
+    ebayListings: [],
+    featuredListingIndex: -1,
     printing: {
       id: 'printing-kr-004',
       language: 'ko',

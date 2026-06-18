@@ -66,6 +66,18 @@ export interface ParsedPriceObservation {
 }
 
 /**
+ * A single active listing kept alongside an asking snapshot so the card detail
+ * page can link to individual eBay listings (not just the cheapest one).
+ * Price is in the snapshot's source `currency`.
+ */
+export interface SnapshotListing {
+  price: number;
+  currency: string;
+  url: string;
+  title: string | null;
+}
+
+/**
  * A daily, per-bucket price summary ready to upsert into `card_price_snapshots`.
  * This is the shape the card-detail chart reads.
  */
@@ -86,6 +98,8 @@ export interface SnapshotAggregate {
   sampleCount: number;
   sourceName: string;
   sourceUrl: string | null;
+  /** Top active listings (price asc), for asking sources that expose per-listing URLs. */
+  listings?: SnapshotListing[];
   aggregationMethod: string;
   /** Original source-currency summary, populated when a display conversion is attached. */
   sourceCurrency?: string | null;

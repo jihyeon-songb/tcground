@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildPriceHistory,
   createDeterministicPriceDisplay,
+  deriveEbayListings,
   derivePriceDisplayFromHistory,
   fetchSnapshotsByPrinting,
   getCardDetailBySlug,
@@ -1171,5 +1172,58 @@ describe('price history view models', () => {
   it('returns null when there are no priced snapshots at all', () => {
     const history = buildPriceHistory([snapshotRow({ avg_price: null })]);
     expect(derivePriceDisplayFromHistory(history)).toBeNull();
+  });
+});
+
+describe('deriveEbayListings', () => {
+  const listingRow = (overrides: Record<string, unknown> = {}) => ({
+    snapshot_date: '2026-05-29',
+    market: 'NA',
+    currency: 'USD',
+    variant: 'raw',
+    source_name: 'ebay_browse',
+    avg_price: 100,
+    min_price: 80,
+    max_price: 200,
+    sample_count: 3,
+    fx_rate: 1000,
+    listings: [
+      { price: 80, currency: 'USD', url: 'https://www.ebay.com/itm/a', title: 'A' },
+      { price: 100, currency: 'USD', url: 'https://www.ebay.com/itm/b', title: 'B' },
+      { price: 200, currency: 'USD', url: 'https://www.ebay.com/itm/c', title: 'C' },
+    ],
+    ...overrides,
+  });
+
+  it('converts listings to KRW (price asc) and flags the one nearest the average', () => {
+    // displayAvgPrice 95,000 KRW → closest is the 100 USD (100,000 KRW) listing at index 1.
+    const { listings, featuredIndex } = deriveEbayListings([listingRow()], 95_000);
+
+    expect(listings).toEqual([
+      { priceKrw: 80_000, url: 'https://www.ebay.com/itm/a', title: 'A' },
+      { priceKrw: 100_000, url: 'https://www.ebay.com/itm/b', title: 'B' },
+      { priceKrw: 200_000, url: 'https://www.ebay.com/itm/c', title: 'C' },
+    ]);
+    expect(featuredIndex).toBe(1);
+  });
+
+  it('uses only the latest browse snapshot and dedupes by URL', () => {
+    const { listings } = deriveEbayListings(
+      [
+        listingRow({ snapshot_date: '2026-05-20', listings: [{ price: 5, currency: 'USD', url: 'https://www.ebay.com/itm/old', title: 'old' }] }),
+        listingRow(),
+      ],
+      100_000,
+    );
+
+    expect(listings.map((listing) => listing.url)).not.toContain('https://www.ebay.com/itm/old');
+    expect(listings).toHaveLength(3);
+  });
+
+  it('returns empty when no browse snapshot carries listings', () => {
+    expect(deriveEbayListings([listingRow({ listings: undefined })], 100_000)).toEqual({
+      listings: [],
+      featuredIndex: -1,
+    });
   });
 });

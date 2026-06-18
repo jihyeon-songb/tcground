@@ -1064,6 +1064,7 @@ function toObservationRow(observation: PriceObservationInput) {
 function toSnapshotRow(snapshot: SnapshotAggregate) {
   return {
     ...toLegacySnapshotRow(snapshot),
+    listings: snapshot.listings ?? null,
     ...(snapshot.displayCurrency
       ? {
           source_currency: snapshot.sourceCurrency ?? snapshot.currency,
