@@ -66,6 +66,12 @@ export interface MapSnapshotContext {
   buyingOption?: BrowseBuyingOption;
   /** Keyword used to build a fallback eBay search link when no listing URL exists. */
   keyword?: string;
+  /**
+   * Card collector number (e.g. `098/098`). When set, listings whose title does
+   * not contain it are dropped — eBay keyword search fuzzy-matches and routinely
+   * returns a different card, so the number is the cheapest reliable identity check.
+   */
+  collectorNumber?: string | null;
 }
 
 export interface CollectBrowseOptions {
@@ -149,7 +155,8 @@ export function mapItemSummariesToSnapshot(
       return { value: Number.parseFloat(amount?.value ?? ''), currency: amount?.currency, item };
     })
     .filter((row) => row.currency === currency || row.currency === undefined)
-    .filter((row) => Number.isFinite(row.value) && row.value > 0);
+    .filter((row) => Number.isFinite(row.value) && row.value > 0)
+    .filter((row) => titleMatchesCollectorNumber(row.item.title, context.collectorNumber));
 
   if (priced.length === 0) return null;
 
@@ -237,6 +244,7 @@ export async function collectBrowseSnapshot(
       snapshotDate,
       buyingOption,
       keyword,
+      collectorNumber: query.collectorNumber,
       sourceName: buyingOption === 'AUCTION' ? AUCTION_SOURCE_NAME : BROWSE_SOURCE_NAME,
     },
     market,
@@ -300,6 +308,7 @@ export async function collectBrowseAuctionSnapshots(
         snapshotDate,
         buyingOption,
         keyword,
+        collectorNumber: query.collectorNumber,
         sourceName: buyingOption === 'AUCTION' ? AUCTION_SOURCE_NAME : BROWSE_SOURCE_NAME,
       },
       market,
@@ -309,6 +318,25 @@ export async function collectBrowseAuctionSnapshots(
   }
 
   return snapshots;
+}
+
+/**
+ * True when `title` plausibly belongs to the card identified by `collectorNumber`
+ * (e.g. `098/098`). eBay sellers reliably print the `NNN/NNN` number in titles,
+ * so a title missing it is almost always a different card the fuzzy search dragged
+ * in. Whitespace is stripped from both sides so `098 / 098` still matches.
+ *
+ * When the card has no slash-style number (Korean promos, unmapped cards) there is
+ * no reliable identity token, so the check passes through — no worse than before.
+ */
+export function titleMatchesCollectorNumber(
+  title: string | undefined | null,
+  collectorNumber: string | null | undefined,
+): boolean {
+  if (!collectorNumber || !collectorNumber.includes('/')) return true;
+  if (!title) return false;
+  const normalize = (value: string) => value.replace(/\s+/g, '').toLowerCase();
+  return normalize(title).includes(normalize(collectorNumber));
 }
 
 function median(sortedValues: readonly number[]): number {

@@ -160,6 +160,40 @@ describe('mapItemSummariesToSnapshot', () => {
       }),
     ).toBeNull();
   });
+
+  it('drops listings whose title lacks the card collector number (wrong-card guard)', () => {
+    const payload = {
+      itemSummaries: [
+        {
+          title: 'Probopass 052/098 Korean SV10 NM',
+          price: { value: '5.00', currency: 'USD' },
+          itemWebUrl: 'https://ebay.com/itm/wrong',
+        },
+        {
+          title: 'Team Rocket Energy 098/098 Korean SV10 NM',
+          price: { value: '9.00', currency: 'USD' },
+          itemWebUrl: 'https://ebay.com/itm/right',
+        },
+      ],
+    };
+    const snapshot = mapItemSummariesToSnapshot(payload, {
+      cardPrintingId: 'p1',
+      snapshotDate: '2026-05-29',
+      collectorNumber: '098/098',
+    });
+    expect(snapshot?.sampleCount).toBe(1);
+    expect(snapshot?.listings).toEqual([
+      expect.objectContaining({ url: 'https://ebay.com/itm/right' }),
+    ]);
+
+    // No slash-style number → no reliable identity token → pass through unchanged.
+    const promo = mapItemSummariesToSnapshot(payload, {
+      cardPrintingId: 'p1',
+      snapshotDate: '2026-05-29',
+      collectorNumber: 'PROMO',
+    });
+    expect(promo?.sampleCount).toBe(2);
+  });
 });
 
 describe('buildItemSummarySearchUrl buyingOption', () => {
@@ -205,11 +239,13 @@ describe('collectBrowseAuctionSnapshots', () => {
         itemSummaries: [
           {
             buyingOptions: ['FIXED_PRICE'],
+            title: 'Charizard ex 201/165 Korean SV2a NM',
             price: { value: '150.00', currency: 'USD' },
             itemWebUrl: 'https://www.ebay.com/itm/1',
           },
           {
             buyingOptions: ['AUCTION'],
+            title: 'Charizard ex 201/165 Korean SV2a',
             currentBidPrice: { value: '80.00', currency: 'USD' },
             itemWebUrl: 'https://www.ebay.com/itm/2',
           },
@@ -231,7 +267,11 @@ describe('collectBrowseAuctionSnapshots', () => {
       snapshotDate: '2026-06-17',
       fetchImpl: mockFetch({
         itemSummaries: [
-          { buyingOptions: ['FIXED_PRICE'], price: { value: '150.00', currency: 'USD' } },
+          {
+            buyingOptions: ['FIXED_PRICE'],
+            title: 'Charizard ex 201/165 Korean SV2a NM',
+            price: { value: '150.00', currency: 'USD' },
+          },
         ],
       }),
     });
