@@ -186,6 +186,7 @@ interface CardPriceSnapshotRow {
   sample_count: number | null;
   grade_company?: string | null;
   grade_value?: string | null;
+  listings?: Array<{ price: number; currency: string; url: string; title: string | null }> | null;
 }
 
 export interface PokemonCatalogCard {
@@ -231,6 +232,13 @@ export interface PokemonCategoryPageData {
   sort: PokemonSort;
 }
 
+/** An individual eBay active listing, KRW-converted, for the detail page link list. */
+export interface EbayListing {
+  priceKrw: number;
+  url: string;
+  title: string | null;
+}
+
 /** Public aggregate of user ratings for a card. */
 export interface CardRatingSummary {
   /** Average score (1–5, one decimal), or null when there are no ratings. */
@@ -264,6 +272,10 @@ export interface CatalogCardDetail {
     nameJa: string | null;
   };
   priceHistory: PriceHistory;
+  /** Individual eBay 판매중 listings (price asc, KRW), empty when none available. */
+  ebayListings: EbayListing[];
+  /** Index into `ebayListings` of the listing closest to the average price; -1 when empty. */
+  featuredListingIndex: number;
   backHref: string;
   backLabel: string;
 }
@@ -338,7 +350,7 @@ interface PrintingCardIdRow {
 }
 
 const PRICE_SNAPSHOT_SELECT_WITH_DISPLAY =
-  'snapshot_date, market, currency, source_currency, source_avg_price, source_min_price, source_max_price, display_currency, display_avg_price, display_min_price, display_max_price, fx_rate, fx_rate_date, fx_provider, variant, condition_label, source_name, source_url, aggregation_method, avg_price, min_price, max_price, sample_count, grade_company, grade_value';
+  'snapshot_date, market, currency, source_currency, source_avg_price, source_min_price, source_max_price, display_currency, display_avg_price, display_min_price, display_max_price, fx_rate, fx_rate_date, fx_provider, variant, condition_label, source_name, source_url, aggregation_method, avg_price, min_price, max_price, sample_count, grade_company, grade_value, listings';
 
 const PRICE_SNAPSHOT_SELECT_LEGACY =
   'snapshot_date, market, currency, variant, condition_label, source_name, source_url, aggregation_method, avg_price, min_price, max_price, sample_count, grade_company, grade_value';
@@ -1288,6 +1300,10 @@ export function mapCardDetailRow(
   const price =
     derivePriceDisplayFromHistory(priceHistory) ??
     createDeterministicPriceDisplay(row.slug, sampleId);
+  const { listings: ebayListings, featuredIndex: featuredListingIndex } = deriveEbayListings(
+    snapshots,
+    price.avgPrice,
+  );
 
   return {
     cardId: row.id,
@@ -1304,6 +1320,8 @@ export function mapCardDetailRow(
     selectedEdition,
     editionOptions: buildEditionOptions(row, selectedEdition),
     priceHistory,
+    ebayListings,
+    featuredListingIndex,
     printing: {
       id: printing?.id ?? row.id,
       language: printing?.language ?? 'ko',
@@ -1533,6 +1551,52 @@ function collapseByDate(rows: readonly CardPriceSnapshotRow[]): PricePoint[] {
 
   points.sort((a, b) => a.date.localeCompare(b.date));
   return points;
+}
+
+/**
+ * Builds the KRW-converted eBay 판매중(즉시구매) listing list for the detail page
+ * from the latest `ebay_browse` snapshot. Listings are price-ascending and
+ * deduped by URL; `featuredIndex` points at the one closest to `displayAvgPrice`.
+ *
+ * ponytail: converts with the snapshot's collection-day fx_rate, not a
+ * per-listing rate. Add per-listing FX at collection time if accuracy matters.
+ */
+export function deriveEbayListings(
+  snapshots: readonly CardPriceSnapshotRow[],
+  displayAvgPrice: number,
+): { listings: EbayListing[]; featuredIndex: number } {
+  const browseRows = snapshots.filter(
+    (snapshot) =>
+      snapshot.source_name === 'ebay_browse' &&
+      Array.isArray(snapshot.listings) &&
+      snapshot.listings.length > 0,
+  );
+  if (browseRows.length === 0) return { listings: [], featuredIndex: -1 };
+
+  const latest = latestDate(browseRows);
+  const byUrl = new Map<string, EbayListing>();
+  for (const row of browseRows.filter((snapshot) => snapshot.snapshot_date === latest)) {
+    const rate = row.fx_rate ?? null;
+    for (const listing of row.listings ?? []) {
+      if (!listing.url || byUrl.has(listing.url)) continue;
+      const priceKrw = Math.round(rate ? listing.price * rate : listing.price);
+      byUrl.set(listing.url, { priceKrw, url: listing.url, title: listing.title ?? null });
+    }
+  }
+
+  const listings = Array.from(byUrl.values()).sort((a, b) => a.priceKrw - b.priceKrw);
+  if (listings.length === 0) return { listings: [], featuredIndex: -1 };
+
+  let featuredIndex = 0;
+  let bestDiff = Number.POSITIVE_INFINITY;
+  listings.forEach((listing, index) => {
+    const diff = Math.abs(listing.priceKrw - displayAvgPrice);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      featuredIndex = index;
+    }
+  });
+  return { listings, featuredIndex };
 }
 
 /** Derives the price summary from the trend series, or null when there is none. */

@@ -111,6 +111,47 @@ describe('mapItemSummariesToSnapshot', () => {
     expect(snapshot?.sourceUrl).toBe('https://www.ebay.com/itm/777');
   });
 
+  it('keeps individual fixed-price listings (price asc, url required) for the detail page', () => {
+    const snapshot = mapItemSummariesToSnapshot(
+      {
+        itemSummaries: [
+          { price: { value: '162.00', currency: 'USD' }, itemWebUrl: 'https://www.ebay.com/itm/b', title: 'B' },
+          { price: { value: '139.99', currency: 'USD' }, itemWebUrl: 'https://www.ebay.com/itm/a', title: 'A' },
+          // No URL → excluded from listings.
+          { price: { value: '120.00', currency: 'USD' } },
+        ],
+      },
+      { cardPrintingId: 'p1', snapshotDate: '2026-05-29' },
+    );
+
+    expect(snapshot?.listings).toEqual([
+      { price: 139.99, currency: 'USD', url: 'https://www.ebay.com/itm/a', title: 'A' },
+      { price: 162, currency: 'USD', url: 'https://www.ebay.com/itm/b', title: 'B' },
+    ]);
+  });
+
+  it('caps listings at 10 and omits them for auctions', () => {
+    const many = Array.from({ length: 15 }, (_, i) => ({
+      price: { value: String(10 + i), currency: 'USD' },
+      itemWebUrl: `https://www.ebay.com/itm/${i}`,
+    }));
+    const fixed = mapItemSummariesToSnapshot(
+      { itemSummaries: many },
+      { cardPrintingId: 'p1', snapshotDate: '2026-05-29' },
+    );
+    expect(fixed?.listings).toHaveLength(10);
+
+    const auction = mapItemSummariesToSnapshot(
+      {
+        itemSummaries: [
+          { currentBidPrice: { value: '80.00', currency: 'USD' }, itemWebUrl: 'https://www.ebay.com/itm/777' },
+        ],
+      },
+      { cardPrintingId: 'p1', snapshotDate: '2026-05-29', buyingOption: 'AUCTION' },
+    );
+    expect(auction?.listings).toBeUndefined();
+  });
+
   it('returns null when there are no priced listings', () => {
     expect(
       mapItemSummariesToSnapshot({ itemSummaries: [] }, {

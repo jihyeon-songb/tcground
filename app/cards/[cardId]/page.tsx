@@ -20,6 +20,7 @@ import {
 } from '@/lib/tcg-catalog';
 import { formatPrice } from '@/lib/tcg-data';
 import { PriceHistoryChart } from './_components/PriceHistoryChart';
+import { EbayListings } from './_components/EbayListings';
 import { CardRating } from './_components/CardRating';
 import { CardDetailScrollReset } from './_components/CardDetailScrollReset';
 import { changeChipClass, formatChangeRate, TrendIcon } from '../_lib/price-change';
@@ -238,16 +239,11 @@ export function CardDetailContent({ card, ratingSlot }: CardDetailContentProps) 
                 </span>
               </div>
             </div>
-            {card.price.sourceUrl && (
-              <a
-                href={card.price.sourceUrl}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='text-muted-foreground hover:text-foreground mt-2 inline-flex w-fit items-center gap-1 text-sm font-medium underline'
-              >
-                eBay에서 보기
-              </a>
-            )}
+            <EbayListings
+              listings={card.ebayListings}
+              featuredIndex={card.featuredListingIndex}
+              fallbackUrl={card.price.sourceUrl}
+            />
           </div>
 
           <dl className='bg-card grid grid-cols-2 gap-3 rounded-2xl p-6 md:grid-cols-4'>
