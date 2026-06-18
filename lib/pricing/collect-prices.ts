@@ -459,6 +459,10 @@ function buildSourceRunners(snapshotDate: string, fetchImpl?: typeof fetch): Sou
       kind: 'asking',
       enabled: isEbayConfigured,
       maxConsecutiveFailures: 10,
+      // Pace per-card calls so a fast full-catalog census stays under eBay's
+      // short-term burst throttle (separate from the 5,000/day quota). Without
+      // this, rapid back-to-back searches return 429 even with daily quota left.
+      delayMs: 300,
       collect: (card) =>
         collectBrowseAuctionSnapshots(
           {
@@ -1184,9 +1188,12 @@ function isMissingExchangeRatesTable(message: string): boolean {
 }
 
 function isMissingSnapshotDisplayColumn(message: string): boolean {
-  const mentionsDisplayColumn =
-    message.includes('display_') || message.includes('source_') || message.includes('fx_');
-  return mentionsDisplayColumn && message.includes('schema cache');
+  const mentionsModernColumn =
+    message.includes('display_') ||
+    message.includes('source_') ||
+    message.includes('fx_') ||
+    message.includes('listings');
+  return mentionsModernColumn && message.includes('schema cache');
 }
 
 function isLegacySourceItemUniqueViolation(message: string): boolean {
