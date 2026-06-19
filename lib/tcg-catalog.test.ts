@@ -185,43 +185,33 @@ describe('tcg catalog view models', () => {
     expect(data.selectedSetSlugs).toEqual([]);
   });
 
-  it('orders recommendation cards by how many price-snapshot records back each card', () => {
+  it('orders recommendation cards by price, most expensive first', () => {
     const rows = [
       createCardRow({
         sampleId: 'PKMKR-BS2023014201',
-        slug: 'kr-001-no-records',
+        slug: 'kr-001-no-price',
         name: '시세 없음',
         setSlug: 'pokemon-kr-151',
         setName: '포켓몬 카드 151',
       }),
       createCardRow({
         sampleId: 'PKMKR-BS2023014202',
-        slug: 'kr-002-few-records',
-        name: '시세 적음',
+        slug: 'kr-002-cheap',
+        name: '시세 저렴',
         setSlug: 'pokemon-kr-151',
         setName: '포켓몬 카드 151',
       }),
       createCardRow({
         sampleId: 'PKMKR-BS2023014203',
-        slug: 'kr-003-many-records',
-        name: '시세 많음',
+        slug: 'kr-003-expensive',
+        name: '시세 비쌈',
         setSlug: 'pokemon-kr-151',
         setName: '포켓몬 카드 151',
       }),
     ];
     const snapshotsByPrinting = new Map([
-      [
-        'kr-002-few-records-printing',
-        [createSnapshotRow({ snapshot_date: '2026-06-01', sample_count: 7 })],
-      ],
-      [
-        'kr-003-many-records-printing',
-        [
-          createSnapshotRow({ snapshot_date: '2026-06-01', sample_count: 2 }),
-          createSnapshotRow({ snapshot_date: '2026-05-25', sample_count: 1 }),
-          createSnapshotRow({ snapshot_date: '2026-05-18', sample_count: 1 }),
-        ],
-      ],
+      ['kr-002-cheap-printing', [createSnapshotRow({ avg_price: 50000 })]],
+      ['kr-003-expensive-printing', [createSnapshotRow({ avg_price: 300000 })]],
     ]);
 
     const data = mapPokemonCategoryPageData(
@@ -231,12 +221,11 @@ describe('tcg catalog view models', () => {
       snapshotsByPrinting,
     );
 
-    // kr-003 wins on record count (3) even though kr-002's single snapshot has a
-    // larger sample_count; cards with no price records sort last.
+    // Highest price first; cards with no usable price sort last.
     expect(data.cards.map((card) => card.slug)).toEqual([
-      'kr-003-many-records',
-      'kr-002-few-records',
-      'kr-001-no-records',
+      'kr-003-expensive',
+      'kr-002-cheap',
+      'kr-001-no-price',
     ]);
   });
 
