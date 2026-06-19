@@ -1649,11 +1649,22 @@ function snapshotMaxPrice(snapshot: CardPriceSnapshotRow): number {
 
 /** Source URL of the cheapest-min row in a date group, so the link tracks 최저가. */
 function cheapestSourceUrl(group: readonly CardPriceSnapshotRow[]): string | null {
-  const withUrl = group.filter((row) => Boolean(row.source_url));
+  const withUrl = group.filter(
+    (row) => Boolean(row.source_url) || (row.listings?.length ?? 0) > 0,
+  );
   if (withUrl.length === 0) return null;
-  return withUrl.reduce((cheapest, row) =>
+  const cheapest = withUrl.reduce((cheapest, row) =>
     snapshotMinPrice(row) < snapshotMinPrice(cheapest) ? row : cheapest,
-  ).source_url ?? null;
+  );
+  // Prefer a URL from the filtered `listings` array. The legacy `source_url`
+  // column was written before listing-level contamination filtering and can
+  // point at an unrelated card (eBay fuzzy-matches the collector number across
+  // sets), so trust the filtered listings first and only fall back to it.
+  const listings = cheapest.listings ?? [];
+  if (listings.length > 0) {
+    return listings.reduce((a, b) => (b.price < a.price ? b : a)).url ?? cheapest.source_url ?? null;
+  }
+  return cheapest.source_url ?? null;
 }
 
 function pointSourceCurrency(group: readonly CardPriceSnapshotRow[]): string | null {

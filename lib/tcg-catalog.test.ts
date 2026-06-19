@@ -848,6 +848,30 @@ describe('price history view models', () => {
     expect(history.soldPoints[0].avgPrice).toBe(150);
   });
 
+  it('links to the cheapest filtered listing, ignoring a stale contaminated source_url', () => {
+    // Legacy source_url points at an unrelated card eBay fuzzy-matched; the
+    // filtered listings array is clean, so the link must come from listings.
+    const history = buildPriceHistory([
+      snapshotRow({
+        source_url: 'https://www.ebay.com/itm/298286038307?_skw=wrong',
+        listings: [
+          { price: 5, currency: 'USD', url: 'https://www.ebay.com/itm/200', title: 'b' },
+          { price: 2, currency: 'USD', url: 'https://www.ebay.com/itm/100', title: 'a' },
+        ],
+      }),
+    ]);
+
+    expect(derivePriceDisplayFromHistory(history)?.sourceUrl).toBe('https://www.ebay.com/itm/100');
+  });
+
+  it('falls back to source_url when a row has no listings', () => {
+    const history = buildPriceHistory([
+      snapshotRow({ source_url: 'https://www.ebay.com/itm/999', listings: null }),
+    ]);
+
+    expect(derivePriceDisplayFromHistory(history)?.sourceUrl).toBe('https://www.ebay.com/itm/999');
+  });
+
   it('draws graded sold data as the trend (with a grade label) only when no raw data exists', () => {
     const history = buildPriceHistory([
       // Legacy KREAM PSA 10 sold evidence — the only data this card has, so it becomes the line
