@@ -85,8 +85,9 @@ export function PriceAlertButton({
   }
 
   function clear() {
+    setError(null);
     startTransition(async () => {
-      const res = await clearPriceAlert({ cardPrintingId, slug, direction });
+      const res = await clearPriceAlert({ cardPrintingId, slug, direction: existingAlert!.direction });
       if (res.ok) {
         setOpen(false);
         router.refresh();
