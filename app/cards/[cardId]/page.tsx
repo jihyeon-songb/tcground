@@ -265,6 +265,19 @@ export function CardDetailContent({ card, ratingSlot, alertSlot }: CardDetailCon
                   <TrendIcon tone={card.price.changeTone} />
                   {formatChangeRate(card.price.changeRate)}
                 </span>
+                {card.price.stalenessDays > 0 && (
+                  <span
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-sm leading-none font-semibold ${
+                      card.price.stalenessDays > 7
+                        ? 'bg-tcg-red/10 text-tcg-red'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {card.price.stalenessDays > 7
+                      ? `최근 거래 없음 · ${card.price.stalenessDays}일 전 호가`
+                      : `${card.price.stalenessDays}일 전 기준`}
+                  </span>
+                )}
               </div>
             </div>
             <div className='border-border mt-4 flex flex-wrap gap-8 border-t pt-4'>
