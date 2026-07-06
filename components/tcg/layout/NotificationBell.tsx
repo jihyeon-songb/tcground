@@ -15,15 +15,17 @@ export async function NotificationBell() {
     .order('created_at', { ascending: false })
     .limit(20);
 
-  type PrintingJoin = { cards: { slug: string } | null } | null;
   const rows: NotificationRow[] = (data ?? []).map((row) => {
-    const printing = (row.card_printings as unknown) as PrintingJoin;
+    const rawPrinting = row.card_printings;
+    const printing = Array.isArray(rawPrinting) ? rawPrinting[0] : rawPrinting;
+    const rawCards = printing?.cards;
+    const cards = Array.isArray(rawCards) ? rawCards[0] : rawCards;
     return {
       id: row.id as string,
       title: row.title as string,
       body: row.body as string,
       read_at: (row.read_at as string | null) ?? null,
-      card_slug: printing?.cards?.slug ?? null,
+      card_slug: cards?.slug ?? null,
     };
   });
 

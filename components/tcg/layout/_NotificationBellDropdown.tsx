@@ -2,6 +2,7 @@
 
 import { startTransition } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Bell } from 'lucide-react';
 import {
   DropdownMenu,
@@ -25,10 +26,13 @@ interface Props {
 }
 
 export function NotificationBellDropdown({ rows, unread }: Props) {
+  const router = useRouter();
+
   function handleOpenChange(open: boolean) {
     if (open && unread > 0) {
-      startTransition(() => {
-        markAllNotificationsRead();
+      startTransition(async () => {
+        await markAllNotificationsRead();
+        router.refresh();
       });
     }
   }
@@ -48,21 +52,23 @@ export function NotificationBellDropdown({ rows, unread }: Props) {
         {rows.length === 0 ? (
           <DropdownMenuItem disabled>알림이 없습니다.</DropdownMenuItem>
         ) : (
-          rows.map((r) => (
-            <DropdownMenuItem key={r.id} className={r.read_at ? 'opacity-60' : 'font-semibold'}>
-              {r.card_slug ? (
+          rows.map((r) =>
+            r.card_slug ? (
+              <DropdownMenuItem key={r.id} asChild className={r.read_at ? 'opacity-60' : 'font-semibold'}>
                 <Link href={`/cards/${r.card_slug}`} className='flex w-full flex-col'>
                   <span>{r.title}</span>
                   <span className='text-muted-foreground text-xs'>{r.body}</span>
                 </Link>
-              ) : (
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem key={r.id} className={r.read_at ? 'opacity-60' : 'font-semibold'}>
                 <span className='flex flex-col'>
                   <span>{r.title}</span>
                   <span className='text-muted-foreground text-xs'>{r.body}</span>
                 </span>
-              )}
-            </DropdownMenuItem>
-          ))
+              </DropdownMenuItem>
+            )
+          )
         )}
       </DropdownMenuContent>
     </DropdownMenu>
