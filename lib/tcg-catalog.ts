@@ -160,7 +160,7 @@ export interface PriceHistory {
   hasData: boolean;
 }
 
-interface CardPriceSnapshotRow {
+export interface CardPriceSnapshotRow {
   snapshot_date: string;
   market: string;
   currency: string;
@@ -1172,7 +1172,7 @@ async function fetchSnapshotRowsForPrinting(
   return (result.data ?? []) as CardPriceSnapshotRow[];
 }
 
-async function fetchSnapshotRowsForPrintings(
+export async function fetchSnapshotRowsForPrintings(
   supabase: SupabaseClient,
   printingIds: readonly string[],
 ): Promise<Array<CardPriceSnapshotRow & { card_printing_id: string }>> {

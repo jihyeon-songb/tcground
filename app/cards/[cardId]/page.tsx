@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@tcground/ui';
-import { ArrowLeft, Bell, CirclePlus, Info } from 'lucide-react';
+import { ArrowLeft, CirclePlus, Info } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { PageFooter } from '@/components/tcg/layout/PageFooter';
 import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
@@ -23,6 +23,7 @@ import { PriceHistoryChart } from './_components/PriceHistoryChart';
 import { EbayListings } from './_components/EbayListings';
 import { CardRating } from './_components/CardRating';
 import { CardDetailScrollReset } from './_components/CardDetailScrollReset';
+import { PriceAlertButton } from './_components/PriceAlertButton';
 import { changeChipClass, formatChangeRate, TrendIcon } from '../_lib/price-change';
 
 // Re-exported for tests that exercise the pure geometry helper against `./page`.
@@ -86,6 +87,11 @@ export default async function CardDetailPage({ params, searchParams }: CardDetai
               <CardRatingSection cardId={card.cardId} slug={card.slug} />
             </Suspense>
           }
+          alertSlot={
+            <Suspense fallback={null}>
+              <PriceAlertSection card={card} />
+            </Suspense>
+          }
         />
       </main>
 
@@ -133,6 +139,40 @@ async function CardRatingSection({ cardId, slug }: { cardId: string; slug: strin
   );
 }
 
+async function PriceAlertSection({ card }: { card: CatalogCardDetail }) {
+  const supabase = await createClient();
+  const { data: claims } = await supabase.auth.getClaims();
+  const isAuthenticated = Boolean(claims?.claims?.sub);
+
+  let existingAlert: { direction: 'below' | 'above'; threshold: number } | null = null;
+  if (isAuthenticated) {
+    const { data } = await supabase
+      .from('price_alerts')
+      .select('direction, threshold')
+      .eq('card_printing_id', card.printing.id)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (data?.[0]) {
+      existingAlert = {
+        direction: data[0].direction as 'below' | 'above',
+        threshold: Number(data[0].threshold),
+      };
+    }
+  }
+
+  return (
+    <PriceAlertButton
+      cardPrintingId={card.printing.id}
+      slug={card.slug}
+      currency={card.price.currency}
+      gradeLabel={card.priceHistory.gradeLabel}
+      isAuthenticated={isAuthenticated}
+      existingAlert={existingAlert}
+    />
+  );
+}
+
 function CardRatingSkeleton() {
   return (
     <section aria-hidden className='bg-card flex flex-col gap-4 rounded-2xl p-8'>
@@ -152,9 +192,11 @@ interface CardDetailContentProps {
   card: CatalogCardDetail;
   /** Auth-dependent rating block, streamed in via a Suspense boundary. */
   ratingSlot?: ReactNode;
+  /** Auth-dependent price alert button, streamed in via a Suspense boundary. */
+  alertSlot?: ReactNode;
 }
 
-export function CardDetailContent({ card, ratingSlot }: CardDetailContentProps) {
+export function CardDetailContent({ card, ratingSlot, alertSlot }: CardDetailContentProps) {
   // Draw the trend line from the asking series when we have it, otherwise from
   // the coherent sold series — so a sold-only history is still a real line, not
   // scattered dots. Overlay sold points only when they're distinct from the line.
@@ -260,10 +302,7 @@ export function CardDetailContent({ card, ratingSlot }: CardDetailContentProps) 
               <CirclePlus className='size-5' aria-hidden />
               관심 카드 추가
             </Button>
-            <Button type='button' variant='outline' size='cta'>
-              <Bell className='size-5' aria-hidden />
-              가격 알림 설정
-            </Button>
+            {alertSlot}
           </div>
 
           <PriceHistoryChart

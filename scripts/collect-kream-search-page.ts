@@ -22,6 +22,7 @@ import {
   getCardQueries,
   upsertSnapshots,
 } from '../lib/pricing/collect-prices';
+import { runPriceAlertEvaluation } from '../lib/alerts/evaluate';
 import {
   KREAM_BASE_SEARCH_KEYWORD,
   buildKreamSegmentedSearchKeywords,
@@ -96,6 +97,16 @@ async function main(): Promise<void> {
   if (!dryRun && displaySnapshots.length > 0) {
     const written = await upsertSnapshots(supabase, displaySnapshots);
     console.log(`[kream-search-page] upserted ${written} snapshots`);
+  }
+
+  // 가격 알림 평가는 시세 수집과 독립. 실패해도 배치 전체는 성공 처리.
+  if (!dryRun) {
+    try {
+      const result = await runPriceAlertEvaluation(supabase);
+      console.log(`[price-alert] hits=${result.hits} delivered=${result.delivered}`);
+    } catch (err) {
+      console.warn('[price-alert] 평가 실패(수집은 성공)', err instanceof Error ? err.message : err);
+    }
   }
 }
 

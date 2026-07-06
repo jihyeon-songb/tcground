@@ -6,6 +6,7 @@ import {
   HeaderAuthActions,
   HeaderAuthActionsFallback,
 } from '@/components/tcg/layout/HeaderAuthActions';
+import { NotificationBell } from '@/components/tcg/layout/NotificationBell';
 
 type HeaderSearchOptions =
   | {
@@ -76,6 +77,9 @@ export function PublicHeader({ currentPath, search = false }: PublicHeaderProps)
       ) : null}
 
       <div className='flex items-center gap-4'>
+        <Suspense fallback={null}>
+          <NotificationBell />
+        </Suspense>
         <Suspense fallback={<HeaderAuthActionsFallback />}>
           <HeaderAuthActions currentPath={currentPath} />
         </Suspense>
