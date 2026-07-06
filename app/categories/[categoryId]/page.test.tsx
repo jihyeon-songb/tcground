@@ -252,13 +252,13 @@ describe('CategoryResultsToolbar', () => {
   });
 });
 
-describe('CardResults pagination', () => {
+describe('CardResults virtualized list', () => {
   afterEach(() => {
     cleanup();
   });
 
-  it('renders page links when there is more than one page', () => {
-    const cards = Array.from({ length: 24 }, (_, index) => createCard(index + 1));
+  it('renders card links without a pagination navigation', async () => {
+    const cards = Array.from({ length: 6 }, (_, index) => createCard(index + 1));
 
     render(
       <CardResults
@@ -274,55 +274,11 @@ describe('CardResults pagination', () => {
       />,
     );
 
-    expect(screen.getByRole('navigation', { name: '페이지네이션' })).toBeTruthy();
-    expect(screen.getByRole('link', { name: '2 페이지' }).getAttribute('href')).toBe(
-      '/categories/pokemon?page=2',
-    );
-  });
-
-  it('does not render pagination for a single page', () => {
-    const cards = Array.from({ length: 3 }, (_, index) => createCard(index + 1));
-
-    render(
-      <CardResults
-        initialCards={cards}
-        totalCount={3}
-        page={1}
-        pageSize={24}
-        sort='best'
-        query=''
-        rarities={[]}
-        setSlugs={[]}
-        view='grid'
-      />,
-    );
-
+    // Pagination is gone — the list is now infinite scroll + virtualization.
     expect(screen.queryByRole('navigation', { name: '페이지네이션' })).toBeNull();
-  });
-
-  it('preserves filters and sort in page links', () => {
-    const cards = Array.from({ length: 24 }, (_, index) => createCard(index + 1));
-
-    render(
-      <CardResults
-        initialCards={cards}
-        totalCount={50}
-        page={1}
-        pageSize={24}
-        sort='name-asc'
-        query='리자몽'
-        rarities={['SAR']}
-        setSlugs={['pokemon-kr-151']}
-        view='grid'
-      />,
-    );
-
-    const href = screen.getByRole('link', { name: '2 페이지' }).getAttribute('href') ?? '';
-    expect(href).toContain('q=%EB%A6%AC%EC%9E%90%EB%AA%BD');
-    expect(href).toContain('rarity=SAR');
-    expect(href).toContain('set=pokemon-kr-151');
-    expect(href).toContain('sort=name-asc');
-    expect(href).toContain('page=2');
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: '샘플 카드 1 상세 보기' })).toBeTruthy();
+    });
   });
 });
 
@@ -425,7 +381,9 @@ describe('CardResults scroll restoration', () => {
     await waitFor(() => {
       expect(screen.getAllByRole('link', { name: /상세 보기/ })).toHaveLength(2);
     });
-    expect(window.scrollTo).not.toHaveBeenCalled();
+    // The virtualizer itself may call scrollTo(top:0); assert only that the
+    // restoration path (which scrolls to the saved 640 offset) did not run.
+    expect(window.scrollTo).not.toHaveBeenCalledWith({ top: 640, behavior: 'auto' });
   });
 
   it('saves the current card list before opening a detail page', () => {
