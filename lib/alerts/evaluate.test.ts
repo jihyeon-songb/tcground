@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { isThresholdMet, computeAlertHits } from './evaluate';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('./email', () => ({ sendPriceAlertEmail: vi.fn(async () => ({ ok: true })) }));
+
+import { isThresholdMet, computeAlertHits, deliverAlertHits } from './evaluate';
 import type { ActiveAlert } from './types';
 
 function alert(overrides: Partial<ActiveAlert>): ActiveAlert {
@@ -42,6 +45,80 @@ describe('computeAlertHits', () => {
     const alerts = [alert({ cardPrintingId: 'pX' })];
     const byPrinting = new Map<string, ReturnType<typeof snap>[]>();
     expect(computeAlertHits(alerts, byPrinting)).toHaveLength(0);
+  });
+
+  it('above 도달 시 히트, currentPrice는 파생 대표가', () => {
+    const alerts = [alert({ direction: 'above', threshold: 8000 })];
+    const byPrinting = new Map([['p1', [snap('2026-07-05', 9000)]]]);
+    const hits = computeAlertHits(alerts, byPrinting);
+    expect(hits).toHaveLength(1);
+    expect(hits[0].currentPrice).toBe(9000);
+  });
+});
+
+function fakeSupabase() {
+  const calls = { notifInsert: 0, alertUpdate: 0, emailLookups: 0, printingLookups: 0 };
+  const supabase = {
+    from(table: string) {
+      if (table === 'notifications') {
+        return { insert: async () => { calls.notifInsert++; return { error: null }; } };
+      }
+      if (table === 'price_alerts') {
+        return {
+          update: () => ({
+            eq: async () => { calls.alertUpdate++; return { error: null }; },
+          }),
+        };
+      }
+      if (table === 'card_printings') {
+        return {
+          select: () => ({
+            in: async () => {
+              calls.printingLookups++;
+              return {
+                data: [{ id: 'p1', cards: { name: '피카츄', slug: 'pikachu' } }],
+                error: null,
+              };
+            },
+          }),
+        };
+      }
+      throw new Error(`unexpected table ${table}`);
+    },
+    auth: {
+      admin: {
+        getUserById: async () => {
+          calls.emailLookups++;
+          return { data: { user: { email: 'u@e.com' } }, error: null };
+        },
+      },
+    },
+  };
+  return { supabase, calls };
+}
+
+describe('deliverAlertHits', () => {
+  it('히트마다 인앱 insert + 알림 비활성화', async () => {
+    const { supabase, calls } = fakeSupabase();
+    const hits = [{
+      alert: {
+        id: 'a1', userId: 'u1', cardPrintingId: 'p1', currency: 'KRW',
+        gradeLabel: null, direction: 'below' as const, threshold: 10000,
+      },
+      currentPrice: 9000,
+    }];
+    const res = await deliverAlertHits(supabase as never, hits);
+    expect(res.delivered).toBe(1);
+    expect(calls.notifInsert).toBe(1);
+    expect(calls.alertUpdate).toBe(1);
+  });
+
+  it('빈 히트 배열은 즉시 반환', async () => {
+    const { supabase, calls } = fakeSupabase();
+    const res = await deliverAlertHits(supabase as never, []);
+    expect(res.delivered).toBe(0);
+    expect(calls.notifInsert).toBe(0);
+    expect(calls.alertUpdate).toBe(0);
   });
 });
 

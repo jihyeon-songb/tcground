@@ -6,6 +6,7 @@ import {
   type CardPriceSnapshotRow,
 } from '@/lib/tcg-catalog';
 import type { AlertDirection, ActiveAlert, AlertHit } from './types';
+import { sendPriceAlertEmail } from './email';
 
 /** 목표가 도달 판정. 경계값(같을 때)은 도달로 본다. */
 export function isThresholdMet(
@@ -76,4 +77,91 @@ export async function evaluateActiveAlerts(supabase: SupabaseClient): Promise<Al
   }
 
   return computeAlertHits(alerts, byPrinting);
+}
+
+async function loadPrintingCardInfo(
+  supabase: SupabaseClient,
+  printingIds: string[],
+): Promise<Map<string, { cardName: string; slug: string }>> {
+  const { data, error } = await supabase
+    .from('card_printings')
+    .select('id, cards(name, slug)')
+    .in('id', printingIds);
+  if (error) throw error;
+  const map = new Map<string, { cardName: string; slug: string }>();
+  for (const row of (data ?? []) as Array<{ id: string; cards: { name: string; slug: string } | null }>) {
+    if (row.cards) map.set(row.id, { cardName: row.cards.name, slug: row.cards.slug });
+  }
+  return map;
+}
+
+/** 히트를 인앱 insert + 이메일 발송 + 알림 비활성화로 처리. */
+export async function deliverAlertHits(
+  supabase: SupabaseClient,
+  hits: AlertHit[],
+): Promise<{ delivered: number }> {
+  if (hits.length === 0) return { delivered: 0 };
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? '';
+  const cardInfo = await loadPrintingCardInfo(
+    supabase,
+    [...new Set(hits.map((h) => h.alert.cardPrintingId))],
+  );
+
+  let delivered = 0;
+  for (const hit of hits) {
+    const info = cardInfo.get(hit.alert.cardPrintingId);
+    const cardName = info?.cardName ?? '카드';
+    const cardUrl = info ? `${siteUrl}/cards/${info.slug}` : siteUrl;
+    const dirText = hit.alert.direction === 'below' ? '이하로 떨어졌습니다' : '이상으로 올랐습니다';
+
+    // 인앱 원장 (실패 시 비활성화 보류 → 다음 배치 재시도)
+    const { error: notifErr } = await supabase.from('notifications').insert({
+      user_id: hit.alert.userId,
+      alert_id: hit.alert.id,
+      title: `${cardName} 가격 알림`,
+      body: `${hit.alert.threshold} ${hit.alert.direction === 'below' ? '이하' : '이상'} 목표가 ${dirText}. 현재가 ${hit.currentPrice}.`,
+      card_printing_id: hit.alert.cardPrintingId,
+    });
+    if (notifErr) {
+      console.warn('[price-alert] notifications insert 실패', notifErr);
+      continue;
+    }
+
+    // 이메일 (실패해도 인앱 원장에 남았으므로 계속)
+    const { data: userData } = await supabase.auth.admin.getUserById(hit.alert.userId);
+    const email = userData?.user?.email;
+    if (email) {
+      await sendPriceAlertEmail({
+        to: email,
+        cardName,
+        direction: hit.alert.direction,
+        threshold: hit.alert.threshold,
+        currentPrice: hit.currentPrice,
+        currency: hit.alert.currency,
+        cardUrl,
+      });
+    }
+
+    // 1회 발송 후 비활성화
+    const { error: updErr } = await supabase
+      .from('price_alerts')
+      .update({ is_active: false, fired_at: new Date().toISOString() })
+      .eq('id', hit.alert.id);
+    if (updErr) {
+      console.warn('[price-alert] 알림 비활성화 실패', updErr);
+      continue;
+    }
+    delivered++;
+  }
+  return { delivered };
+}
+
+/** 배치 진입점: 평가 → 전달. 실패는 호출측에서 격리. */
+export async function runPriceAlertEvaluation(
+  supabase: SupabaseClient,
+): Promise<{ hits: number; delivered: number }> {
+  const hits = await evaluateActiveAlerts(supabase);
+  const { delivered } = await deliverAlertHits(supabase, hits);
+  return { hits: hits.length, delivered };
 }
