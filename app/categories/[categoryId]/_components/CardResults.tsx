@@ -1,14 +1,37 @@
 'use client';
 
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { usePathname } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+} from 'react';
 import type { PokemonCatalogCard, PokemonSort } from '@/lib/tcg-catalog';
 import { loadPokemonCards } from '../_actions/load-cards';
 import type { CardView } from '../_lib/category-search-params';
 import { EmptyCardsState, GridCard, ListCard } from './CardResultCards';
-import { Pagination } from './CardResultsPagination';
 
 export type { CardView };
+
+// Grid columns per breakpoint, mirroring the Tailwind classes previously used
+// (grid-cols-2 sm:grid-cols-3 lg:grid-cols-4). List view is always 1 column.
+function gridColumnsForWidth(width: number): number {
+  if (width >= 1024) return 4;
+  if (width >= 640) return 3;
+  return 2;
+}
+
+function chunk<T>(items: T[], size: number): T[][] {
+  if (size <= 1) return items.map((item) => [item]);
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += size) rows.push(items.slice(i, i + size));
+  return rows;
+}
 
 interface CardResultsProps {
   initialCards: PokemonCatalogCard[];
@@ -111,9 +134,11 @@ export function CardResults({
   const [items, setItems] = useState<PokemonCatalogCard[]>(initialCards);
   const [loadedPage, setLoadedPage] = useState(page);
   const [loading, setLoading] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [columns, setColumns] = useState(() => (view === 'list' ? 1 : 2));
+  const [listOffsetTop, setListOffsetTop] = useState(0);
   const [restoredStorageKey, setRestoredStorageKey] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
   const itemsRef = useRef(items);
   const loadedPageRef = useRef(loadedPage);
 
@@ -221,15 +246,43 @@ export function CardResults({
     return () => window.cancelAnimationFrame(restoreFrame);
   }, [initialCards, page, pageSize, restoredStorageKey, storageKey, totalCount]);
 
-  // Track viewport so infinite scroll is mobile-only; desktop uses pagination.
+  // Track the grid column count so virtual rows chunk correctly per breakpoint.
+  // List view is always a single column. matchMedia is guarded so SSR / jsdom
+  // (which lacks it) fall back to the initial column count.
   useEffect(() => {
+    if (view === 'list') {
+      setColumns(1);
+      return;
+    }
     if (typeof window === 'undefined' || !window.matchMedia) return;
-    const mql = window.matchMedia('(max-width: 767px)');
-    const update = () => setIsMobile(mql.matches);
+    const update = () => setColumns(gridColumnsForWidth(window.innerWidth));
     update();
-    mql.addEventListener('change', update);
-    return () => mql.removeEventListener('change', update);
-  }, []);
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, [view]);
+
+  const rows = useMemo(() => chunk(items, columns), [items, columns]);
+
+  // The virtual list is absolutely positioned within `listRef`, which sits below
+  // the page header. scrollMargin tells the virtualizer that document offset so
+  // window scroll positions map to the right rows. Use getBoundingClientRect +
+  // scrollY (not offsetTop) so a positioned ancestor can't skew the offset.
+  useLayoutEffect(() => {
+    const node = listRef.current;
+    if (!node) return;
+    const measure = () => setListOffsetTop(node.getBoundingClientRect().top + window.scrollY);
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [rows.length]);
+
+  const rowVirtualizer = useWindowVirtualizer({
+    count: rows.length,
+    estimateSize: () => (view === 'list' ? 160 : 340),
+    overscan: 4,
+    scrollMargin: listOffsetTop,
+    getItemKey: (index) => rows[index]?.[0]?.href ?? index,
+  });
 
   const hasMore = items.length < totalCount;
 
@@ -248,7 +301,7 @@ export function CardResults({
   }, [loadedPage, query, rarities, restoredStorageKey, setSlugs, sort, storageKey]);
 
   useEffect(() => {
-    if (!isMobile || !hasMore || loading || restoredStorageKey !== storageKey) return;
+    if (!hasMore || loading || restoredStorageKey !== storageKey) return;
     const node = sentinelRef.current;
     if (!node || typeof IntersectionObserver === 'undefined') return;
 
@@ -262,13 +315,14 @@ export function CardResults({
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [isMobile, hasMore, loading, loadMore, restoredStorageKey, storageKey]);
+  }, [hasMore, loading, loadMore, restoredStorageKey, storageKey]);
 
   if (items.length === 0) {
     return <EmptyCardsState title='등록된 카드가 없습니다' />;
   }
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const gap = 16; // matches the gap-4 spacing used before virtualization
 
   return (
     <section aria-labelledby='catalog-results-heading'>
@@ -276,49 +330,54 @@ export function CardResults({
         등록 카드
       </h2>
 
-      <ul
-        className={
-          view === 'list'
-            ? 'flex flex-col gap-3'
-            : 'grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4'
-        }
-      >
-        {items.map((card) => (
-          <li key={card.href} className='flex'>
-            {view === 'list' ? (
-              <ListCard card={card} onNavigate={handleCardNavigate} />
-            ) : (
-              <GridCard card={card} onNavigate={handleCardNavigate} />
-            )}
-          </li>
-        ))}
-      </ul>
-
-      {/* Mobile infinite-scroll sentinel + status */}
-      <div className='md:hidden'>
-        <div ref={sentinelRef} aria-hidden className='h-px w-full' />
-        {loading ? (
-          <p
-            aria-live='polite'
-            className='text-muted-foreground py-6 text-center text-sm font-semibold'
-          >
-            불러오는 중…
-          </p>
-        ) : null}
+      {/* Virtualized list: only the visible rows (+ overscan) are in the DOM.
+          Rows are absolutely positioned inside a spacer sized to the full list. */}
+      <div ref={listRef} className='relative w-full' style={{ height: rowVirtualizer.getTotalSize() }}>
+        <ul>
+          {virtualRows.map((virtualRow) => {
+            const row = rows[virtualRow.index];
+            if (!row) return null;
+            return (
+              <li
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={rowVirtualizer.measureElement}
+                className={view === 'list' ? 'flex flex-col gap-3' : 'grid gap-4'}
+                style={{
+                  gridTemplateColumns:
+                    view === 'list' ? undefined : `repeat(${columns}, minmax(0, 1fr))`,
+                  paddingBottom: gap,
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start - rowVirtualizer.options.scrollMargin}px)`,
+                }}
+              >
+                {row.map((card) => (
+                  <div key={card.href} className='flex'>
+                    {view === 'list' ? (
+                      <ListCard card={card} onNavigate={handleCardNavigate} />
+                    ) : (
+                      <GridCard card={card} onNavigate={handleCardNavigate} />
+                    )}
+                  </div>
+                ))}
+              </li>
+            );
+          })}
+        </ul>
       </div>
 
-      {/* Desktop pagination */}
-      {totalPages > 1 ? (
-        <Pagination
-          pathname={pathname}
-          currentPage={page}
-          totalPages={totalPages}
-          query={query}
-          rarities={rarities}
-          setSlugs={setSlugs}
-          sort={sort}
-          view={view}
-        />
+      {/* Infinite-scroll sentinel + status */}
+      <div ref={sentinelRef} aria-hidden className='h-px w-full' />
+      {loading ? (
+        <p
+          aria-live='polite'
+          className='text-muted-foreground py-6 text-center text-sm font-semibold'
+        >
+          불러오는 중…
+        </p>
       ) : null}
     </section>
   );
