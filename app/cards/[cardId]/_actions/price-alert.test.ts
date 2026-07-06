@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isValidThreshold } from './price-alert';
+import { isValidThreshold } from '../_lib/price-alert-validate';
 
 describe('isValidThreshold', () => {
   it('양수 통과', () => expect(isValidThreshold(10000)).toBe(true));

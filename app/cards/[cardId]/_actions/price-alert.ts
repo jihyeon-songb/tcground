@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { isValidThreshold } from '../_lib/price-alert-validate';
 
 export interface SetPriceAlertInput {
   cardPrintingId: string;
@@ -13,10 +14,6 @@ export interface SetPriceAlertInput {
 }
 
 export type PriceAlertResult = { ok: true } | { ok: false; error: string };
-
-export function isValidThreshold(n: number): boolean {
-  return Number.isFinite(n) && n > 0;
-}
 
 export async function setPriceAlert(input: SetPriceAlertInput): Promise<PriceAlertResult> {
   if (input.direction !== 'below' && input.direction !== 'above') {
