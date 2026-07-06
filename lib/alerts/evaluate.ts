@@ -89,7 +89,12 @@ async function loadPrintingCardInfo(
     .in('id', printingIds);
   if (error) throw error;
   const map = new Map<string, { cardName: string; slug: string }>();
-  for (const row of (data ?? []) as Array<{ id: string; cards: { name: string; slug: string } | null }>) {
+  // PostgREST types the embedded to-one `cards` as an array, but a belongs-to
+  // relationship returns a single object at runtime — cast through unknown.
+  for (const row of (data ?? []) as unknown as Array<{
+    id: string;
+    cards: { name: string; slug: string } | null;
+  }>) {
     if (row.cards) map.set(row.id, { cardName: row.cards.name, slug: row.cards.slug });
   }
   return map;
