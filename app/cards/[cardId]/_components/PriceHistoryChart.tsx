@@ -44,7 +44,7 @@ export function PriceHistoryChart({
   // Overlay is filtered to the trend window inside buildChartGeometry, so we pass
   // the full set and let the geometry drop anything outside the active window.
   const geometry = useMemo(
-    () => buildChartGeometry(filteredSeries, overlaySold),
+    () => buildChartGeometry(filteredSeries, overlaySold, { today: new Date() }),
     [filteredSeries, overlaySold],
   );
 
@@ -144,6 +144,17 @@ export function PriceHistoryChart({
                 fill='none'
                 stroke='var(--tcg-red)'
                 strokeWidth='2'
+                vectorEffect='non-scaling-stroke'
+              />
+            )}
+            {geometry.carryForwardPath && (
+              <path
+                d={geometry.carryForwardPath}
+                fill='none'
+                stroke='var(--tcg-red)'
+                strokeWidth='2'
+                strokeDasharray='3 3'
+                strokeOpacity='0.5'
                 vectorEffect='non-scaling-stroke'
               />
             )}
