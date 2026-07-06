@@ -2,6 +2,7 @@ import { unstable_cache } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createPublicClient } from '@/lib/supabase/public';
 import { isAskingSource } from './pricing/price-source.types';
+import { toSnapshotDate } from './pricing/aggregate';
 
 type ChangeTone = 'up' | 'down' | 'flat';
 
@@ -120,6 +121,8 @@ export interface PriceDisplay {
   changeRate: number;
   changeTone: ChangeTone;
   lastUpdatedAt: string;
+  /** 마지막 실측 스냅샷 이후 경과 일수. 0 = 오늘 데이터. */
+  stalenessDays: number;
   sourceLabel: string;
   currency: string;
   sampleCount: number;
@@ -1357,6 +1360,7 @@ export function createDeterministicPriceDisplay(slug: string, sampleId: string):
     changeRate,
     changeTone: getChangeTone(changeRate),
     lastUpdatedAt: '2026년 5월 22일',
+    stalenessDays: 0,
     sourceLabel: '가격 데이터 연결 전까지 카탈로그 대표값을 표시합니다.',
     currency: 'KRW',
     sampleCount: 0,
@@ -1601,8 +1605,19 @@ export function deriveEbayListings(
   return { listings, featuredIndex };
 }
 
+/** `snapshotDate`(YYYY-MM-DD)와 `today`의 UTC 자정 기준 경과 일수. 음수는 0으로 클램프. */
+function stalenessDaysSince(snapshotDate: string, today: Date): number {
+  const snapshotMs = Date.parse(`${snapshotDate}T00:00:00Z`);
+  const todayMs = Date.parse(`${toSnapshotDate(today.toISOString())}T00:00:00Z`);
+  if (Number.isNaN(snapshotMs) || Number.isNaN(todayMs)) return 0;
+  return Math.max(0, Math.round((todayMs - snapshotMs) / (24 * 60 * 60 * 1000)));
+}
+
 /** Derives the price summary from the trend series, or null when there is none. */
-export function derivePriceDisplayFromHistory(history: PriceHistory): PriceDisplay | null {
+export function derivePriceDisplayFromHistory(
+  history: PriceHistory,
+  today: Date = new Date(),
+): PriceDisplay | null {
   const usingAsking = history.askingSeries.length > 0;
   const series = getPriceTrendSeries(history);
   if (series.length === 0) return null;
@@ -1621,6 +1636,7 @@ export function derivePriceDisplayFromHistory(history: PriceHistory): PriceDispl
     changeRate,
     changeTone: getChangeTone(changeRate),
     lastUpdatedAt: formatSnapshotDate(latest.date),
+    stalenessDays: stalenessDaysSince(latest.date, today),
     sourceLabel: usingAsking
       ? `${formatSourceNames(latest.sourceNames) || askingSourcePrefix(latest)} 판매중 호가 ${latest.sampleCount}건 기준 (실거래가는 참조점으로 표시)${formatFxSuffix(latest)}`
       : `최근 ${formatSourceNames(latest.sourceNames) || '수동 evidence'} ${history.gradeLabel ? `${history.gradeLabel} ` : ''}실거래가 집계 ${latest.sampleCount}건 기준${formatFxSuffix(latest)}`,

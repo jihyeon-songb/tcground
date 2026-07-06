@@ -582,6 +582,7 @@ function makeSimpleCard(slug: string, imageUrl: string | null): PokemonCatalogCa
       changeRate: 1.2,
       changeTone: 'up',
       lastUpdatedAt: '2026년 5월 22일',
+      stalenessDays: 0,
       sourceLabel: '카탈로그 대표값',
       currency: 'KRW',
       sampleCount: 0,
@@ -859,6 +860,22 @@ describe('price history view models', () => {
     ]);
 
     expect(derivePriceDisplayFromHistory(history)?.sourceUrl).toBe('https://www.ebay.com/itm/999');
+  });
+
+  it('reports zero staleness when the latest snapshot is today', () => {
+    const history = buildPriceHistory([
+      snapshotRow({ snapshot_date: '2026-05-29', avg_price: 110 }),
+    ]);
+    const price = derivePriceDisplayFromHistory(history, new Date('2026-05-29T09:00:00Z'));
+    expect(price?.stalenessDays).toBe(0);
+  });
+
+  it('counts days since the latest snapshot for a stale price', () => {
+    const history = buildPriceHistory([
+      snapshotRow({ snapshot_date: '2026-05-21', avg_price: 110 }),
+    ]);
+    const price = derivePriceDisplayFromHistory(history, new Date('2026-05-29T09:00:00Z'));
+    expect(price?.stalenessDays).toBe(8);
   });
 
   it('draws graded sold data as the trend (with a grade label) only when no raw data exists', () => {
