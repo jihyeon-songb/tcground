@@ -24,18 +24,18 @@ export async function sendPriceAlertEmail(input: SendInput): Promise<{ ok: boole
     return { ok: false };
   }
 
-  const dirText = input.direction === 'below' ? '이하로 떨어졌어요' : '이상으로 올랐어요';
-  const subject = `[TCGround] ${input.cardName} 가격 알림`;
-  const html = `
-    <p><strong>${input.cardName}</strong> 시세가 설정하신 목표가 ${dirText}.</p>
-    <ul>
-      <li>목표가: ${fmt(input.threshold, input.currency)} (${input.direction === 'below' ? '이하' : '이상'})</li>
-      <li>현재가: ${fmt(input.currentPrice, input.currency)}</li>
-    </ul>
-    <p><a href="${input.cardUrl}">카드 상세 보기</a></p>
-  `;
-
   try {
+    const dirText = input.direction === 'below' ? '이하로 떨어졌어요' : '이상으로 올랐어요';
+    const subject = `[TCGround] ${input.cardName} 가격 알림`;
+    const html = `
+      <p><strong>${input.cardName}</strong> 시세가 설정하신 목표가 ${dirText}.</p>
+      <ul>
+        <li>목표가: ${fmt(input.threshold, input.currency)} (${input.direction === 'below' ? '이하' : '이상'})</li>
+        <li>현재가: ${fmt(input.currentPrice, input.currency)}</li>
+      </ul>
+      <p><a href="${encodeURI(input.cardUrl)}">카드 상세 보기</a></p>
+    `;
+
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({ from, to: input.to, subject, html });
     if (error) {
@@ -44,7 +44,7 @@ export async function sendPriceAlertEmail(input: SendInput): Promise<{ ok: boole
     }
     return { ok: true };
   } catch (err) {
-    console.warn('[price-alert] Resend 예외', err instanceof Error ? err.message : err);
+    console.warn('[price-alert] 이메일 발송 중 예외', err instanceof Error ? err.message : err);
     return { ok: false };
   }
 }
