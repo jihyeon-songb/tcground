@@ -63,4 +63,16 @@ describe('buildChartGeometry carry-forward', () => {
     const geometry = buildChartGeometry(series, []);
     expect(geometry.carryForwardPath).toBe('');
   });
+
+  it('keeps a single stale point centered instead of clipping it at the left edge', () => {
+    const geometry = buildChartGeometry(
+      [point('2026-05-20', 100)],
+      [],
+      { today: new Date('2026-05-29T00:00:00Z') },
+    );
+    expect(geometry.linePoints).toHaveLength(1);
+    expect(geometry.linePoints[0].x).toBe(50);
+    expect(geometry.carryForwardPath).toContain('M50.00,');
+    expect(geometry.carryForwardPath).toContain('L100.00,');
+  });
 });

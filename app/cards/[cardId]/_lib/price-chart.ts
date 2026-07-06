@@ -84,7 +84,7 @@ export function buildChartGeometry(
     todayTime !== undefined && todayTime > maxTime ? todayTime : maxTime;
 
   const xOf = (date: string) =>
-    effectiveMaxTime === minTime
+    maxTime === minTime
       ? 50
       : ((new Date(date).getTime() - minTime) / (effectiveMaxTime - minTime)) * 100;
   const yOf = (price: number) => {
