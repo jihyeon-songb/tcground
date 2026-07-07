@@ -1302,6 +1302,86 @@ describe('deriveMarketplaceFallbackLink', () => {
 
     expect(link.sourceLabel).toBe(sourceLabel);
   });
+
+  it('keeps fallback candidates in one coherent price bucket', () => {
+    const link = deriveMarketplaceFallbackLink(
+      [
+        createSnapshotRow({
+          snapshot_date: '2026-06-01',
+          source_name: 'kream',
+          aggregation_method: 'kream_asking_median',
+          source_url: 'https://kream.co.kr/products/krw',
+        }),
+        createSnapshotRow({
+          snapshot_date: '2026-06-02',
+          market: 'NA',
+          currency: 'USD',
+          source_name: 'unknown_market',
+          aggregation_method: 'manual_asking_median',
+          avg_price: 70,
+          source_url: 'https://market.example/usd',
+        }),
+      ],
+      ebayQuery,
+    );
+
+    expect(link.href).toBe('https://kream.co.kr/products/krw');
+  });
+
+  it('uses the most recent trustworthy date inside the selected bucket', () => {
+    const link = deriveMarketplaceFallbackLink(
+      [
+        createSnapshotRow({
+          snapshot_date: '2026-06-01',
+          source_name: 'kream',
+          aggregation_method: 'kream_asking_median',
+          source_url: 'https://kream.co.kr/products/old',
+        }),
+        createSnapshotRow({
+          snapshot_date: '2026-06-03',
+          source_name: 'kream',
+          aggregation_method: 'kream_asking_median',
+          source_url: 'https://kream.co.kr/products/new',
+        }),
+        createSnapshotRow({
+          snapshot_date: '2026-06-04',
+          market: 'NA',
+          currency: 'USD',
+          source_name: 'unknown_market',
+          aggregation_method: 'manual_asking_median',
+          avg_price: 70,
+          source_url: 'https://market.example/newest-global',
+        }),
+      ],
+      ebayQuery,
+    );
+
+    expect(link.href).toBe('https://kream.co.kr/products/new');
+  });
+
+  it('breaks nearest-price ties independently of snapshot input order', () => {
+    const rows = [
+      createSnapshotRow({
+        source_name: 'kream',
+        aggregation_method: 'kream_asking_median',
+        avg_price: 110000,
+        source_url: 'https://market.example/kream',
+      }),
+      createSnapshotRow({
+        source_name: 'bunjang',
+        aggregation_method: 'manual_asking_median',
+        avg_price: 90000,
+        source_url: 'https://market.example/bunjang',
+      }),
+    ];
+
+    expect(deriveMarketplaceFallbackLink(rows, ebayQuery).href).toBe(
+      'https://market.example/bunjang',
+    );
+    expect(deriveMarketplaceFallbackLink([...rows].reverse(), ebayQuery).href).toBe(
+      'https://market.example/bunjang',
+    );
+  });
 });
 
 describe('deriveEbayListings', () => {
@@ -1358,5 +1438,9 @@ describe('deriveEbayListings', () => {
       listings: [],
       featuredIndex: -1,
     });
+  });
+
+  it('uses the first listing when the snapshot has no KRW-comparable target', () => {
+    expect(deriveEbayListings([listingRow({ fx_rate: null })]).featuredIndex).toBe(0);
   });
 });

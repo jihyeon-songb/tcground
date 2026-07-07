@@ -1601,7 +1601,7 @@ export function deriveEbayListings(
   const target =
     targetPrices.length > 0
       ? targetPrices.reduce((sum, price) => sum + price, 0) / targetPrices.length
-      : 0;
+      : null;
   const byUrl = new Map<string, EbayListing>();
   for (const row of latestRows) {
     const rate = row.fx_rate ?? null;
@@ -1614,6 +1614,7 @@ export function deriveEbayListings(
 
   const listings = Array.from(byUrl.values()).sort((a, b) => a.priceKrw - b.priceKrw);
   if (listings.length === 0) return { listings: [], featuredIndex: -1 };
+  if (target === null) return { listings, featuredIndex: 0 };
 
   let featuredIndex = 0;
   let bestDiff = Number.POSITIVE_INFINITY;
@@ -1696,12 +1697,19 @@ function snapshotAvgPrice(snapshot: CardPriceSnapshotRow): number | null {
 }
 
 function snapshotAvgPriceKrw(snapshot: CardPriceSnapshotRow): number | null {
-  if (snapshot.display_avg_price !== null && snapshot.display_avg_price !== undefined) {
+  if (
+    snapshotDisplayCurrency(snapshot) === 'KRW' &&
+    snapshot.display_avg_price !== null &&
+    snapshot.display_avg_price !== undefined
+  ) {
     return snapshot.display_avg_price;
   }
   const sourceAverage = snapshot.source_avg_price ?? snapshot.avg_price;
   if (sourceAverage === null) return null;
-  return snapshot.fx_rate ? sourceAverage * snapshot.fx_rate : sourceAverage;
+  if ((snapshot.source_currency ?? snapshot.currency) === 'KRW') return sourceAverage;
+  return snapshot.fx_rate && Number.isFinite(snapshot.fx_rate) && snapshot.fx_rate > 0
+    ? sourceAverage * snapshot.fx_rate
+    : null;
 }
 
 function safeExternalHttpUrl(value: string | null | undefined): string | null {
@@ -1744,17 +1752,24 @@ export function deriveMarketplaceFallbackLink(
   });
 
   if (candidates.length > 0) {
-    const latest = latestDate(candidates.map(({ row }) => row));
-    const latestCandidates = candidates.filter(({ row }) => row.snapshot_date === latest);
+    const selectedBucket = pickRichestBucket(candidates.map(({ row }) => row));
+    const bucketCandidates = candidates.filter(({ row }) => bucketKey(row) === selectedBucket?.key);
+    const latest = latestDate(bucketCandidates.map(({ row }) => row));
+    const latestCandidates = bucketCandidates.filter(({ row }) => row.snapshot_date === latest);
     const target =
       latestCandidates.reduce((sum, { row }) => sum + (snapshotAvgPrice(row) ?? 0), 0) /
       latestCandidates.length;
-    const selected = latestCandidates.reduce((best, candidate) =>
-      Math.abs((snapshotAvgPrice(candidate.row) ?? 0) - target) <
-      Math.abs((snapshotAvgPrice(best.row) ?? 0) - target)
-        ? candidate
-        : best,
-    );
+    // Stable order: distance to target, lower comparable price, source, then URL.
+    const selected = latestCandidates.sort((a, b) => {
+      const aPrice = snapshotAvgPrice(a.row) ?? 0;
+      const bPrice = snapshotAvgPrice(b.row) ?? 0;
+      return (
+        Math.abs(aPrice - target) - Math.abs(bPrice - target) ||
+        aPrice - bPrice ||
+        a.row.source_name.localeCompare(b.row.source_name) ||
+        a.href.localeCompare(b.href)
+      );
+    })[0];
     const sourceLabel = formatMarketplaceSourceName(selected.row.source_name);
     return {
       kind: 'source',
