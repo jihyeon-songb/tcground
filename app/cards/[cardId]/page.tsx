@@ -353,20 +353,22 @@ function PriceSummaryContent({ price, gradeLabel }: { price: PriceDisplay; grade
           </p>
         )}
       </div>
-      <div className='border-border mt-4 flex flex-wrap gap-8 border-t pt-4'>
-        <div className='flex flex-col gap-1'>
-          <span className='text-muted-foreground text-base'>최저가 ({gradeLabel})</span>
-          <span className='text-foreground text-2xl leading-[1.2] font-bold tabular-nums md:text-[28px]'>
-            {formatPrice(price.minPrice, price.currency)}
-          </span>
+      {price.minPrice !== price.maxPrice && (
+        <div className='border-border mt-4 flex flex-wrap gap-8 border-t pt-4'>
+          <div className='flex flex-col gap-1'>
+            <span className='text-muted-foreground text-base'>최저가 ({gradeLabel})</span>
+            <span className='text-foreground text-2xl leading-[1.2] font-bold tabular-nums md:text-[28px]'>
+              {formatPrice(price.minPrice, price.currency)}
+            </span>
+          </div>
+          <div className='flex flex-col gap-1'>
+            <span className='text-muted-foreground text-base'>최고가 ({gradeLabel})</span>
+            <span className='text-foreground text-2xl leading-[1.2] font-bold tabular-nums md:text-[28px]'>
+              {formatPrice(price.maxPrice, price.currency)}
+            </span>
+          </div>
         </div>
-        <div className='flex flex-col gap-1'>
-          <span className='text-muted-foreground text-base'>최고가 ({gradeLabel})</span>
-          <span className='text-foreground text-2xl leading-[1.2] font-bold tabular-nums md:text-[28px]'>
-            {formatPrice(price.maxPrice, price.currency)}
-          </span>
-        </div>
-      </div>
+      )}
     </>
   );
 }

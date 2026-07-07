@@ -1317,9 +1317,14 @@ export function mapCardDetailRow(
   const nameJa = getExternalString(printing, 'name_ja');
 
   const priceHistory = buildPriceHistory(snapshots);
-  const price = deriveAskingPriceDisplayFromHistory(priceHistory);
   const { listings: ebayListings, featuredIndex: featuredListingIndex } =
     deriveEbayListings(snapshots);
+  // Headline follows the eBay listing rows when present so the summary agrees
+  // with them; falls back to the richest asking bucket (domestic KRW etc).
+  const price =
+    ebayListings.length > 0
+      ? derivePriceDisplayFromEbayListings(ebayListings, snapshots)
+      : deriveAskingPriceDisplayFromHistory(priceHistory);
   const marketplaceFallbackLink = deriveMarketplaceFallbackLink(snapshots, {
     cardPrintingId: printingId,
     cardName: row.name,
@@ -1667,6 +1672,54 @@ function derivePriceDisplayFromSeries(
     sourceCurrency: latest.sourceCurrency,
     fxRateDate: latest.fxRateDate,
     fxProvider: latest.fxProvider,
+  };
+}
+
+/**
+ * Headline price summary derived directly from the eBay 판매중 listings rendered
+ * below it, so the top 평균/최저/최고 always agree with the listing rows — they
+ * are the same source. Change rate comes from the `ebay_browse` daily-average
+ * series; staleness from that source's latest snapshot date.
+ *
+ * Used instead of the richest-bucket asking series when listings exist: the
+ * asking series prefers a KRW-native bucket over eBay's USD, so a single stale
+ * domestic listing could otherwise headline below every live eBay ask.
+ */
+export function derivePriceDisplayFromEbayListings(
+  listings: readonly EbayListing[],
+  snapshots: readonly CardPriceSnapshotRow[],
+  today: Date = new Date(),
+): PriceDisplay | null {
+  if (listings.length === 0) return null;
+
+  const prices = listings.map((listing) => listing.priceKrw);
+  const avgPrice = Math.round(prices.reduce((sum, price) => sum + price, 0) / prices.length);
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+
+  const series = collapseByDate(
+    snapshots.filter(
+      (snapshot) => snapshot.source_name === 'ebay_browse' && snapshotAvgPrice(snapshot) !== null,
+    ),
+  );
+  const latest = series[series.length - 1];
+  const first = series[0];
+  const changeRate =
+    first && latest && first.avgPrice > 0
+      ? Number((((latest.avgPrice - first.avgPrice) / first.avgPrice) * 100).toFixed(1))
+      : 0;
+
+  return {
+    avgPrice,
+    minPrice,
+    maxPrice,
+    changeRate,
+    changeTone: getChangeTone(changeRate),
+    lastUpdatedAt: latest ? formatSnapshotDate(latest.date) : '',
+    stalenessDays: latest ? stalenessDaysSince(latest.date, today) : 0,
+    sourceLabel: `eBay 판매중 호가 ${listings.length}건 기준 (실거래가는 참조점으로 표시)`,
+    currency: 'KRW',
+    sampleCount: listings.length,
   };
 }
 

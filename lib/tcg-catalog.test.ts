@@ -4,6 +4,7 @@ import {
   deriveAskingPriceDisplayFromHistory,
   deriveEbayListings,
   deriveMarketplaceFallbackLink,
+  derivePriceDisplayFromEbayListings,
   derivePriceDisplayFromHistory,
   fetchSnapshotsByPrinting,
   getCardDetailBySlug,
@@ -1424,5 +1425,29 @@ describe('deriveEbayListings', () => {
 
   it('uses the first listing when the snapshot has no KRW-comparable target', () => {
     expect(deriveEbayListings([listingRow({ fx_rate: null })]).featuredIndex).toBe(0);
+  });
+
+  it('derives a headline summary that agrees with the listing rows', () => {
+    const rows = [listingRow()];
+    const { listings } = deriveEbayListings(rows);
+    const price = derivePriceDisplayFromEbayListings(
+      listings,
+      rows,
+      new Date('2026-06-12T00:00:00Z'),
+    )!;
+
+    // listings priceKrw: 80_000 / 100_000 / 200_000
+    expect(price.minPrice).toBe(listings[0].priceKrw);
+    expect(price.maxPrice).toBe(listings[listings.length - 1].priceKrw);
+    expect(price.avgPrice).toBe(Math.round((80_000 + 100_000 + 200_000) / 3));
+    expect(price.minPrice).toBeLessThanOrEqual(price.avgPrice);
+    expect(price.avgPrice).toBeLessThanOrEqual(price.maxPrice);
+    expect(price.currency).toBe('KRW');
+    expect(price.sampleCount).toBe(listings.length);
+    expect(price.stalenessDays).toBe(14); // 2026-05-29 → 2026-06-12
+  });
+
+  it('returns null with no listings', () => {
+    expect(derivePriceDisplayFromEbayListings([], [])).toBeNull();
   });
 });
