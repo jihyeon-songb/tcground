@@ -47,6 +47,15 @@ describe('parseKreamSearchProductText', () => {
       tradeCount: 9,
     });
   });
+
+  it('rejects an implausible ₩1,000,000,000 placeholder price', () => {
+    const product = parseKreamSearchProductText(
+      '803593',
+      'Pokemon TCG\n포켓몬 TCG 페르시온 AR 나이트원더러 (한글판)\n1,000,000,000원\n관심 1',
+    );
+
+    expect(product).toBeNull();
+  });
 });
 
 describe('mapKreamSearchProductsToSnapshots', () => {
@@ -76,6 +85,33 @@ describe('mapKreamSearchProductsToSnapshots', () => {
         aggregationMethod: 'kream_search_page_asking',
       }),
     ]);
+  });
+
+  it('skips foreign-edition products so a 일어판 card never matches a 한글판 printing', () => {
+    const enamorusKo: CardQuery = {
+      cardPrintingId: 'printing-enamorus-sv5a-ar',
+      cardName: '러브로스',
+      collectorNumber: '074/066',
+      nameEn: 'Enamorus',
+      nameJa: null,
+      setName: '스칼렛&바이올렛 강화 확장팩 「크림슨헤이즈」',
+      setCode: 'SV5a',
+      rarity: 'AR',
+      kreamProductUrl: null,
+    };
+    const product = parseKreamSearchProductText(
+      '649915',
+      'Pokemon TCG\n포켓몬 TCG 러브로스 AR 크림슨 헤이즈 (일어판)\n980,000원\n관심 5 · 거래 1',
+    );
+
+    const result = mapKreamSearchProductsToSnapshots(
+      product ? [product] : [],
+      [enamorusKo],
+      '2026-06-24',
+    );
+
+    expect(result.snapshots).toHaveLength(0);
+    expect(result.skipped[0]?.reason).toBe('low_confidence');
   });
 
   it('skips ambiguous same-score matches', () => {
