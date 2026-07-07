@@ -3,6 +3,11 @@ import { createClient } from '@/lib/supabase/server';
 import { createPublicClient } from '@/lib/supabase/public';
 import { isAskingSource } from './pricing/price-source.types';
 import { toSnapshotDate } from './pricing/aggregate';
+import {
+  buildBrowseKeyword,
+  buildEbaySearchPageUrl,
+  type BrowseCardQuery,
+} from './pricing/ebay/browse-adapter';
 
 type ChangeTone = 'up' | 'down' | 'flat';
 
@@ -126,8 +131,6 @@ export interface PriceDisplay {
   sourceLabel: string;
   currency: string;
   sampleCount: number;
-  /** Link to the cheapest listing behind this price (eBay listing or search URL). */
-  sourceUrl?: string | null;
   sourceCurrency?: string | null;
   fxRateDate?: string | null;
   fxProvider?: string | null;
@@ -242,6 +245,13 @@ export interface EbayListing {
   title: string | null;
 }
 
+export interface MarketplaceFallbackLink {
+  kind: 'source' | 'search';
+  href: string;
+  sourceLabel: string;
+  actionLabel: string;
+}
+
 /** Public aggregate of user ratings for a card. */
 export interface CardRatingSummary {
   /** Average score (1–5, one decimal), or null when there are no ratings. */
@@ -260,7 +270,7 @@ export interface CatalogCardDetail {
   collectorNumber: string;
   rarity: string;
   imageUrl: string | null;
-  price: PriceDisplay;
+  price: PriceDisplay | null;
   selectedEdition: CardEdition;
   editionOptions: CardEditionOption[];
   printing: {
@@ -279,6 +289,7 @@ export interface CatalogCardDetail {
   ebayListings: EbayListing[];
   /** Index into `ebayListings` of the listing closest to the average price; -1 when empty. */
   featuredListingIndex: number;
+  marketplaceFallbackLink: MarketplaceFallbackLink;
   backHref: string;
   backLabel: string;
 }
@@ -1054,7 +1065,7 @@ export async function getCardDetailBySlug(
 
 const cardDetailBySlugCached = unstable_cache(
   (slug: string, edition: CardEdition) => loadCardDetailBySlug(createPublicClient(), slug, edition),
-  ['card-detail-by-slug'],
+  ['card-detail-by-slug-v2'],
   { tags: [CATALOG_CACHE_TAG, PRICES_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
 );
 
@@ -1300,15 +1311,27 @@ export function mapCardDetailRow(
   const collectorNumber = printing?.collector_number ?? row.collector_number ?? '번호 미상';
   const rarity = printing?.rarity ?? row.rarity ?? '레어도 미상';
   const gameName = row.tcg_games?.name_ko ?? row.tcg_games?.name ?? 'Pokemon TCG';
+  const printingId = printing?.id ?? row.id;
+  const setCode = printing?.set_code ?? 'unknown';
+  const nameEn = getExternalString(printing, 'name_en');
+  const nameJa = getExternalString(printing, 'name_ja');
 
   const priceHistory = buildPriceHistory(snapshots);
+  const { listings: ebayListings, featuredIndex: featuredListingIndex } =
+    deriveEbayListings(snapshots);
+  // Headline follows the eBay listing rows when present so the summary agrees
+  // with them; falls back to the richest asking bucket (domestic KRW etc).
   const price =
-    derivePriceDisplayFromHistory(priceHistory) ??
-    createDeterministicPriceDisplay(row.slug, sampleId);
-  const { listings: ebayListings, featuredIndex: featuredListingIndex } = deriveEbayListings(
-    snapshots,
-    price.avgPrice,
-  );
+    ebayListings.length > 0
+      ? derivePriceDisplayFromEbayListings(ebayListings, snapshots)
+      : deriveAskingPriceDisplayFromHistory(priceHistory);
+  const marketplaceFallbackLink = deriveMarketplaceFallbackLink(snapshots, {
+    cardPrintingId: printingId,
+    cardName: row.name,
+    nameEn,
+    collectorNumber,
+    setCode,
+  });
 
   return {
     cardId: row.id,
@@ -1327,43 +1350,20 @@ export function mapCardDetailRow(
     priceHistory,
     ebayListings,
     featuredListingIndex,
+    marketplaceFallbackLink,
     printing: {
-      id: printing?.id ?? row.id,
+      id: printingId,
       language: printing?.language ?? 'ko',
       region: printing?.region ?? 'KR',
-      setCode: printing?.set_code ?? 'unknown',
+      setCode,
       collectorNumber,
       finish: printing?.finish ?? 'unknown',
       sampleId,
-      nameEn: getExternalString(printing, 'name_en'),
-      nameJa: getExternalString(printing, 'name_ja'),
+      nameEn,
+      nameJa,
     },
     backHref: '/categories/pokemon',
     backLabel: '포켓몬 카테고리로 돌아가기',
-  };
-}
-
-export function createDeterministicPriceDisplay(slug: string, sampleId: string): PriceDisplay {
-  const sampleNumber = Number.parseInt(sampleId.replace(/\D/g, ''), 10);
-  const index = Number.isFinite(sampleNumber) && sampleNumber > 0 ? sampleNumber : stableHash(slug);
-  const hashOffset = stableHash(slug) % 9;
-  const avgPrice = roundToNearest(42000 + index * 17000 + hashOffset * 2500, 1000);
-  const minPrice = roundToNearest(avgPrice * 0.82, 1000);
-  const maxPrice = roundToNearest(avgPrice * 1.26, 1000);
-  const rawChange = ((index % 7) - 3) * 2.1;
-  const changeRate = Number(rawChange.toFixed(1));
-
-  return {
-    avgPrice,
-    minPrice,
-    maxPrice,
-    changeRate,
-    changeTone: getChangeTone(changeRate),
-    lastUpdatedAt: '2026년 5월 22일',
-    stalenessDays: 0,
-    sourceLabel: '가격 데이터 연결 전까지 카탈로그 대표값을 표시합니다.',
-    currency: 'KRW',
-    sampleCount: 0,
   };
 }
 
@@ -1562,15 +1562,17 @@ function collapseByDate(rows: readonly CardPriceSnapshotRow[]): PricePoint[] {
 /**
  * Builds the KRW-converted eBay 판매중(즉시구매) listing list for the detail page
  * from the latest `ebay_browse` snapshot. Listings are price-ascending and
- * deduped by URL; `featuredIndex` points at the one closest to `displayAvgPrice`.
+ * deduped by URL; `featuredIndex` points at the one closest to the eBay
+ * snapshot's own display average.
  *
  * ponytail: converts with the snapshot's collection-day fx_rate, not a
  * per-listing rate. Add per-listing FX at collection time if accuracy matters.
  */
 export function deriveEbayListings(
   snapshots: readonly CardPriceSnapshotRow[],
-  displayAvgPrice: number,
+  _displayAvgPrice?: number,
 ): { listings: EbayListing[]; featuredIndex: number } {
+  void _displayAvgPrice;
   const browseRows = snapshots.filter(
     (snapshot) =>
       snapshot.source_name === 'ebay_browse' &&
@@ -1580,8 +1582,16 @@ export function deriveEbayListings(
   if (browseRows.length === 0) return { listings: [], featuredIndex: -1 };
 
   const latest = latestDate(browseRows);
+  const latestRows = browseRows.filter((snapshot) => snapshot.snapshot_date === latest);
+  const targetPrices = latestRows
+    .map(snapshotAvgPriceKrw)
+    .filter((price): price is number => price !== null);
+  const target =
+    targetPrices.length > 0
+      ? targetPrices.reduce((sum, price) => sum + price, 0) / targetPrices.length
+      : null;
   const byUrl = new Map<string, EbayListing>();
-  for (const row of browseRows.filter((snapshot) => snapshot.snapshot_date === latest)) {
+  for (const row of latestRows) {
     const rate = row.fx_rate ?? null;
     for (const listing of row.listings ?? []) {
       if (!listing.url || byUrl.has(listing.url)) continue;
@@ -1592,11 +1602,12 @@ export function deriveEbayListings(
 
   const listings = Array.from(byUrl.values()).sort((a, b) => a.priceKrw - b.priceKrw);
   if (listings.length === 0) return { listings: [], featuredIndex: -1 };
+  if (target === null) return { listings, featuredIndex: 0 };
 
   let featuredIndex = 0;
   let bestDiff = Number.POSITIVE_INFINITY;
   listings.forEach((listing, index) => {
-    const diff = Math.abs(listing.priceKrw - displayAvgPrice);
+    const diff = Math.abs(listing.priceKrw - target);
     if (diff < bestDiff) {
       bestDiff = diff;
       featuredIndex = index;
@@ -1620,6 +1631,22 @@ export function derivePriceDisplayFromHistory(
 ): PriceDisplay | null {
   const usingAsking = history.askingSeries.length > 0;
   const series = getPriceTrendSeries(history);
+  return derivePriceDisplayFromSeries(series, usingAsking, history.gradeLabel, today);
+}
+
+export function deriveAskingPriceDisplayFromHistory(
+  history: PriceHistory,
+  today: Date = new Date(),
+): PriceDisplay | null {
+  return derivePriceDisplayFromSeries(history.askingSeries, true, history.gradeLabel, today);
+}
+
+function derivePriceDisplayFromSeries(
+  series: readonly PricePoint[],
+  usingAsking: boolean,
+  gradeLabel: string | null,
+  today: Date,
+): PriceDisplay | null {
   if (series.length === 0) return null;
 
   const latest = series[series.length - 1];
@@ -1639,13 +1666,60 @@ export function derivePriceDisplayFromHistory(
     stalenessDays: stalenessDaysSince(latest.date, today),
     sourceLabel: usingAsking
       ? `${formatSourceNames(latest.sourceNames) || askingSourcePrefix(latest)} 판매중 호가 ${latest.sampleCount}건 기준 (실거래가는 참조점으로 표시)${formatFxSuffix(latest)}`
-      : `최근 ${formatSourceNames(latest.sourceNames) || '수동 evidence'} ${history.gradeLabel ? `${history.gradeLabel} ` : ''}실거래가 집계 ${latest.sampleCount}건 기준${formatFxSuffix(latest)}`,
+      : `최근 ${formatSourceNames(latest.sourceNames) || '수동 evidence'} ${gradeLabel ? `${gradeLabel} ` : ''}실거래가 집계 ${latest.sampleCount}건 기준${formatFxSuffix(latest)}`,
     currency: latest.currency,
     sampleCount: latest.sampleCount,
-    sourceUrl: latest.sourceUrl,
     sourceCurrency: latest.sourceCurrency,
     fxRateDate: latest.fxRateDate,
     fxProvider: latest.fxProvider,
+  };
+}
+
+/**
+ * Headline price summary derived directly from the eBay 판매중 listings rendered
+ * below it, so the top 평균/최저/최고 always agree with the listing rows — they
+ * are the same source. Change rate comes from the `ebay_browse` daily-average
+ * series; staleness from that source's latest snapshot date.
+ *
+ * Used instead of the richest-bucket asking series when listings exist: the
+ * asking series prefers a KRW-native bucket over eBay's USD, so a single stale
+ * domestic listing could otherwise headline below every live eBay ask.
+ */
+export function derivePriceDisplayFromEbayListings(
+  listings: readonly EbayListing[],
+  snapshots: readonly CardPriceSnapshotRow[],
+  today: Date = new Date(),
+): PriceDisplay | null {
+  if (listings.length === 0) return null;
+
+  const prices = listings.map((listing) => listing.priceKrw);
+  const avgPrice = Math.round(prices.reduce((sum, price) => sum + price, 0) / prices.length);
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+
+  const series = collapseByDate(
+    snapshots.filter(
+      (snapshot) => snapshot.source_name === 'ebay_browse' && snapshotAvgPrice(snapshot) !== null,
+    ),
+  );
+  const latest = series[series.length - 1];
+  const first = series[0];
+  const changeRate =
+    first && latest && first.avgPrice > 0
+      ? Number((((latest.avgPrice - first.avgPrice) / first.avgPrice) * 100).toFixed(1))
+      : 0;
+
+  return {
+    avgPrice,
+    minPrice,
+    maxPrice,
+    changeRate,
+    changeTone: getChangeTone(changeRate),
+    lastUpdatedAt: latest ? formatSnapshotDate(latest.date) : '',
+    stalenessDays: latest ? stalenessDaysSince(latest.date, today) : 0,
+    sourceLabel: `eBay 판매중 호가 ${listings.length}건 기준 (실거래가는 참조점으로 표시)`,
+    currency: 'KRW',
+    sampleCount: listings.length,
   };
 }
 
@@ -1655,6 +1729,97 @@ function snapshotDisplayCurrency(snapshot: CardPriceSnapshotRow): string {
 
 function snapshotAvgPrice(snapshot: CardPriceSnapshotRow): number | null {
   return snapshot.display_avg_price ?? snapshot.avg_price;
+}
+
+function snapshotAvgPriceKrw(snapshot: CardPriceSnapshotRow): number | null {
+  if (
+    snapshotDisplayCurrency(snapshot) === 'KRW' &&
+    snapshot.display_avg_price !== null &&
+    snapshot.display_avg_price !== undefined
+  ) {
+    return snapshot.display_avg_price;
+  }
+  const sourceAverage = snapshot.source_avg_price ?? snapshot.avg_price;
+  if (sourceAverage === null) return null;
+  if ((snapshot.source_currency ?? snapshot.currency) === 'KRW') return sourceAverage;
+  return snapshot.fx_rate && Number.isFinite(snapshot.fx_rate) && snapshot.fx_rate > 0
+    ? sourceAverage * snapshot.fx_rate
+    : null;
+}
+
+function safeExternalHttpUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function formatMarketplaceSourceName(sourceName: string): string {
+  switch (sourceName) {
+    case 'ebay':
+    case 'ebay_auction':
+      return 'eBay';
+    case 'kream':
+    case 'manual_kream':
+      return 'KREAM';
+    case 'bunjang':
+    case 'manual_bunjang':
+      return '번개장터';
+    case 'joongna':
+    case 'manual_joongna':
+      return '중고나라';
+    default:
+      return '외부 판매처';
+  }
+}
+
+export function deriveMarketplaceFallbackLink(
+  snapshots: readonly CardPriceSnapshotRow[],
+  query: BrowseCardQuery,
+): MarketplaceFallbackLink {
+  const candidates = snapshots.flatMap((row) => {
+    if (!isAskingSnapshot(row) || row.source_name === 'ebay_browse') return [];
+    const href = safeExternalHttpUrl(row.source_url);
+    return href ? [{ row, href }] : [];
+  });
+
+  if (candidates.length > 0) {
+    const selectedBucket = pickRichestBucket(candidates.map(({ row }) => row));
+    const bucketCandidates = candidates.filter(({ row }) => bucketKey(row) === selectedBucket?.key);
+    const latest = latestDate(bucketCandidates.map(({ row }) => row));
+    const latestCandidates = bucketCandidates.filter(({ row }) => row.snapshot_date === latest);
+    const target =
+      latestCandidates.reduce((sum, { row }) => sum + (snapshotAvgPrice(row) ?? 0), 0) /
+      latestCandidates.length;
+    // Stable order: distance to target, lower comparable price, source, then URL.
+    const selected = latestCandidates.sort((a, b) => {
+      const aPrice = snapshotAvgPrice(a.row) ?? 0;
+      const bPrice = snapshotAvgPrice(b.row) ?? 0;
+      return (
+        Math.abs(aPrice - target) - Math.abs(bPrice - target) ||
+        aPrice - bPrice ||
+        a.row.source_name.localeCompare(b.row.source_name) ||
+        a.href.localeCompare(b.href)
+      );
+    })[0];
+    const sourceLabel = formatMarketplaceSourceName(selected.row.source_name);
+    return {
+      kind: 'source',
+      href: selected.href,
+      sourceLabel,
+      actionLabel: `${sourceLabel}에서 보기`,
+    };
+  }
+
+  return {
+    kind: 'search',
+    href: buildEbaySearchPageUrl(buildBrowseKeyword(query)),
+    sourceLabel: 'eBay',
+    actionLabel: 'eBay에서 검색',
+  };
 }
 
 function snapshotMinPrice(snapshot: CardPriceSnapshotRow): number {
@@ -1667,9 +1832,7 @@ function snapshotMaxPrice(snapshot: CardPriceSnapshotRow): number {
 
 /** Source URL of the cheapest-min row in a date group, so the link tracks 최저가. */
 function cheapestSourceUrl(group: readonly CardPriceSnapshotRow[]): string | null {
-  const withUrl = group.filter(
-    (row) => Boolean(row.source_url) || (row.listings?.length ?? 0) > 0,
-  );
+  const withUrl = group.filter((row) => Boolean(row.source_url) || (row.listings?.length ?? 0) > 0);
   if (withUrl.length === 0) return null;
   const cheapest = withUrl.reduce((cheapest, row) =>
     snapshotMinPrice(row) < snapshotMinPrice(cheapest) ? row : cheapest,
@@ -1680,7 +1843,9 @@ function cheapestSourceUrl(group: readonly CardPriceSnapshotRow[]): string | nul
   // sets), so trust the filtered listings first and only fall back to it.
   const listings = cheapest.listings ?? [];
   if (listings.length > 0) {
-    return listings.reduce((a, b) => (b.price < a.price ? b : a)).url ?? cheapest.source_url ?? null;
+    return (
+      listings.reduce((a, b) => (b.price < a.price ? b : a)).url ?? cheapest.source_url ?? null
+    );
   }
   return cheapest.source_url ?? null;
 }
@@ -1946,14 +2111,6 @@ function applyExactCounts(
   for (const row of exactCounts) {
     target.set(row.game_id, row.count);
   }
-}
-
-function stableHash(value: string): number {
-  return Array.from(value).reduce((hash, character) => hash + character.charCodeAt(0), 0);
-}
-
-function roundToNearest(value: number, unit: number): number {
-  return Math.round(value / unit) * unit;
 }
 
 function throwIfSupabaseError(error: SupabaseErrorLike | null) {

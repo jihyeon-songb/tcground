@@ -2,16 +2,15 @@
 
 import { useState } from 'react';
 import { Button } from '@tcground/ui';
-import type { EbayListing } from '@/lib/tcg-catalog';
+import type { EbayListing, MarketplaceFallbackLink } from '@/lib/tcg-catalog';
 import { formatPrice } from '@/lib/tcg-data';
 
 const PAGE_SIZE = 5;
 
-interface EbayListingsProps {
+interface MarketplaceLinksProps {
   listings: EbayListing[];
   featuredIndex: number;
-  /** Fallback single link (cheapest/search) used when no individual listings exist. */
-  fallbackUrl?: string | null;
+  fallback: MarketplaceFallbackLink;
 }
 
 /** Official eBay wordmark (Wikimedia). ponytail: single use site, inlined instead of an asset. */
@@ -44,31 +43,35 @@ function EbayLogo({ className }: { className?: string }) {
   );
 }
 
-/**
- * eBay 판매중(즉시구매) "Shop" 섹션. 좌측 eBay 로고 + 평균가에 가장 가까운 1건을
- * 대표 헤더로 보여주고, 더보기로 나머지를 가격 낮은순 5개씩 펼친다.
- */
-export function EbayListings({ listings, featuredIndex, fallbackUrl }: EbayListingsProps) {
+export function MarketplaceLinks({ listings, featuredIndex, fallback }: MarketplaceLinksProps) {
   const [shown, setShown] = useState(0);
 
   if (listings.length === 0) {
-    if (!fallbackUrl) return null;
+    const isEbay = fallback.sourceLabel === 'eBay';
     return (
       <a
-        href={fallbackUrl}
+        href={fallback.href}
         target='_blank'
         rel='noopener noreferrer'
+        aria-label={fallback.actionLabel}
         className='border-border hover:border-foreground/30 mt-2 flex w-full items-center gap-3 rounded-xl border px-4 py-3 transition-colors'
       >
-        <EbayLogo className='h-5 w-auto shrink-0' />
-        <span className='text-muted-foreground text-sm font-medium underline'>eBay에서 보기</span>
+        {isEbay ? (
+          <EbayLogo className='h-5 w-auto shrink-0' />
+        ) : (
+          <span className='text-foreground text-sm font-semibold'>{fallback.sourceLabel}</span>
+        )}
+        <span className='text-muted-foreground text-sm font-medium underline'>
+          {fallback.actionLabel}
+        </span>
       </a>
     );
   }
 
   const featured = listings[featuredIndex] ?? listings[0];
-  // Everything except the featured listing, kept in price-ascending order.
-  const rest = listings.filter((listing) => listing !== featured);
+  const rest = listings
+    .filter((listing) => listing !== featured)
+    .sort((a, b) => a.priceKrw - b.priceKrw);
   const visible = rest.slice(0, shown);
   const remaining = rest.length - visible.length;
 

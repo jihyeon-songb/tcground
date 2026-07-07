@@ -43,14 +43,39 @@ describe('CardDetailContent', () => {
 
   it('shows a stale-price warning caption when the price is over 7 days old', () => {
     const base = createCardDetail();
+    if (!base.price) throw new Error('fixture requires a price');
     render(<CardDetailContent card={{ ...base, price: { ...base.price, stalenessDays: 8 } }} />);
-    expect(screen.getByText('마지막 거래 8일 전 · 최근 호가 없음')).toBeTruthy();
+    expect(screen.getByText('마지막 수집 8일 전 · 현재 매물 여부 미확인')).toBeTruthy();
   });
 
   it('shows a neutral staleness caption within 7 days', () => {
     const base = createCardDetail();
+    if (!base.price) throw new Error('fixture requires a price');
     render(<CardDetailContent card={{ ...base, price: { ...base.price, stalenessDays: 3 } }} />);
-    expect(screen.getByText('마지막 거래 3일 전')).toBeTruthy();
+    expect(screen.getByText('마지막 수집 3일 전 · 현재 매물 여부 미확인')).toBeTruthy();
+  });
+
+  it('labels the summary as average asking price', () => {
+    render(<CardDetailContent card={createCardDetail()} />);
+    expect(screen.getByText('평균 판매 호가')).toBeTruthy();
+    expect(screen.queryByText('평균 거래가')).toBeNull();
+  });
+
+  it('shows no-price state without fabricated values or alerts', () => {
+    const card = { ...createCardDetail(), price: null };
+    render(<CardDetailContent card={card} alertSlot={<button>가격 알림</button>} />);
+    expect(screen.getByText('시세 정보 없음')).toBeTruthy();
+    expect(screen.queryByText('₩120,000')).toBeNull();
+    expect(screen.queryByRole('button', { name: '가격 알림' })).toBeNull();
+  });
+
+  it('falls back to eBay search for a cached detail without the new marketplace link field', () => {
+    const legacyCachedCard = { ...createCardDetail() } as Partial<CatalogCardDetail>;
+    delete legacyCachedCard.marketplaceFallbackLink;
+
+    render(<CardDetailContent card={legacyCachedCard as CatalogCardDetail} />);
+
+    expect(screen.getByRole('link', { name: 'eBay에서 검색' })).toBeTruthy();
   });
 
   it('shows the public rating average and a sign-in prompt for guests', () => {
@@ -270,6 +295,12 @@ function createCardDetail(): CatalogCardDetail {
     },
     ebayListings: [],
     featuredListingIndex: -1,
+    marketplaceFallbackLink: {
+      kind: 'search',
+      href: 'https://www.ebay.com/sch/i.html?_nkw=Charizard',
+      sourceLabel: 'eBay',
+      actionLabel: 'eBay에서 검색',
+    },
     printing: {
       id: 'printing-kr-004',
       language: 'ko',

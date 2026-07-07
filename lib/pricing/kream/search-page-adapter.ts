@@ -36,6 +36,23 @@ export const KREAM_BASE_SEARCH_KEYWORD = '포켓몬카드 한글판';
 const DEFAULT_MIN_CONFIDENCE = 0.7;
 const RARITY_TOKENS = ['SAR', 'SR', 'UR', 'AR', 'CHR', 'CSR', 'HR', 'RRR', 'RR', 'R'];
 
+/**
+ * KREAM search returns foreign-edition products (일어판/영문판…) alongside Korean
+ * ones. This catalog is Korean-print only, so a title declaring a foreign edition
+ * can never be the intended card — score it 0 rather than let name+rarity alone
+ * clear the confidence bar (e.g. a 일어판 Enamorus AR matching the 한글판 074/066).
+ */
+const FOREIGN_LANGUAGE_MARKERS = [
+  '일어판',
+  '일본판',
+  '일판',
+  '영문판',
+  '영어판',
+  '미국판',
+  '중국판',
+  '중문판',
+];
+
 export function parseKreamSearchProductText(
   productId: string,
   rawText: string,
@@ -138,7 +155,7 @@ function scoreProduct(
   return cards.map((card) => ({
     product,
     card,
-    confidence: hasRarityConflict(product.title, card.rarity)
+    confidence: hasRarityConflict(product.title, card.rarity) || hasLanguageConflict(product.title)
       ? 0
       : computeMatchConfidence(product.title, {
           names: [card.cardName],
@@ -167,6 +184,11 @@ function sortRarity(a: string, b: string): number {
   return a.localeCompare(b);
 }
 
+function hasLanguageConflict(title: string): boolean {
+  const normalizedTitle = normalize(title);
+  return FOREIGN_LANGUAGE_MARKERS.some((marker) => normalizedTitle.includes(normalize(marker)));
+}
+
 function hasRarityConflict(title: string, rarity: string | null): boolean {
   const normalizedTitle = normalize(title);
   const titleRarity = RARITY_TOKENS.find((token) => tokenMatches(normalizedTitle, token));
@@ -187,11 +209,19 @@ function readTitle(rawText: string): string | null {
   return title ?? null;
 }
 
+// ponytail: sane ceiling for a single Korean-print card ask. Real chase cards
+// (리자몽 SAR 등) top out around low millions of won; a value above this is a
+// parse artifact or placeholder (e.g. KREAM's ₩1,000,000,000 "no active ask"
+// sentinel), never a real price. Raise if the catalog ever holds a card that
+// legitimately asks more.
+const MAX_PLAUSIBLE_PRICE_KRW = 100_000_000;
+
 function readPrice(rawText: string): number | null {
   const match = rawText.match(/([\d,]+)\s*원/);
   if (!match) return null;
   const value = Number.parseInt(match[1].replace(/,/g, ''), 10);
-  return Number.isFinite(value) && value > 0 ? value : null;
+  if (!Number.isFinite(value) || value <= 0 || value > MAX_PLAUSIBLE_PRICE_KRW) return null;
+  return value;
 }
 
 function readTradeCount(rawText: string): number | null {

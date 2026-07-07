@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-07-07 (판매 호가·외부 바로가기 정합성 계획)
+> 마지막 갱신: 2026-07-07 (카드 상세 캐시 view model 회귀 수정)
 
 ## 현재 기준 PRD
 
@@ -657,14 +657,22 @@
 ### 6.12 판매 호가·외부 바로가기 정합성
 
 - 상세 계획: `docs/superpowers/plans/2026-07-07-asking-price-marketplace-links.md`
-- 영향 파일: `memory-bank/prd/product-detail.md`, `memory-bank/architecture.md`, `memory-bank/trouble-shooting.md`, `lib/pricing/ebay/browse-adapter.ts`, `lib/tcg-catalog.ts`, `app/cards/[cardId]/page.tsx`, `app/cards/[cardId]/_components/MarketplaceLinks.tsx`, 관련 테스트, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 영향 파일: `memory-bank/prd/product-detail.md`, `memory-bank/architecture.md`, `memory-bank/trouble-shooting.md`, `lib/pricing/ebay/browse-adapter.ts`, `lib/tcg-catalog.ts`, `app/cards/[cardId]/page.tsx`, `app/cards/[cardId]/_components/MarketplaceLinks.tsx`, 관련 테스트, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`. 최종 품질 게이트에서 기존 `react-hooks/set-state-in-effect` 오류가 확인된 `app/categories/[categoryId]/_components/CardResults.tsx`는 grid 열 상태만 저장하고 list 1열을 파생하도록 최소 보정한다.
 - 최소 변경 범위: 상세 대표 가격을 실제 asking snapshot 기반 `평균 판매 호가`로 통일하고 deterministic 가격 fallback을 제거한다. 과거 호가는 신선도를 명시해 유지하며, 외부 링크는 검증된 eBay listing → 실제 marketplace source URL → eBay 검색 결과 순서로 선택한다. DB schema와 수집 adapter·스케줄은 변경하지 않는다.
-- [ ] 상품 상세 PRD, architecture, troubleshooting에 승인된 가격·링크 정책 반영.
-- [ ] 상세 `price` nullable 전환과 deterministic 가격 fallback 제거.
-- [ ] 검증된 eBay listing, 실제 source URL, eBay 검색 fallback을 구분하는 link view model 구현.
-- [ ] `평균 판매 호가`, 과거 호가 신선도, `시세 정보 없음`, 실제 출처 링크 UI 및 회귀 테스트 구현.
-- [ ] 품질 게이트 통과 후 progress와 본 체크리스트 마감.
+- [x] 상품 상세 PRD, architecture, troubleshooting에 승인된 가격·링크 정책 반영.
+- [x] 상세 `price` nullable 전환과 deterministic 가격 fallback 제거.
+- [x] 검증된 eBay listing, 실제 source URL, eBay 검색 fallback을 구분하는 link view model 구현.
+- [x] `평균 판매 호가`, 과거 호가 신선도, `시세 정보 없음`, 실제 출처 링크 UI 및 회귀 테스트 구현.
+- [x] 품질 게이트 통과 후 progress와 본 체크리스트 마감.
+
+### 6.13 카드 상세 캐시 view model 회귀 보강
+
+- 영향 파일: `lib/tcg-catalog.ts`, `app/cards/[cardId]/page.tsx`, `app/cards/[cardId]/page.test.tsx`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`.
+- 최소 변경 범위: `marketplaceFallbackLink` 추가 전 상세 캐시가 남아 있어도 페이지가 중단되지 않도록 eBay 검색 fallback을 파생하고, 상세 캐시 키를 버전 갱신해 이전 직렬화 결과를 무효화한다.
+- [x] 이전 상세 캐시 형태를 재현하는 회귀 테스트 추가.
+- [x] 상세 캐시 키 버전 갱신 및 누락 fallback 방어 처리.
+- [x] 품질 게이트 통과 후 progress와 본 체크리스트 마감.
 
 ## 다음 작업
 
-최우선 다음 단계는 6.12 판매 호가·외부 바로가기 정합성 계획을 위 상세 계획의 Task 1부터 순서대로 실행하는 것이다.
+다음 단계는 본 브랜치 검토·병합 후 3.5의 배포 후 eBay Browse daily collection이 최소 7일 이상 누적되는지 확인하는 것이다.
