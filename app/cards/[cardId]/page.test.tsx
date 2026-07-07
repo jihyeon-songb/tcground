@@ -41,6 +41,18 @@ describe('CardDetailContent', () => {
     expect(screen.getByText('BS2023014201')).toBeTruthy();
   });
 
+  it('shows a stale-price warning caption when the price is over 7 days old', () => {
+    const base = createCardDetail();
+    render(<CardDetailContent card={{ ...base, price: { ...base.price, stalenessDays: 8 } }} />);
+    expect(screen.getByText('마지막 거래 8일 전 · 최근 호가 없음')).toBeTruthy();
+  });
+
+  it('shows a neutral staleness caption within 7 days', () => {
+    const base = createCardDetail();
+    render(<CardDetailContent card={{ ...base, price: { ...base.price, stalenessDays: 3 } }} />);
+    expect(screen.getByText('마지막 거래 3일 전')).toBeTruthy();
+  });
+
   it('shows the public rating average and a sign-in prompt for guests', () => {
     const card = createCardDetail();
     render(
@@ -225,6 +237,7 @@ function createCardDetail(): CatalogCardDetail {
       changeRate: 2.1,
       changeTone: 'up',
       lastUpdatedAt: '2026년 5월 22일',
+      stalenessDays: 0,
       sourceLabel: '가격 데이터 연결 전까지 카탈로그 대표값을 표시합니다.',
       currency: 'KRW',
       sampleCount: 0,

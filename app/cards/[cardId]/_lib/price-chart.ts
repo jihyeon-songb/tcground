@@ -41,6 +41,8 @@ export function filterSeriesByPeriod(
 export interface ChartGeometry {
   linePath: string;
   areaPath: string;
+  /** 마지막 실측점→오늘 수평 이월 구간(점선용). 이월 없으면 ''. */
+  carryForwardPath: string;
   linePoints: Array<{ x: number; y: number }>;
   overlayPoints: Array<{ x: number; y: number }>;
   hasData: boolean;
@@ -61,12 +63,13 @@ const CHART_Y_BOTTOM = 44;
 export function buildChartGeometry(
   series: readonly PricePoint[],
   overlay: readonly PricePoint[],
+  options: { today?: Date } = {},
 ): ChartGeometry {
   // Scale to the asking series; fall back to the overlay only when there is no
   // trend line at all, so a sold-only history still renders.
   const scaleBasis = series.length > 0 ? series : overlay;
   if (scaleBasis.length === 0) {
-    return { linePath: '', areaPath: '', linePoints: [], overlayPoints: [], hasData: false };
+    return { linePath: '', areaPath: '', carryForwardPath: '', linePoints: [], overlayPoints: [], hasData: false };
   }
 
   const times = scaleBasis.map((point) => new Date(point.date).getTime());
@@ -76,8 +79,14 @@ export function buildChartGeometry(
   const lowPrice = Math.min(...prices);
   const highPrice = Math.max(...prices);
 
+  const todayTime = options.today?.getTime();
+  const effectiveMaxTime =
+    todayTime !== undefined && todayTime > maxTime ? todayTime : maxTime;
+
   const xOf = (date: string) =>
-    maxTime === minTime ? 50 : ((new Date(date).getTime() - minTime) / (maxTime - minTime)) * 100;
+    maxTime === minTime
+      ? 50
+      : ((new Date(date).getTime() - minTime) / (effectiveMaxTime - minTime)) * 100;
   const yOf = (price: number) => {
     if (highPrice === lowPrice) return (CHART_Y_TOP + CHART_Y_BOTTOM) / 2;
     const y =
@@ -102,9 +111,16 @@ export function buildChartGeometry(
   const overlayPoints = overlay
     .filter((point) => {
       const time = new Date(point.date).getTime();
-      return time >= minTime && time <= maxTime;
+      return time >= minTime && time <= effectiveMaxTime;
     })
     .map((point) => ({ x: xOf(point.date), y: yOf(point.avgPrice) }));
 
-  return { linePath, areaPath, linePoints, overlayPoints, hasData: true };
+  const carryForwardPath =
+    effectiveMaxTime > maxTime && linePoints.length > 0
+      ? `M${linePoints[linePoints.length - 1].x.toFixed(2)},${linePoints[
+          linePoints.length - 1
+        ].y.toFixed(2)} L100.00,${linePoints[linePoints.length - 1].y.toFixed(2)}`
+      : '';
+
+  return { linePath, areaPath, carryForwardPath, linePoints, overlayPoints, hasData: true };
 }
