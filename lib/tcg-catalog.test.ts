@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   buildPriceHistory,
   createDeterministicPriceDisplay,
+  deriveAskingPriceDisplayFromHistory,
   deriveEbayListings,
+  deriveMarketplaceFallbackLink,
   derivePriceDisplayFromHistory,
   fetchSnapshotsByPrinting,
   getCardDetailBySlug,
@@ -1203,6 +1205,103 @@ describe('price history view models', () => {
     const history = buildPriceHistory([snapshotRow({ avg_price: null })]);
     expect(derivePriceDisplayFromHistory(history)).toBeNull();
   });
+
+  it('keeps historical asking with staleness', () => {
+    const history = buildPriceHistory([
+      createSnapshotRow({
+        snapshot_date: '2026-06-30',
+        source_name: 'kream',
+        aggregation_method: 'kream_asking_median',
+        market: 'KR',
+        currency: 'KRW',
+        avg_price: 100000,
+      }),
+    ]);
+
+    expect(
+      deriveAskingPriceDisplayFromHistory(history, new Date('2026-07-07T00:00:00Z')),
+    ).toMatchObject({ avgPrice: 100000, stalenessDays: 7 });
+  });
+});
+
+describe('deriveMarketplaceFallbackLink', () => {
+  const ebayQuery = {
+    cardPrintingId: 'printing-1',
+    cardName: '리자몽 ex',
+    nameEn: 'Charizard ex',
+    collectorNumber: '201/165',
+    setCode: 'SV2a',
+  };
+
+  it('labels a domestic source instead of presenting it as eBay', () => {
+    expect(
+      deriveMarketplaceFallbackLink(
+        [
+          createSnapshotRow({
+            source_name: 'kream',
+            aggregation_method: 'kream_asking_median',
+            source_url: 'https://kream.co.kr/products/804751',
+          }),
+        ],
+        ebayQuery,
+      ),
+    ).toEqual({
+      kind: 'source',
+      href: 'https://kream.co.kr/products/804751',
+      sourceLabel: 'KREAM',
+      actionLabel: 'KREAM에서 보기',
+    });
+  });
+
+  it('rejects a legacy eBay item URL and falls back to search', () => {
+    const link = deriveMarketplaceFallbackLink(
+      [
+        createSnapshotRow({
+          source_name: 'ebay_browse',
+          source_url: 'https://www.ebay.com/itm/298286038307',
+          listings: null,
+        }),
+      ],
+      ebayQuery,
+    );
+
+    expect(link.kind).toBe('search');
+    expect(new URL(link.href).searchParams.get('_nkw')).toBe('Charizard ex 201/165 Korean');
+  });
+
+  it('rejects non-http source URLs', () => {
+    const link = deriveMarketplaceFallbackLink(
+      [
+        createSnapshotRow({
+          source_name: 'kream',
+          aggregation_method: 'kream_asking_median',
+          source_url: 'javascript:alert(1)',
+        }),
+      ],
+      ebayQuery,
+    );
+
+    expect(link.kind).toBe('search');
+  });
+
+  it.each([
+    ['bunjang', '번개장터'],
+    ['joongna', '중고나라'],
+    ['unknown_market', '외부 판매처'],
+  ])('maps %s to a safe public label', (sourceName, sourceLabel) => {
+    const link = deriveMarketplaceFallbackLink(
+      [
+        createSnapshotRow({
+          source_name: sourceName,
+          aggregation_method: 'manual_asking_median',
+          source_url: 'https://market.example/item/1',
+        }),
+      ],
+      ebayQuery,
+    );
+
+    expect(link.sourceLabel).toBe(sourceLabel);
+  });
 });
 
 describe('deriveEbayListings', () => {
@@ -1225,9 +1324,8 @@ describe('deriveEbayListings', () => {
     ...overrides,
   });
 
-  it('converts listings to KRW (price asc) and flags the one nearest the average', () => {
-    // displayAvgPrice 95,000 KRW → closest is the 100 USD (100,000 KRW) listing at index 1.
-    const { listings, featuredIndex } = deriveEbayListings([listingRow()], 95_000);
+  it('selects the representative listing from the eBay snapshot average', () => {
+    const { listings, featuredIndex } = deriveEbayListings([listingRow()], 190_000);
 
     expect(listings).toEqual([
       { priceKrw: 80_000, url: 'https://www.ebay.com/itm/a', title: 'A' },
@@ -1240,7 +1338,12 @@ describe('deriveEbayListings', () => {
   it('uses only the latest browse snapshot and dedupes by URL', () => {
     const { listings } = deriveEbayListings(
       [
-        listingRow({ snapshot_date: '2026-05-20', listings: [{ price: 5, currency: 'USD', url: 'https://www.ebay.com/itm/old', title: 'old' }] }),
+        listingRow({
+          snapshot_date: '2026-05-20',
+          listings: [
+            { price: 5, currency: 'USD', url: 'https://www.ebay.com/itm/old', title: 'old' },
+          ],
+        }),
         listingRow(),
       ],
       100_000,
