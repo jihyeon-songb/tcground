@@ -164,8 +164,7 @@ export function mapItemSummariesToSnapshot(
   const cheapest = sorted[0];
   // Link to the cheapest listing; fall back to the search page when it has no URL.
   const sourceUrl =
-    cheapest.item.itemWebUrl ??
-    (context.keyword ? buildEbaySearchPageUrl(context.keyword) : null);
+    cheapest.item.itemWebUrl ?? (context.keyword ? buildEbaySearchPageUrl(context.keyword) : null);
 
   // Keep the cheapest N listings (with a real per-listing URL) so the detail page
   // can link to individual asks, not just the cheapest. Auctions are excluded.

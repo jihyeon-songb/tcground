@@ -125,8 +125,16 @@ describe('mapItemSummariesToSnapshot', () => {
     const snapshot = mapItemSummariesToSnapshot(
       {
         itemSummaries: [
-          { price: { value: '162.00', currency: 'USD' }, itemWebUrl: 'https://www.ebay.com/itm/b', title: 'B' },
-          { price: { value: '139.99', currency: 'USD' }, itemWebUrl: 'https://www.ebay.com/itm/a', title: 'A' },
+          {
+            price: { value: '162.00', currency: 'USD' },
+            itemWebUrl: 'https://www.ebay.com/itm/b',
+            title: 'B',
+          },
+          {
+            price: { value: '139.99', currency: 'USD' },
+            itemWebUrl: 'https://www.ebay.com/itm/a',
+            title: 'A',
+          },
           // No URL → excluded from listings.
           { price: { value: '120.00', currency: 'USD' } },
         ],
@@ -154,7 +162,10 @@ describe('mapItemSummariesToSnapshot', () => {
     const auction = mapItemSummariesToSnapshot(
       {
         itemSummaries: [
-          { currentBidPrice: { value: '80.00', currency: 'USD' }, itemWebUrl: 'https://www.ebay.com/itm/777' },
+          {
+            currentBidPrice: { value: '80.00', currency: 'USD' },
+            itemWebUrl: 'https://www.ebay.com/itm/777',
+          },
         ],
       },
       { cardPrintingId: 'p1', snapshotDate: '2026-05-29', buyingOption: 'AUCTION' },
@@ -164,10 +175,13 @@ describe('mapItemSummariesToSnapshot', () => {
 
   it('returns null when there are no priced listings', () => {
     expect(
-      mapItemSummariesToSnapshot({ itemSummaries: [] }, {
-        cardPrintingId: 'p1',
-        snapshotDate: '2026-05-29',
-      }),
+      mapItemSummariesToSnapshot(
+        { itemSummaries: [] },
+        {
+          cardPrintingId: 'p1',
+          snapshotDate: '2026-05-29',
+        },
+      ),
     ).toBeNull();
   });
 

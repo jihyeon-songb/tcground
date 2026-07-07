@@ -134,7 +134,12 @@ export function CardResults({
   const [items, setItems] = useState<PokemonCatalogCard[]>(initialCards);
   const [loadedPage, setLoadedPage] = useState(page);
   const [loading, setLoading] = useState(false);
-  const [columns, setColumns] = useState(() => (view === 'list' ? 1 : 2));
+  const [gridColumns, setGridColumns] = useState(() =>
+    typeof window === 'undefined' || !window.matchMedia
+      ? 2
+      : gridColumnsForWidth(window.innerWidth),
+  );
+  const columns = view === 'list' ? 1 : gridColumns;
   const [listOffsetTop, setListOffsetTop] = useState(0);
   const [restoredStorageKey, setRestoredStorageKey] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -250,16 +255,11 @@ export function CardResults({
   // List view is always a single column. matchMedia is guarded so SSR / jsdom
   // (which lacks it) fall back to the initial column count.
   useEffect(() => {
-    if (view === 'list') {
-      setColumns(1);
-      return;
-    }
     if (typeof window === 'undefined' || !window.matchMedia) return;
-    const update = () => setColumns(gridColumnsForWidth(window.innerWidth));
-    update();
+    const update = () => setGridColumns(gridColumnsForWidth(window.innerWidth));
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
-  }, [view]);
+  }, []);
 
   const rows = useMemo(() => chunk(items, columns), [items, columns]);
 
@@ -332,7 +332,11 @@ export function CardResults({
 
       {/* Virtualized list: only the visible rows (+ overscan) are in the DOM.
           Rows are absolutely positioned inside a spacer sized to the full list. */}
-      <div ref={listRef} className='relative w-full' style={{ height: rowVirtualizer.getTotalSize() }}>
+      <div
+        ref={listRef}
+        className='relative w-full'
+        style={{ height: rowVirtualizer.getTotalSize() }}
+      >
         <ul>
           {virtualRows.map((virtualRow) => {
             const row = rows[virtualRow.index];
