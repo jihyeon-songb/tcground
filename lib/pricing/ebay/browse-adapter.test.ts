@@ -3,6 +3,7 @@ import {
   AUCTION_SOURCE_NAME,
   BROWSE_SOURCE_NAME,
   buildBrowseKeyword,
+  buildEbaySearchPageUrl,
   buildItemSummarySearchUrl,
   collectBrowseAuctionSnapshots,
   mapItemSummariesToSnapshot,
@@ -41,6 +42,15 @@ describe('buildBrowseKeyword', () => {
         setCode: 'SV2a',
       }),
     ).toBe('201/165 SV2a Korean Pokemon');
+  });
+});
+
+describe('buildEbaySearchPageUrl', () => {
+  it('builds a human-facing eBay search URL with the encoded keyword', () => {
+    const url = new URL(buildEbaySearchPageUrl('Charizard ex 201/165 Korean'));
+    expect(url.origin).toBe('https://www.ebay.com');
+    expect(url.pathname).toBe('/sch/i.html');
+    expect(url.searchParams.get('_nkw')).toBe('Charizard ex 201/165 Korean');
   });
 });
 

@@ -130,7 +130,7 @@ export function buildItemSummarySearchUrl(
 }
 
 /** Builds the human-facing eBay search results URL for a keyword (link fallback). */
-function buildEbaySearchPageUrl(keyword: string): string {
+export function buildEbaySearchPageUrl(keyword: string): string {
   const url = new URL(`${EBAY_WEB_BASE_URL}/sch/i.html`);
   url.searchParams.set('_nkw', keyword);
   return url.toString();
