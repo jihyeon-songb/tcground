@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-06-16 (KREAM segmented search 수집)
+> 마지막 갱신: 2026-07-07 (판매 호가·외부 바로가기 정합성 계획)
 
 ## 현재 기준 PRD
 
@@ -654,6 +654,17 @@
 - [x] 기존 Next dev 서버가 PID `32264`로 `localhost:3000`에 이미 떠 있으며 HTTP 200으로 응답함을 확인.
 - [x] 중복 dev 서버 실행 시 `.next/dev/logs/next-development.log`와 Next 메시지에서 기존 서버를 종료하거나 기존 URL을 사용해야 함을 확인.
 
+### 6.12 판매 호가·외부 바로가기 정합성
+
+- 상세 계획: `docs/superpowers/plans/2026-07-07-asking-price-marketplace-links.md`
+- 영향 파일: `memory-bank/prd/product-detail.md`, `memory-bank/architecture.md`, `memory-bank/trouble-shooting.md`, `lib/pricing/ebay/browse-adapter.ts`, `lib/tcg-catalog.ts`, `app/cards/[cardId]/page.tsx`, `app/cards/[cardId]/_components/MarketplaceLinks.tsx`, 관련 테스트, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.
+- 최소 변경 범위: 상세 대표 가격을 실제 asking snapshot 기반 `평균 판매 호가`로 통일하고 deterministic 가격 fallback을 제거한다. 과거 호가는 신선도를 명시해 유지하며, 외부 링크는 검증된 eBay listing → 실제 marketplace source URL → eBay 검색 결과 순서로 선택한다. DB schema와 수집 adapter·스케줄은 변경하지 않는다.
+- [ ] 상품 상세 PRD, architecture, troubleshooting에 승인된 가격·링크 정책 반영.
+- [ ] 상세 `price` nullable 전환과 deterministic 가격 fallback 제거.
+- [ ] 검증된 eBay listing, 실제 source URL, eBay 검색 fallback을 구분하는 link view model 구현.
+- [ ] `평균 판매 호가`, 과거 호가 신선도, `시세 정보 없음`, 실제 출처 링크 UI 및 회귀 테스트 구현.
+- [ ] 품질 게이트 통과 후 progress와 본 체크리스트 마감.
+
 ## 다음 작업
 
-최우선 다음 단계는 npm 로그인과 `@tcground` scope publish 권한을 확보한 뒤 로컬 package version을 새 patch로 올려 `@tcground/headless@0.1.2`, `@tcground/ui@0.1.3` 순서로 배포하는 것이다. 그 다음 루트 앱 dependency를 새 registry 버전으로 갱신하고 Vitest의 임시 `@tcground/ui` source alias를 제거한다. npm 배포 권한이 준비되지 않았다면, 가격 데이터 쪽은 `raw_payload_json.worklist_id` 기준 `KR-020`, `KR-028`, `KR-029`, `KR-032`~`KR-035`, `KR-038`, `KR-040`~`KR-060` priority pending worklist에서 카드별 source URL/item ID가 있는 sold 증거를 수동으로 채우는 것이 다음 순서다. CSV `sample_id`와 전체 카탈로그 pending backlog는 `PKMKR-*`로 보유하되, 증거가 확보된 카드만 실제 evidence 행으로 승격한다.
+최우선 다음 단계는 6.12 판매 호가·외부 바로가기 정합성 계획을 위 상세 계획의 Task 1부터 순서대로 실행하는 것이다.
