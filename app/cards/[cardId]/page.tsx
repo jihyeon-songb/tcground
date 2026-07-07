@@ -11,6 +11,7 @@ import { refreshEbayBrowseSnapshotForCardDetail } from '@/lib/pricing/ebay/curre
 import { createPublicClient } from '@/lib/supabase/public';
 import { createClient } from '@/lib/supabase/server';
 import {
+  deriveMarketplaceFallbackLink,
   getCardDetailBySlug,
   getCardRatingSummary,
   getPriceTrendSeries,
@@ -208,6 +209,16 @@ export function CardDetailContent({ card, ratingSlot, alertSlot }: CardDetailCon
   // When the trend is a graded fallback (e.g. KREAM PSA 10 체결가), label the
   // price as that grade instead of the default raw 시세 so the user isn't misled.
   const priceGradeLabel = card.priceHistory.gradeLabel ?? 'Raw';
+  const marketplaceFallbackLink =
+    card.marketplaceFallbackLink ??
+    deriveMarketplaceFallbackLink([], {
+      cardPrintingId: card.printing.id,
+      cardName: card.cardName,
+      nameEn: card.printing.nameEn,
+      nameJa: card.printing.nameJa,
+      collectorNumber: card.printing.collectorNumber,
+      setCode: card.printing.setCode,
+    });
 
   return (
     <>
@@ -266,7 +277,7 @@ export function CardDetailContent({ card, ratingSlot, alertSlot }: CardDetailCon
             <MarketplaceLinks
               listings={card.ebayListings}
               featuredIndex={card.featuredListingIndex}
-              fallback={card.marketplaceFallbackLink}
+              fallback={marketplaceFallbackLink}
             />
           </div>
 

@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-07-07 (판매 호가·외부 바로가기 정합성 구현 완료)
+> 마지막 갱신: 2026-07-07 (카드 상세 캐시 view model 회귀 수정)
 
 ## 현재 기준 PRD
 
@@ -663,6 +663,14 @@
 - [x] 상세 `price` nullable 전환과 deterministic 가격 fallback 제거.
 - [x] 검증된 eBay listing, 실제 source URL, eBay 검색 fallback을 구분하는 link view model 구현.
 - [x] `평균 판매 호가`, 과거 호가 신선도, `시세 정보 없음`, 실제 출처 링크 UI 및 회귀 테스트 구현.
+- [x] 품질 게이트 통과 후 progress와 본 체크리스트 마감.
+
+### 6.13 카드 상세 캐시 view model 회귀 보강
+
+- 영향 파일: `lib/tcg-catalog.ts`, `app/cards/[cardId]/page.tsx`, `app/cards/[cardId]/page.test.tsx`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`.
+- 최소 변경 범위: `marketplaceFallbackLink` 추가 전 상세 캐시가 남아 있어도 페이지가 중단되지 않도록 eBay 검색 fallback을 파생하고, 상세 캐시 키를 버전 갱신해 이전 직렬화 결과를 무효화한다.
+- [x] 이전 상세 캐시 형태를 재현하는 회귀 테스트 추가.
+- [x] 상세 캐시 키 버전 갱신 및 누락 fallback 방어 처리.
 - [x] 품질 게이트 통과 후 progress와 본 체크리스트 마감.
 
 ## 다음 작업

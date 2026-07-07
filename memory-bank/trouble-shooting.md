@@ -755,3 +755,13 @@ launchd에서 nvm/corepack/pnpm을 실행할 때는 pnpm 절대 경로만으로 
 ### 재발 방지
 
 UI는 원시 URL의 출처를 추측하지 않는다. 필터링된 eBay listings를 우선하고, 국내 source URL은 실제 출처명으로 표시하며, 신뢰 가능한 직접 URL이 없으면 eBay 검색 결과를 사용한다.
+
+## 카드 상세 캐시의 view model 필드 누락
+
+### 문제
+
+2026-07-07 `marketplaceFallbackLink` 추가 전 생성된 상세 캐시가 남은 카드에서 `MarketplaceLinks`가 `fallback.sourceLabel`을 읽으며 런타임 오류가 발생했다. 새 DB 조회 결과에는 필드가 있었지만 `unstable_cache`의 기존 직렬화 결과에는 없었다.
+
+### 재발 방지
+
+상세 view model의 필수 필드를 추가할 때는 `cardDetailBySlugCached` 키를 버전 갱신한다. UI 경계에서는 이전 캐시에 새 외부 링크 필드가 없더라도 카드 식별자로 안전한 eBay 검색 fallback을 파생해 페이지 전체가 중단되지 않게 한다.

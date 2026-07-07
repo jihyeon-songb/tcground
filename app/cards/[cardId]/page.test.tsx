@@ -69,6 +69,15 @@ describe('CardDetailContent', () => {
     expect(screen.queryByRole('button', { name: '가격 알림' })).toBeNull();
   });
 
+  it('falls back to eBay search for a cached detail without the new marketplace link field', () => {
+    const legacyCachedCard = { ...createCardDetail() } as Partial<CatalogCardDetail>;
+    delete legacyCachedCard.marketplaceFallbackLink;
+
+    render(<CardDetailContent card={legacyCachedCard as CatalogCardDetail} />);
+
+    expect(screen.getByRole('link', { name: 'eBay에서 검색' })).toBeTruthy();
+  });
+
   it('shows the public rating average and a sign-in prompt for guests', () => {
     const card = createCardDetail();
     render(

@@ -1065,7 +1065,7 @@ export async function getCardDetailBySlug(
 
 const cardDetailBySlugCached = unstable_cache(
   (slug: string, edition: CardEdition) => loadCardDetailBySlug(createPublicClient(), slug, edition),
-  ['card-detail-by-slug'],
+  ['card-detail-by-slug-v2'],
   { tags: [CATALOG_CACHE_TAG, PRICES_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
 );
 
