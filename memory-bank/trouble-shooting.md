@@ -480,7 +480,7 @@ CSV는 사람이 source를 확인한 뒤 `price_observations` 또는 asking snap
 - PriceCharting은 카드별 평균가/price guide가 아니라 historic sales 표의 개별 eBay completed-sale 행만 수동 CSV에 넣는다. `source_name=pricecharting_ebay_sold`, `source_item_id=pc-...`로 별도 구분하고, 직접 eBay 원문보다 낮은 confidence를 둔다.
 - 같은 국내 source라도 sold/asking이 모두 들어올 수 있으므로 `source_name`만으로 가격 성격을 판단하지 않는다. 수동 sold CSV는 source별로 따로 `card_price_snapshots.source_name`을 보존하고 `aggregation_method=median_filtered`로 남기며, asking CSV는 `aggregation_method=manual_asking_median`으로 남긴다.
 - source별 표본 수가 부족하면 `card_price_snapshots.sample_count`를 그대로 노출하고, UI에서 신뢰도를 숨기지 않는다.
-- 판매중 최저가는 평균 거래가를 대체하지 않는다. 실거래가가 부족한 경우에만 보조 지표로 기록한다.
+- 판매중 호가 snapshot은 상세 대표 가격에 사용하고, 판매 완료 데이터는 대표 가격 계산에서 제외해 차트 참고 데이터로만 유지한다.
 - source별 표본 수는 `price_kind=sold`, `variant=raw`, `exclude_reason` 없음 기준으로 세며, eBay 자동 adapter 후보 판단은 국내 수동 source 표본과 분리해서 본다.
 
 ### CSV 기준 matching/outlier 확정
@@ -741,3 +741,17 @@ env: node: No such file or directory
 ### 재발 방지
 
 launchd에서 nvm/corepack/pnpm을 실행할 때는 pnpm 절대 경로만으로 충분하지 않다. plist의 `EnvironmentVariables.PATH`에 Node bin 경로를 넣거나, command string에서 PATH를 export한다. 수집이 실행됐는지는 `launchctl print ...`의 `last exit code`, `/tmp/tcground-daily-price-collection.err.log`, `price_collection_runs`를 함께 확인한다.
+
+## 카드 상세 eBay fallback이 다른 카드·사이트로 이동
+
+### 문제
+
+카드 상세의 eBay fallback이 선택한 카드가 아닌 다른 카드나 국내 marketplace로 이동할 수 있다.
+
+### 원인
+
+`card_price_snapshots.source_url`은 출처 공통 필드이고, 과거 eBay Browse 행은 listing-level 카드 번호 필터 전에 저장된 item URL일 수 있다. UI는 원시 URL만으로 출처나 카드 일치 여부를 신뢰할 수 없다.
+
+### 재발 방지
+
+UI는 원시 URL의 출처를 추측하지 않는다. 필터링된 eBay listings를 우선하고, 국내 source URL은 실제 출처명으로 표시하며, 신뢰 가능한 직접 URL이 없으면 eBay 검색 결과를 사용한다.
