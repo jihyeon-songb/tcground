@@ -17,10 +17,11 @@ import {
   getViewerRating,
   parseCardEdition,
   type CatalogCardDetail,
+  type PriceDisplay,
 } from '@/lib/tcg-catalog';
 import { formatPrice } from '@/lib/tcg-data';
 import { PriceHistoryChart } from './_components/PriceHistoryChart';
-import { EbayListings } from './_components/EbayListings';
+import { MarketplaceLinks } from './_components/MarketplaceLinks';
 import { CardRating } from './_components/CardRating';
 import { CardDetailScrollReset } from './_components/CardDetailScrollReset';
 import { PriceAlertButton } from './_components/PriceAlertButton';
@@ -49,7 +50,7 @@ export async function generateMetadata({ params }: CardDetailPageProps): Promise
 
   return {
     title: 'TCGround | 카드 상세',
-    description: '카드의 평균 거래가, 최저/최고가, 가격 변동 추이를 확인하세요.',
+    description: '카드의 평균 판매 호가, 최저/최고가, 가격 변동 추이를 확인하세요.',
   };
 }
 
@@ -140,6 +141,8 @@ async function CardRatingSection({ cardId, slug }: { cardId: string; slug: strin
 }
 
 async function PriceAlertSection({ card }: { card: CatalogCardDetail }) {
+  if (!card.price) return null;
+
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
   const isAuthenticated = Boolean(claims?.claims?.sub);
@@ -249,54 +252,21 @@ export function CardDetailContent({ card, ratingSlot, alertSlot }: CardDetailCon
           <EditionSelector card={card} />
 
           <div className='bg-card flex flex-col gap-4 rounded-2xl p-8'>
-            <div className='flex flex-col gap-1'>
-              <span className='text-muted-foreground text-sm leading-none font-semibold tracking-wider uppercase'>
-                평균 거래가
-              </span>
-              <div className='flex flex-wrap items-baseline gap-3'>
-                <span className='text-foreground text-4xl leading-[1.1] font-extrabold tabular-nums md:text-[48px]'>
-                  {formatPrice(card.price.avgPrice, card.price.currency)}
+            {card.price ? (
+              <PriceSummaryContent price={card.price} gradeLabel={priceGradeLabel} />
+            ) : (
+              <div className='flex flex-col gap-2'>
+                <span className='text-muted-foreground text-sm font-semibold tracking-wider uppercase'>
+                  평균 판매 호가
                 </span>
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm leading-none font-semibold ${changeChipClass(
-                    card.price.changeTone,
-                  )}`}
-                >
-                  <TrendIcon tone={card.price.changeTone} />
-                  {formatChangeRate(card.price.changeRate)}
-                </span>
+                <p className='text-foreground text-2xl font-bold'>시세 정보 없음</p>
+                <p className='text-muted-foreground text-sm'>수집된 판매중 호가가 없습니다.</p>
               </div>
-              {card.price.stalenessDays > 0 && (
-                <p
-                  className={`mt-1 flex items-center gap-1.5 text-sm leading-[1.5] font-medium ${
-                    card.price.stalenessDays > 7 ? 'text-tcg-red' : 'text-muted-foreground'
-                  }`}
-                >
-                  <Clock className='size-4 shrink-0' aria-hidden />
-                  {card.price.stalenessDays > 7
-                    ? `마지막 거래 ${card.price.stalenessDays}일 전 · 최근 호가 없음`
-                    : `마지막 거래 ${card.price.stalenessDays}일 전`}
-                </p>
-              )}
-            </div>
-            <div className='border-border mt-4 flex flex-wrap gap-8 border-t pt-4'>
-              <div className='flex flex-col gap-1'>
-                <span className='text-muted-foreground text-base'>최저가 ({priceGradeLabel})</span>
-                <span className='text-foreground text-2xl leading-[1.2] font-bold tabular-nums md:text-[28px]'>
-                  {formatPrice(card.price.minPrice, card.price.currency)}
-                </span>
-              </div>
-              <div className='flex flex-col gap-1'>
-                <span className='text-muted-foreground text-base'>최고가 ({priceGradeLabel})</span>
-                <span className='text-foreground text-2xl leading-[1.2] font-bold tabular-nums md:text-[28px]'>
-                  {formatPrice(card.price.maxPrice, card.price.currency)}
-                </span>
-              </div>
-            </div>
-            <EbayListings
+            )}
+            <MarketplaceLinks
               listings={card.ebayListings}
               featuredIndex={card.featuredListingIndex}
-              fallbackUrl={card.price.sourceUrl}
+              fallback={card.marketplaceFallbackLink}
             />
           </div>
 
@@ -314,7 +284,7 @@ export function CardDetailContent({ card, ratingSlot, alertSlot }: CardDetailCon
               <CirclePlus className='size-5' aria-hidden />
               관심 카드 추가
             </Button>
-            {alertSlot}
+            {card.price ? alertSlot : null}
           </div>
 
           <PriceHistoryChart
@@ -324,15 +294,68 @@ export function CardDetailContent({ card, ratingSlot, alertSlot }: CardDetailCon
             gradeLabel={card.priceHistory.gradeLabel}
           />
 
-          <p className='text-muted-foreground mt-2 flex items-center gap-2 text-sm leading-[1.5]'>
-            <Info className='size-4 shrink-0' aria-hidden />
-            {card.price.sourceLabel}
-          </p>
-          <p className='text-muted-foreground text-sm leading-[1.5]'>
-            마지막 업데이트: {card.price.lastUpdatedAt}
-          </p>
+          {card.price && (
+            <>
+              <p className='text-muted-foreground mt-2 flex items-center gap-2 text-sm leading-[1.5]'>
+                <Info className='size-4 shrink-0' aria-hidden />
+                {card.price.sourceLabel}
+              </p>
+              <p className='text-muted-foreground text-sm leading-[1.5]'>
+                마지막 업데이트: {card.price.lastUpdatedAt}
+              </p>
+            </>
+          )}
         </div>
       </section>
+    </>
+  );
+}
+
+function PriceSummaryContent({ price, gradeLabel }: { price: PriceDisplay; gradeLabel: string }) {
+  return (
+    <>
+      <div className='flex flex-col gap-1'>
+        <span className='text-muted-foreground text-sm leading-none font-semibold tracking-wider uppercase'>
+          평균 판매 호가
+        </span>
+        <div className='flex flex-wrap items-baseline gap-3'>
+          <span className='text-foreground text-4xl leading-[1.1] font-extrabold tabular-nums md:text-[48px]'>
+            {formatPrice(price.avgPrice, price.currency)}
+          </span>
+          <span
+            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm leading-none font-semibold ${changeChipClass(
+              price.changeTone,
+            )}`}
+          >
+            <TrendIcon tone={price.changeTone} />
+            {formatChangeRate(price.changeRate)}
+          </span>
+        </div>
+        {price.stalenessDays > 0 && (
+          <p
+            className={`mt-1 flex items-center gap-1.5 text-sm leading-[1.5] font-medium ${
+              price.stalenessDays > 7 ? 'text-tcg-red' : 'text-muted-foreground'
+            }`}
+          >
+            <Clock className='size-4 shrink-0' aria-hidden />
+            {`마지막 수집 ${price.stalenessDays}일 전 · 현재 매물 여부 미확인`}
+          </p>
+        )}
+      </div>
+      <div className='border-border mt-4 flex flex-wrap gap-8 border-t pt-4'>
+        <div className='flex flex-col gap-1'>
+          <span className='text-muted-foreground text-base'>최저가 ({gradeLabel})</span>
+          <span className='text-foreground text-2xl leading-[1.2] font-bold tabular-nums md:text-[28px]'>
+            {formatPrice(price.minPrice, price.currency)}
+          </span>
+        </div>
+        <div className='flex flex-col gap-1'>
+          <span className='text-muted-foreground text-base'>최고가 ({gradeLabel})</span>
+          <span className='text-foreground text-2xl leading-[1.2] font-bold tabular-nums md:text-[28px]'>
+            {formatPrice(price.maxPrice, price.currency)}
+          </span>
+        </div>
+      </div>
     </>
   );
 }

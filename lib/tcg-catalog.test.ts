@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildPriceHistory,
-  createDeterministicPriceDisplay,
   deriveAskingPriceDisplayFromHistory,
   deriveEbayListings,
   deriveMarketplaceFallbackLink,
@@ -415,6 +414,23 @@ describe('tcg catalog view models', () => {
     expect(detail.editionOptions.find((option) => option.value === 'jp')?.isSelected).toBe(true);
   });
 
+  it('returns no detail price without asking snapshots', () => {
+    expect(mapCardDetailRow(createMultiEditionDetailRow(), []).price).toBeNull();
+  });
+
+  it('does not promote sold-only evidence to the detail price', () => {
+    const detail = mapCardDetailRow(createMultiEditionDetailRow(), [
+      createSnapshotRow({
+        source_name: 'pricecharting_ebay_sold',
+        aggregation_method: 'sold_median',
+        avg_price: 120000,
+      }),
+    ]);
+
+    expect(detail.price).toBeNull();
+    expect(detail.priceHistory.soldPoints).toHaveLength(1);
+  });
+
   it('parses unsupported edition params as the Korean default', () => {
     expect(parseCardEdition(undefined)).toBe('kr');
     expect(parseCardEdition('na')).toBe('na');
@@ -483,16 +499,6 @@ describe('tcg catalog view models', () => {
       'kr-003-charizard-ex-bf',
       'kr-004-charizard-ex-151',
     ]);
-  });
-
-  it('creates deterministic price display values without DB snapshots', () => {
-    const first = createDeterministicPriceDisplay('kr-004-charizard-ex-151', 'PKMKR-BS2023014201');
-    const second = createDeterministicPriceDisplay('kr-004-charizard-ex-151', 'PKMKR-BS2023014201');
-
-    expect(first).toEqual(second);
-    expect(first.avgPrice).toBeGreaterThan(first.minPrice);
-    expect(first.maxPrice).toBeGreaterThan(first.avgPrice);
-    expect(first.sourceLabel).not.toContain('임시 가격 표시');
   });
 
   it('decodes percent-encoded Korean slugs before querying the catalog', async () => {
@@ -838,30 +844,6 @@ describe('price history view models', () => {
 
     expect(history.soldPoints).toHaveLength(1);
     expect(history.soldPoints[0].avgPrice).toBe(150);
-  });
-
-  it('links to the cheapest filtered listing, ignoring a stale contaminated source_url', () => {
-    // Legacy source_url points at an unrelated card eBay fuzzy-matched; the
-    // filtered listings array is clean, so the link must come from listings.
-    const history = buildPriceHistory([
-      snapshotRow({
-        source_url: 'https://www.ebay.com/itm/298286038307?_skw=wrong',
-        listings: [
-          { price: 5, currency: 'USD', url: 'https://www.ebay.com/itm/200', title: 'b' },
-          { price: 2, currency: 'USD', url: 'https://www.ebay.com/itm/100', title: 'a' },
-        ],
-      }),
-    ]);
-
-    expect(derivePriceDisplayFromHistory(history)?.sourceUrl).toBe('https://www.ebay.com/itm/100');
-  });
-
-  it('falls back to source_url when a row has no listings', () => {
-    const history = buildPriceHistory([
-      snapshotRow({ source_url: 'https://www.ebay.com/itm/999', listings: null }),
-    ]);
-
-    expect(derivePriceDisplayFromHistory(history)?.sourceUrl).toBe('https://www.ebay.com/itm/999');
   });
 
   it('reports zero staleness when the latest snapshot is today', () => {

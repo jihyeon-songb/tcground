@@ -131,8 +131,6 @@ export interface PriceDisplay {
   sourceLabel: string;
   currency: string;
   sampleCount: number;
-  /** Link to the cheapest listing behind this price (eBay listing or search URL). */
-  sourceUrl?: string | null;
   sourceCurrency?: string | null;
   fxRateDate?: string | null;
   fxProvider?: string | null;
@@ -272,7 +270,7 @@ export interface CatalogCardDetail {
   collectorNumber: string;
   rarity: string;
   imageUrl: string | null;
-  price: PriceDisplay;
+  price: PriceDisplay | null;
   selectedEdition: CardEdition;
   editionOptions: CardEditionOption[];
   printing: {
@@ -291,6 +289,7 @@ export interface CatalogCardDetail {
   ebayListings: EbayListing[];
   /** Index into `ebayListings` of the listing closest to the average price; -1 when empty. */
   featuredListingIndex: number;
+  marketplaceFallbackLink: MarketplaceFallbackLink;
   backHref: string;
   backLabel: string;
 }
@@ -1312,15 +1311,22 @@ export function mapCardDetailRow(
   const collectorNumber = printing?.collector_number ?? row.collector_number ?? '번호 미상';
   const rarity = printing?.rarity ?? row.rarity ?? '레어도 미상';
   const gameName = row.tcg_games?.name_ko ?? row.tcg_games?.name ?? 'Pokemon TCG';
+  const printingId = printing?.id ?? row.id;
+  const setCode = printing?.set_code ?? 'unknown';
+  const nameEn = getExternalString(printing, 'name_en');
+  const nameJa = getExternalString(printing, 'name_ja');
 
   const priceHistory = buildPriceHistory(snapshots);
-  const price =
-    derivePriceDisplayFromHistory(priceHistory) ??
-    createDeterministicPriceDisplay(row.slug, sampleId);
-  const { listings: ebayListings, featuredIndex: featuredListingIndex } = deriveEbayListings(
-    snapshots,
-    price.avgPrice,
-  );
+  const price = deriveAskingPriceDisplayFromHistory(priceHistory);
+  const { listings: ebayListings, featuredIndex: featuredListingIndex } =
+    deriveEbayListings(snapshots);
+  const marketplaceFallbackLink = deriveMarketplaceFallbackLink(snapshots, {
+    cardPrintingId: printingId,
+    cardName: row.name,
+    nameEn,
+    collectorNumber,
+    setCode,
+  });
 
   return {
     cardId: row.id,
@@ -1339,43 +1345,20 @@ export function mapCardDetailRow(
     priceHistory,
     ebayListings,
     featuredListingIndex,
+    marketplaceFallbackLink,
     printing: {
-      id: printing?.id ?? row.id,
+      id: printingId,
       language: printing?.language ?? 'ko',
       region: printing?.region ?? 'KR',
-      setCode: printing?.set_code ?? 'unknown',
+      setCode,
       collectorNumber,
       finish: printing?.finish ?? 'unknown',
       sampleId,
-      nameEn: getExternalString(printing, 'name_en'),
-      nameJa: getExternalString(printing, 'name_ja'),
+      nameEn,
+      nameJa,
     },
     backHref: '/categories/pokemon',
     backLabel: '포켓몬 카테고리로 돌아가기',
-  };
-}
-
-export function createDeterministicPriceDisplay(slug: string, sampleId: string): PriceDisplay {
-  const sampleNumber = Number.parseInt(sampleId.replace(/\D/g, ''), 10);
-  const index = Number.isFinite(sampleNumber) && sampleNumber > 0 ? sampleNumber : stableHash(slug);
-  const hashOffset = stableHash(slug) % 9;
-  const avgPrice = roundToNearest(42000 + index * 17000 + hashOffset * 2500, 1000);
-  const minPrice = roundToNearest(avgPrice * 0.82, 1000);
-  const maxPrice = roundToNearest(avgPrice * 1.26, 1000);
-  const rawChange = ((index % 7) - 3) * 2.1;
-  const changeRate = Number(rawChange.toFixed(1));
-
-  return {
-    avgPrice,
-    minPrice,
-    maxPrice,
-    changeRate,
-    changeTone: getChangeTone(changeRate),
-    lastUpdatedAt: '2026년 5월 22일',
-    stalenessDays: 0,
-    sourceLabel: '가격 데이터 연결 전까지 카탈로그 대표값을 표시합니다.',
-    currency: 'KRW',
-    sampleCount: 0,
   };
 }
 
@@ -1681,7 +1664,6 @@ function derivePriceDisplayFromSeries(
       : `최근 ${formatSourceNames(latest.sourceNames) || '수동 evidence'} ${gradeLabel ? `${gradeLabel} ` : ''}실거래가 집계 ${latest.sampleCount}건 기준${formatFxSuffix(latest)}`,
     currency: latest.currency,
     sampleCount: latest.sampleCount,
-    sourceUrl: latest.sourceUrl,
     sourceCurrency: latest.sourceCurrency,
     fxRateDate: latest.fxRateDate,
     fxProvider: latest.fxProvider,
@@ -2076,14 +2058,6 @@ function applyExactCounts(
   for (const row of exactCounts) {
     target.set(row.game_id, row.count);
   }
-}
-
-function stableHash(value: string): number {
-  return Array.from(value).reduce((hash, character) => hash + character.charCodeAt(0), 0);
-}
-
-function roundToNearest(value: number, unit: number): number {
-  return Math.round(value / unit) * unit;
 }
 
 function throwIfSupabaseError(error: SupabaseErrorLike | null) {
