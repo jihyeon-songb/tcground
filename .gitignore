@@ -32,6 +32,7 @@ node_modules/
 .idea/
 .claude/
 .playwright-mcp/
+/.worktrees/
 
 # debug
 npm-debug.log*
