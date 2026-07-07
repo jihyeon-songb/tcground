@@ -41,16 +41,16 @@ describe('CardDetailContent', () => {
     expect(screen.getByText('BS2023014201')).toBeTruthy();
   });
 
-  it('shows a stale-price warning badge when the price is over 7 days old', () => {
+  it('shows a stale-price warning caption when the price is over 7 days old', () => {
     const base = createCardDetail();
     render(<CardDetailContent card={{ ...base, price: { ...base.price, stalenessDays: 8 } }} />);
-    expect(screen.getByText(/최근 거래 없음/)).toBeTruthy();
+    expect(screen.getByText('마지막 거래 8일 전 · 최근 호가 없음')).toBeTruthy();
   });
 
-  it('shows a neutral staleness badge within 7 days', () => {
+  it('shows a neutral staleness caption within 7 days', () => {
     const base = createCardDetail();
     render(<CardDetailContent card={{ ...base, price: { ...base.price, stalenessDays: 3 } }} />);
-    expect(screen.getByText('3일 전 기준')).toBeTruthy();
+    expect(screen.getByText('마지막 거래 3일 전')).toBeTruthy();
   });
 
   it('shows the public rating average and a sign-in prompt for guests', () => {

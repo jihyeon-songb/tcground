@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@tcground/ui';
-import { ArrowLeft, CirclePlus, Info } from 'lucide-react';
+import { ArrowLeft, CirclePlus, Clock, Info } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { PageFooter } from '@/components/tcg/layout/PageFooter';
 import { PublicHeader } from '@/components/tcg/layout/PublicHeader';
@@ -265,20 +265,19 @@ export function CardDetailContent({ card, ratingSlot, alertSlot }: CardDetailCon
                   <TrendIcon tone={card.price.changeTone} />
                   {formatChangeRate(card.price.changeRate)}
                 </span>
-                {card.price.stalenessDays > 0 && (
-                  <span
-                    className={`inline-flex items-center rounded-full px-3 py-1 text-sm leading-none font-semibold ${
-                      card.price.stalenessDays > 7
-                        ? 'bg-tcg-red/10 text-tcg-red'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    {card.price.stalenessDays > 7
-                      ? `최근 거래 없음 · ${card.price.stalenessDays}일 전 호가`
-                      : `${card.price.stalenessDays}일 전 기준`}
-                  </span>
-                )}
               </div>
+              {card.price.stalenessDays > 0 && (
+                <p
+                  className={`mt-1 flex items-center gap-1.5 text-sm leading-[1.5] font-medium ${
+                    card.price.stalenessDays > 7 ? 'text-tcg-red' : 'text-muted-foreground'
+                  }`}
+                >
+                  <Clock className='size-4 shrink-0' aria-hidden />
+                  {card.price.stalenessDays > 7
+                    ? `마지막 거래 ${card.price.stalenessDays}일 전 · 최근 호가 없음`
+                    : `마지막 거래 ${card.price.stalenessDays}일 전`}
+                </p>
+              )}
             </div>
             <div className='border-border mt-4 flex flex-wrap gap-8 border-t pt-4'>
               <div className='flex flex-col gap-1'>
