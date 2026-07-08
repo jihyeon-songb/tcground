@@ -295,6 +295,9 @@ export function CardDetailContent({ card, ratingSlot, alertSlot }: CardDetailCon
               <CirclePlus className='size-5' aria-hidden />
               관심 카드 추가
             </Button>
+            <Button asChild variant='outline' size='cta'>
+              <Link href={`/compare?left=${card.slug}`}>다른 카드와 비교</Link>
+            </Button>
             {card.price ? alertSlot : null}
           </div>
 
