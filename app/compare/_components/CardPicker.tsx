@@ -24,7 +24,8 @@ export function CardPicker({ slot }: CardPickerProps) {
     const q = query.trim();
     if (q.length < 1) return;
     startTransition(async () => {
-      const res = await loadPokemonCards({ query: q, rarities: [], setSlugs: [], sort: 'name-asc', page: 1 });
+      // 'best' = 추천순: 시세 스냅샷 많은(데이터 풍부한) 카드 우선.
+      const res = await loadPokemonCards({ query: q, rarities: [], setSlugs: [], sort: 'best', page: 1 });
       setResults(res.cards);
       setSearched(true);
     });
