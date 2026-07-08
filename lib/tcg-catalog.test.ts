@@ -187,7 +187,7 @@ describe('tcg catalog view models', () => {
     expect(data.selectedSetSlugs).toEqual([]);
   });
 
-  it('orders recommendation cards by price, most expensive first', () => {
+  it('orders recommendation cards by snapshot count, most data first', () => {
     const rows = [
       createCardRow({
         sampleId: 'PKMKR-BS2023014201',
@@ -211,9 +211,17 @@ describe('tcg catalog view models', () => {
         setName: '포켓몬 카드 151',
       }),
     ];
+    // kr-002-cheap has one snapshot, kr-003-expensive has three; kr-001 has none.
     const snapshotsByPrinting = new Map([
       ['kr-002-cheap-printing', [createSnapshotRow({ avg_price: 50000 })]],
-      ['kr-003-expensive-printing', [createSnapshotRow({ avg_price: 300000 })]],
+      [
+        'kr-003-expensive-printing',
+        [
+          createSnapshotRow({ snapshot_date: '2026-05-01', avg_price: 300000 }),
+          createSnapshotRow({ snapshot_date: '2026-05-02', avg_price: 310000 }),
+          createSnapshotRow({ snapshot_date: '2026-05-03', avg_price: 320000 }),
+        ],
+      ],
     ]);
 
     const data = mapPokemonCategoryPageData(
@@ -223,7 +231,7 @@ describe('tcg catalog view models', () => {
       snapshotsByPrinting,
     );
 
-    // Highest price first; cards with no usable price sort last.
+    // Most snapshots first (3 > 1 > 0), regardless of price; no-data cards sort last.
     expect(data.cards.map((card) => card.slug)).toEqual([
       'kr-003-expensive',
       'kr-002-cheap',
