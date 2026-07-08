@@ -13,6 +13,7 @@ import {
 } from '@/lib/tcg-catalog';
 import { CompareView, type CompareSide } from './_components/CompareView';
 import { CardPicker } from './_components/CardPicker';
+import { changeCardHref } from './_lib/compare-nav';
 
 export const metadata: Metadata = {
   title: 'TCGround | 카드 시세 비교',
@@ -58,8 +59,8 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
         <h1 className='mb-6 text-3xl font-bold text-foreground'>카드 시세 비교</h1>
 
         <div className='grid gap-4 md:grid-cols-2'>
-          <CardColumn card={leftCard} slot='left' />
-          <CardColumn card={rightCard} slot='right' />
+          <CardColumn card={leftCard} slot='left' otherSlug={rightCard?.slug ?? null} />
+          <CardColumn card={rightCard} slot='right' otherSlug={leftCard?.slug ?? null} />
         </div>
 
         {sameCard && (
@@ -83,7 +84,15 @@ export default async function ComparePage({ searchParams }: ComparePageProps) {
   );
 }
 
-function CardColumn({ card, slot }: { card: CatalogCardDetail | null; slot: 'left' | 'right' }) {
+function CardColumn({
+  card,
+  slot,
+  otherSlug,
+}: {
+  card: CatalogCardDetail | null;
+  slot: 'left' | 'right';
+  otherSlug: string | null;
+}) {
   if (!card) {
     // useSearchParams inside CardPicker needs a Suspense boundary during SSR.
     return (
@@ -104,7 +113,7 @@ function CardColumn({ card, slot }: { card: CatalogCardDetail | null; slot: 'lef
         <p className={`text-xs font-semibold ${accent}`}>{slot === 'left' ? '왼쪽' : '오른쪽'}</p>
         <p className='truncate text-lg font-bold text-foreground'>{card.cardName}</p>
         <p className='truncate text-sm text-muted-foreground'>{card.setLabel}</p>
-        <Link href={`/compare?${slot === 'left' ? 'right' : 'left'}=${card.slug}`} className='mt-1 inline-block text-xs text-muted-foreground underline hover:text-foreground'>
+        <Link href={changeCardHref(slot, otherSlug)} className='mt-1 inline-block text-xs text-muted-foreground underline hover:text-foreground'>
           이 카드 바꾸기
         </Link>
       </div>
