@@ -9,6 +9,8 @@
 
 ## 완료 로그
 
+- 2026-07-09: `@tcground/headless@0.1.2`와 `@tcground/ui@0.1.3`을 npm에 공개 배포했다. 기존 registry의 `@tcground/ui@0.1.2`는 `workspace:^` dependency를 포함한 깨진 산출물이므로 같은 버전을 재사용하지 않고 patch version을 올렸다. `@tcground/ui@0.1.3`은 `@tcground/headless:^0.1.2`를 dependency로 선언한다. 배포 전 `@tcground/headless` tarball에 `dist`가 빠지는 문제를 `files: ["dist/**"]`로 고쳤고, `pnpm install`로 lockfile을 새 headless registry 버전에 맞췄다. 검증으로 registry `npm view`, 임시 프로젝트 외부 설치/import, `pnpm exec tsc --noEmit`, `pnpm lint`(기존 `packages/headless/dist` warning 7개), `pnpm test --run`(389/389)이 통과했다.
+
 - 2026-07-07: `marketplaceFallbackLink` 추가 전 생성된 상세 캐시 때문에 외부 링크가 없는 카드 상세가 `fallback.sourceLabel` 런타임 오류로 중단되던 회귀를 수정했다. 상세 캐시 키를 `card-detail-by-slug-v2`로 갱신해 이전 직렬화 결과를 무효화하고, 이전 캐시 형태가 유입돼도 카드 식별자로 eBay 검색 fallback을 파생하도록 페이지 경계를 보강했다. 회귀 테스트는 수정 전 동일 TypeError로 실패하고 수정 후 통과했으며, 영향 카드 개발 서버 렌더에서 HTTP 200과 상세 본문을 확인했다.
 
 - 2026-07-07: 카드 상세 대표 가격을 실제 asking snapshot 기반 `평균 판매 호가`로 한정하고 deterministic fallback을 제거했다. 판매 호가가 없으면 `시세 정보 없음`을 표시하며 가격 알림과 가격 출처 문구를 숨기고, 과거 호가는 `마지막 수집 N일 전 · 현재 매물 여부 미확인`으로 표시한다. 외부 링크는 검증된 eBay listing → 실제 국내 marketplace source URL → 안전한 eBay 검색 순서로 파생하고, 기존 eBay 전용 UI를 `MarketplaceLinks`로 교체했다. 품질 게이트에서 기존 `CardResults` effect의 동기 setState lint 오류를 grid 상태/파생 list 열 구조로 최소 보정했다. focused 회귀 테스트 86개, 전체 테스트 364개, `pnpm exec tsc --noEmit`, `pnpm lint`가 통과했으며 lint에는 기존 `packages/headless/dist` 경고 7개만 남았다. 저장소 전체 `pnpm format:check`는 기존 비관련 파일 포맷 이슈로 실패했고 작업 소유 파일 직접 Prettier 검사는 통과했다.

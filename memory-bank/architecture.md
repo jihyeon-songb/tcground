@@ -200,9 +200,9 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 루트 `tcground` 앱 dependency는 배포본 검증을 위해 `@tcground/ui: ^0.1.0` 같은 npm semver range를 사용하고, root `tsconfig.json`은 `@tcground/ui`를 source alias로 덮어쓰지 않는다. `workspace:*`와 Docusaurus resolve alias는 UI package 자체 문서/개발 검증이 필요한 `apps/docs`에만 유지한다.
 - 루트 앱이 직접 import하지 않는 `class-variance-authority`, `clsx`, `cmdk`, `radix-ui`, `tailwind-merge`는 루트 dependency에 두지 않고 `@tcground/ui` 또는 `shadcn`의 transitive dependency로 소비한다. 앱이 직접 쓰는 icon dependency인 `lucide-react`는 루트 dependency로 유지한다.
 - `@tcground/headless`와 `@tcground/ui` source의 런타임 상대 import/export specifier는 `.js` 확장자를 명시한다. TypeScript는 `moduleResolution: "Bundler"`로 `*.js` specifier를 `*.ts(x)` source에 해소하고, build 후 `dist/*.js`는 Node ESM/Vitest dependency import에서도 extensionless re-export 오류 없이 로드된다.
-- 로컬 `@tcground/ui@0.1.2` package manifest는 `@tcground/headless`를 publish 가능한 semver dependency(`^0.1.1`)로 선언한다. workspace 개발에서는 pnpm workspace link가 계속 로컬 `packages/headless`를 연결한다.
-- npm registry의 `@tcground/ui@0.1.2`는 이미 존재하지만 이전 산출물이라 `workspace:^` dependency와 extensionless ESM re-export를 포함한다. 같은 버전은 재배포할 수 없으므로, 실제 수정본 publish는 npm scope 권한 확보 후 `@tcground/headless@0.1.2`와 `@tcground/ui@0.1.3` 같은 새 patch 버전으로 진행한다.
-- Vitest는 현재 루트 dependency가 published `@tcground/ui@0.1.0`을 가리키므로 `vitest.config.mts`에서 `@tcground/ui`를 로컬 source로 alias한다. 수정본을 새 patch 버전으로 npm 공개 배포하고 루트 dependency를 갱신한 뒤 이 alias를 제거한다. 루트 앱의 registry 소비 검증은 계속 `pnpm exec tsc --noEmit`과 `pnpm build`가 담당한다.
+- 로컬 `@tcground/ui@0.1.3` package manifest는 `@tcground/headless`를 publish 가능한 semver dependency(`^0.1.2`)로 선언한다. workspace 개발에서는 pnpm workspace link가 계속 로컬 `packages/headless`를 연결한다.
+- npm registry의 `@tcground/ui@0.1.2`는 이전 산출물이라 `workspace:^` dependency와 extensionless ESM re-export를 포함한다. 같은 버전은 재배포할 수 없으므로, 수정본은 `@tcground/headless@0.1.2`와 `@tcground/ui@0.1.3` 새 patch 버전으로 공개 배포했다.
+- Vitest는 `vitest.config.mts`에서 `@tcground/ui`를 로컬 source로 alias한다. root dependency의 registry 소비 전환과 Vitest alias 제거는 별도 후속으로 진행한다. 루트 앱의 registry 소비 검증은 전환 시 `pnpm exec tsc --noEmit`과 `pnpm build`가 담당한다.
 - `pnpm build:ui`는 TypeScript 산출물과 `dist/theme.css`를 생성한다.
 - `apps/docs`는 `@tcground/ui/theme.css` export가 `dist`를 바라보므로 `prebuild`/`prestart`에서 `@tcground/ui`를 먼저 빌드한다.
 - 배포 전 검증: `pnpm build:ui`, `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm --filter @tcground/ui pack --dry-run`.
@@ -246,4 +246,5 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 2026-06-04: 수동 가격 CSV의 sold snapshot을 source별로 집계하고, 상세 차트의 sold/asking 분류를 `aggregation_method` 우선으로 변경했다. PriceCharting 개별 eBay completed-sale 행은 `pricecharting_ebay_sold` source로 보존하고, 번개장터 수동 sold와 asking은 같은 `source_name`이어도 서로 섞지 않는다.
 - 2026-06-05: 중고나라 자동 `asking` source를 추가했다. `JOONGNA_COLLECTION_ENABLED=true`와 `scripts/collect-prices.ts --joongna`로만 실행하며, 공개 search page에서 최소 상품 필드만 추출해 `joongna_asking_median` snapshot으로 저장한다.
 - 2026-06-10: Docusaurus docs를 Vercel 프로젝트 `tcground-docs`에 production 배포했다. docs 배포는 repo root에서 `apps/docs/vercel.json` local config와 `--project tcground-docs`를 명시해 기존 루트 Next.js 프로젝트와 분리한다.
+- 2026-07-09: `@tcground/headless@0.1.2`와 `@tcground/ui@0.1.3`을 npm에 공개 배포했다. `@tcground/headless`는 publish tarball에 `dist/**`가 포함되도록 files 계약을 보강했다.
 - 2026-07-07: 카드 상세 대표 가격을 실제 asking snapshot으로 한정하고, 가격 부재/과거 값 불확실성 및 외부 링크 fallback 순서를 확정.

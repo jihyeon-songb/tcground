@@ -145,13 +145,14 @@ Cloning github.com/jihyeon-songb/tcground (Branch: main, Commit: dfb2680)
 - 깨진 `@tcground/ui@0.1.2`를 루트 앱 dependency로 유지하지 않고, `pnpm-lock.yaml`과 `node_modules`를 기존 검증 상태인 `@tcground/ui@0.1.0`으로 복구했다.
 - `vitest.config.mts`의 `@tcground/ui` local source alias와 root `tsconfig.json`의 `@tcground/headless` alias를 유지했다. 현재 published package가 Node/Vitest dependency import에서 실패하기 때문이다.
 - 로컬 source에는 `.js` extension specifier 보강과 `@tcground/ui`의 semver dependency 보강을 유지한다.
+- 2026-07-09 재개 후 `@tcground/headless@0.1.2`와 `@tcground/ui@0.1.3`을 npm에 공개 배포했다. `@tcground/ui@0.1.3`은 `@tcground/headless:^0.1.2`를 dependency로 선언하며, 임시 프로젝트에서 두 패키지 설치와 Node ESM import를 확인했다.
 
 ### 재발 방지
 
 - npm publish 전에는 `npm whoami`와 `npm access ls-packages @tcground` 또는 organization 권한을 먼저 확인한다.
 - 이미 존재하는 버전에 문제가 있으면 같은 version을 재사용하지 않고 patch version을 올린다.
-- 다음 배포는 `@tcground/headless@0.1.2`를 먼저 publish한 뒤, `@tcground/ui@0.1.3`을 `@tcground/headless:^0.1.2` dependency로 publish한다.
-- publish 후 루트 앱에서 `pnpm add -w @tcground/ui@^0.1.3`, `node import('@tcground/ui')`, `pnpm test --run`을 확인한 뒤에만 Vitest alias를 제거한다.
+- 배포 순서는 `@tcground/headless`를 먼저 publish한 뒤, `@tcground/ui`를 새 headless semver dependency로 publish한다.
+- root dependency를 registry 소비로 전환할 때는 `pnpm add -w @tcground/ui@^0.1.3`, `node import('@tcground/ui')`, `pnpm test --run`을 확인한 뒤에만 Vitest alias를 제거한다.
 
 ## KREAM 로그인 수동 수집 중 상세 접근/카탈로그 매칭 한계
 

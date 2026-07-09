@@ -168,8 +168,8 @@ importers:
   packages/ui:
     dependencies:
       '@tcground/headless':
-        specifier: ^0.1.1
-        version: 0.1.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.1.2
+        version: 0.1.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -3906,8 +3906,8 @@ packages:
   '@tanstack/virtual-core@3.17.3':
     resolution: {integrity: sha512-8Np/TFELpI0ySuJoVmjvOrQYXH/8sTX0Biv9szhFhY39xOdAAY+smrMxjxOum/ux3eM8MUJQsEJ0/R0UpvC8dw==}
 
-  '@tcground/headless@0.1.1':
-    resolution: {integrity: sha512-+nFqVTj+Hx7jasMOfVa1+q+VI9PHQ285Kg2Mq65+c3ozssZBE4vxgXhejW4mnz6D5otqbf9KEn1ch9eVpRYKRg==}
+  '@tcground/headless@0.1.2':
+    resolution: {integrity: sha512-jUDS8yaHAESUV1AlQjVBQHiRo+q0Su2vefPLialEBeGZD4uGFZhHqx/1sCcypZHc7fkJy4YPtOWP2UjOkb/kGw==}
     peerDependencies:
       react: '>=18.2.0 <20.0.0'
       react-dom: '>=18.2.0 <20.0.0'
@@ -14231,7 +14231,7 @@ snapshots:
 
   '@tanstack/virtual-core@3.17.3': {}
 
-  '@tcground/headless@0.1.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@tcground/headless@0.1.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)

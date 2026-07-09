@@ -418,7 +418,7 @@
 - [x] headless 동작/ARIA/키보드/focus/asChild 단위 테스트 추가.
 - [x] resolution 배선: root tsconfig path alias + vitest alias, ui tsconfig `paths` override(node_modules dist 해석).
 - [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `vitest run`, `@tcground/headless`·`@tcground/ui` build 검증.
-- [ ] 배포 시 `@tcground/headless`를 `@tcground/ui`의 런타임 의존성으로 함께 npm 공개 배포(외부 설치 계약 성립 조건).
+- [x] 배포 시 `@tcground/headless`를 `@tcground/ui`의 런타임 의존성으로 함께 npm 공개 배포(외부 설치 계약 성립 조건).
 
 ### 4.18 Headless 컴포넌트 확장 (Label/Separator/Checkbox/Switch/RadioGroup/AlertDialog/Sheet)
 
@@ -621,7 +621,7 @@
 - [x] `packages/ui/src`의 런타임 상대 import/export를 `.js` extension specifier로 정리한다.
 - [x] `@tcground/ui`의 `@tcground/headless` dependency를 semver range로 전환하고 lockfile을 갱신한다.
 - [x] `@tcground/headless`/`@tcground/ui` build와 pack dry-run 결과에서 publish 산출물 import 계약을 확인한다.
-- [x] registry package dependency import 검증 후 Vitest의 임시 `@tcground/ui` source alias 제거 가능 여부를 판단한다. 현재 루트는 published `@tcground/ui@0.1.0`을 설치하므로 alias는 유지한다. registry의 `@tcground/ui@0.1.2`는 이전 산출물이라 같은 버전 재배포가 불가하므로, npm scope 권한 확보 후 `@tcground/headless@0.1.2`와 `@tcground/ui@0.1.3` 같은 새 patch 버전으로 배포하고 root dependency를 갱신한 뒤 alias를 제거한다.
+- [x] registry package dependency import 검증 후 Vitest의 임시 `@tcground/ui` source alias 제거 가능 여부를 판단한다. registry의 `@tcground/ui@0.1.2`는 이전 산출물이라 같은 버전 재배포가 불가하므로, `@tcground/headless@0.1.2`와 `@tcground/ui@0.1.3`을 새 patch version으로 배포했다. root dependency의 registry 소비 전환과 Vitest alias 제거는 별도 후속으로 둔다.
 - [x] `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm build` 검증.
 
 ### 6.9 Docusaurus docs Vercel 배포
