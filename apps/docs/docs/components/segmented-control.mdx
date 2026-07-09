@@ -1,0 +1,163 @@
+---
+title: Segmented Control
+description: 하나의 값을 골라 같은 뷰를 재구성하는 세그먼트 컨트롤.
+---
+
+import ComponentPreview from '@site/src/components/ComponentPreview';
+import PropsTable from '@site/src/components/PropsTable';
+import {
+  ControlledExample,
+  DefaultExample,
+  DisabledExample,
+} from '@site/src/components/examples/segmented-control';
+
+# Segmented Control
+
+하나의 값을 골라 **같은 화면을 다시 구성**하는 pill 형태의 단일 선택 컨트롤입니다.
+차트 기간(3개월·6개월·1년) 전환처럼 패널을 바꾸지 않고 현재 뷰를 필터할 때 씁니다.
+`@tcground/headless` 의 `RadioGroup` 위에 스타일만 입힌 얇은 래퍼라, 방향키 이동과
+`aria-checked` 등 접근성 동작을 그대로 물려받습니다.
+
+<ComponentPreview
+  code={`<SegmentedControl defaultValue="6m" aria-label="차트 기간">
+  <SegmentedControlItem value="3m">3개월</SegmentedControlItem>
+  <SegmentedControlItem value="6m">6개월</SegmentedControlItem>
+  <SegmentedControlItem value="1y">1년</SegmentedControlItem>
+  <SegmentedControlItem value="all">전체</SegmentedControlItem>
+</SegmentedControl>`}
+>
+  <DefaultExample />
+</ComponentPreview>
+
+## 설치
+
+```bash
+pnpm add @tcground/ui
+```
+
+```ts
+import '@tcground/ui/theme.css';
+```
+
+## 사용법
+
+```tsx
+import { SegmentedControl, SegmentedControlItem } from '@tcground/ui';
+
+export function Example() {
+  return (
+    <SegmentedControl defaultValue='6m' aria-label='차트 기간'>
+      <SegmentedControlItem value='3m'>3개월</SegmentedControlItem>
+      <SegmentedControlItem value='6m'>6개월</SegmentedControlItem>
+      <SegmentedControlItem value='1y'>1년</SegmentedControlItem>
+    </SegmentedControl>
+  );
+}
+```
+
+:::tip 언제 무엇을 쓰나
+값을 골라 **같은 뷰를 재구성**하면 `SegmentedControl`, 각각 다른 **패널을 전환**하면
+[`Tabs`](./tabs) 를 쓰세요. 세로로 나열된 form 선택지는 [`RadioGroup`](./radio-group) 이 맞습니다.
+:::
+
+## 예제
+
+### 기본 (uncontrolled)
+
+<ComponentPreview
+  code={`<SegmentedControl defaultValue="6m" aria-label="차트 기간">
+  <SegmentedControlItem value="3m">3개월</SegmentedControlItem>
+  <SegmentedControlItem value="6m">6개월</SegmentedControlItem>
+  <SegmentedControlItem value="1y">1년</SegmentedControlItem>
+  <SegmentedControlItem value="all">전체</SegmentedControlItem>
+</SegmentedControl>`}
+>
+  <DefaultExample />
+</ComponentPreview>
+
+### Controlled
+
+<ComponentPreview
+  code={`const [value, setValue] = useState('6m');
+
+<SegmentedControl value={value} onValueChange={setValue} aria-label="차트 기간">
+  <SegmentedControlItem value="3m">3개월</SegmentedControlItem>
+  <SegmentedControlItem value="6m">6개월</SegmentedControlItem>
+  <SegmentedControlItem value="1y">1년</SegmentedControlItem>
+</SegmentedControl>`}
+>
+  <ControlledExample />
+</ComponentPreview>
+
+### Disabled 항목
+
+<ComponentPreview
+  code={`<SegmentedControl defaultValue="3m" aria-label="차트 기간">
+  <SegmentedControlItem value="3m">3개월</SegmentedControlItem>
+  <SegmentedControlItem value="6m" disabled>6개월</SegmentedControlItem>
+  <SegmentedControlItem value="1y">1년</SegmentedControlItem>
+</SegmentedControl>`}
+>
+  <DisabledExample />
+</ComponentPreview>
+
+## API Reference
+
+### SegmentedControl
+
+<PropsTable
+  rows={[
+    {
+      name: 'defaultValue',
+      type: 'string',
+      description: 'uncontrolled 모드의 초기 선택값.',
+    },
+    {
+      name: 'value',
+      type: 'string',
+      description: 'controlled 선택값. onValueChange와 함께 사용합니다.',
+    },
+    {
+      name: 'onValueChange',
+      type: '(value: string) => void',
+      description: '선택값이 바뀔 때 호출됩니다.',
+    },
+    {
+      name: 'aria-label',
+      type: 'string',
+      description: '그룹의 목적을 스크린리더에 알립니다. 보이는 제목이 없으면 지정하세요.',
+    },
+    {
+      name: 'disabled',
+      type: 'boolean',
+      default: 'false',
+      description: '그룹 전체 선택을 비활성화합니다.',
+    },
+  ]}
+/>
+
+### SegmentedControlItem
+
+<PropsTable
+  rows={[
+    {
+      name: 'value',
+      type: 'string',
+      description: '선택지를 식별하는 값. 같은 SegmentedControl 안에서 고유해야 합니다.',
+    },
+    {
+      name: 'disabled',
+      type: 'boolean',
+      default: 'false',
+      description: '개별 선택지를 비활성화합니다.',
+    },
+  ]}
+/>
+
+## 접근성
+
+- `SegmentedControl` 은 `role="radiogroup"`, 각 항목은 `role="radio"` + `aria-checked` 를 가집니다.
+- 보이는 제목이 없으면 `aria-label` 로 그룹의 목적을 알립니다.
+- 방향키로 선택을 이동하고(`Space` 로도 선택), roving tabindex 로 그룹 전체가 하나의 `Tab` 정지점입니다.
+- 패널을 전환하지 않고 같은 뷰를 재구성하므로 `tablist` 가 아니라 `radiogroup` 의미가 맞습니다.
+  자세한 비교는 [접근성 · SegmentedControl](../accessibility/segmented-control) 을 참고하세요.
