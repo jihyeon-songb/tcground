@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Button } from '@tcground/ui';
+import { SegmentedControl, SegmentedControlItem } from '@tcground/ui';
 import type { PricePoint, PriceDisplay } from '@/lib/tcg-catalog';
 import { formatPrice } from '@/lib/tcg-data';
 import {
@@ -61,36 +61,20 @@ export function CompareView({ left, right }: CompareViewProps) {
         <h3 id='compare-heading' className='text-2xl leading-[1.2] font-bold text-foreground'>
           가격 변동 비교 <span className='text-base font-medium text-muted-foreground'>(시작일 = 100%)</span>
         </h3>
-        <div
-          className='flex items-center gap-1 rounded-full bg-muted p-1'
-          role='tablist'
+        <SegmentedControl
+          value={period}
+          onValueChange={(value) => {
+            setPeriod(value as ChartPeriod);
+            setHoverX(null);
+          }}
           aria-label='차트 기간'
         >
-          {CHART_PERIODS.map((option) => {
-            const isActive = option.value === period;
-            return (
-              <Button
-                key={option.value}
-                type='button'
-                variant={isActive ? 'outline' : 'ghost'}
-                size='tab'
-                role='tab'
-                aria-selected={isActive}
-                onClick={() => {
-                  setPeriod(option.value);
-                  setHoverX(null);
-                }}
-                className={
-                  isActive
-                    ? 'bg-card text-foreground'
-                    : 'text-muted-foreground hover:bg-transparent hover:text-foreground'
-                }
-              >
-                {option.label}
-              </Button>
-            );
-          })}
-        </div>
+          {CHART_PERIODS.map((option) => (
+            <SegmentedControlItem key={option.value} value={option.value}>
+              {option.label}
+            </SegmentedControlItem>
+          ))}
+        </SegmentedControl>
       </div>
 
       {/* Legend + hover readout */}
