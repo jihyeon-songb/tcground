@@ -1,5 +1,3 @@
-'use client';
-
 // A sheet is a Dialog that slides in from an edge of the viewport. Behavior
 // (portal, focus trap, Escape/overlay dismiss, focus restore) is identical to
 // Dialog; the edge placement is purely a styling concern in the consumer.
