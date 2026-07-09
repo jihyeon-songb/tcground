@@ -202,7 +202,8 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - `@tcground/headless`와 `@tcground/ui` source의 런타임 상대 import/export specifier는 `.js` 확장자를 명시한다. TypeScript는 `moduleResolution: "Bundler"`로 `*.js` specifier를 `*.ts(x)` source에 해소하고, build 후 `dist/*.js`는 Node ESM/Vitest dependency import에서도 extensionless re-export 오류 없이 로드된다.
 - 로컬 `@tcground/ui@0.1.3` package manifest는 `@tcground/headless`를 publish 가능한 semver dependency(`^0.1.2`)로 선언한다. workspace 개발에서는 pnpm workspace link가 계속 로컬 `packages/headless`를 연결한다.
 - npm registry의 `@tcground/ui@0.1.2`는 이전 산출물이라 `workspace:^` dependency와 extensionless ESM re-export를 포함한다. 같은 버전은 재배포할 수 없으므로, 수정본은 `@tcground/headless@0.1.2`와 `@tcground/ui@0.1.3` 새 patch 버전으로 공개 배포했다.
-- Vitest는 `vitest.config.mts`에서 `@tcground/ui`를 로컬 source로 alias한다. root dependency의 registry 소비 전환과 Vitest alias 제거는 별도 후속으로 진행한다. 루트 앱의 registry 소비 검증은 전환 시 `pnpm exec tsc --noEmit`과 `pnpm build`가 담당한다.
+- 루트 앱은 `@tcground/headless`를 source alias로 덮어쓰지 않는다. `@tcground/ui` dist가 의존하는 headless runtime은 package export의 `dist/index.js`를 따라야 하며, source alias는 Turbopack dev에서 `*.js` specifier를 실제 source-side `.js` 파일로 찾게 만들어 깨질 수 있다.
+- Vitest는 `vitest.config.mts`에서 `@tcground/ui`와 `@tcground/headless`를 로컬 source로 alias한다. root dependency의 registry 소비 전환과 Vitest alias 제거는 별도 후속으로 진행한다. 루트 앱의 registry 소비 검증은 전환 시 `pnpm exec tsc --noEmit`과 `pnpm build`가 담당한다.
 - `pnpm build:ui`는 TypeScript 산출물과 `dist/theme.css`를 생성한다.
 - `apps/docs`는 `@tcground/ui/theme.css` export가 `dist`를 바라보므로 `prebuild`/`prestart`에서 `@tcground/ui`를 먼저 빌드한다.
 - 배포 전 검증: `pnpm build:ui`, `pnpm lint`, `pnpm exec tsc --noEmit`, `pnpm test --run`, `pnpm --filter @tcground/ui pack --dry-run`.
@@ -247,4 +248,5 @@ MVP DB는 Supabase Postgres를 기준으로 한다. 상세 설계는 `memory-ban
 - 2026-06-05: 중고나라 자동 `asking` source를 추가했다. `JOONGNA_COLLECTION_ENABLED=true`와 `scripts/collect-prices.ts --joongna`로만 실행하며, 공개 search page에서 최소 상품 필드만 추출해 `joongna_asking_median` snapshot으로 저장한다.
 - 2026-06-10: Docusaurus docs를 Vercel 프로젝트 `tcground-docs`에 production 배포했다. docs 배포는 repo root에서 `apps/docs/vercel.json` local config와 `--project tcground-docs`를 명시해 기존 루트 Next.js 프로젝트와 분리한다.
 - 2026-07-09: `@tcground/headless@0.1.2`와 `@tcground/ui@0.1.3`을 npm에 공개 배포했다. `@tcground/headless`는 publish tarball에 `dist/**`가 포함되도록 files 계약을 보강했다.
+- 2026-07-09: 루트 `tsconfig.json`의 `@tcground/headless` source alias를 제거해 Next/Turbopack dev가 `@tcground/ui` dist의 headless dependency를 package export로 해석하게 했다.
 - 2026-07-07: 카드 상세 대표 가격을 실제 asking snapshot으로 한정하고, 가격 부재/과거 값 불확실성 및 외부 링크 fallback 순서를 확정.

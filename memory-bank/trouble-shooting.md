@@ -154,6 +154,22 @@ Cloning github.com/jihyeon-songb/tcground (Branch: main, Commit: dfb2680)
 - 배포 순서는 `@tcground/headless`를 먼저 publish한 뒤, `@tcground/ui`를 새 headless semver dependency로 publish한다.
 - root dependency를 registry 소비로 전환할 때는 `pnpm add -w @tcground/ui@^0.1.3`, `node import('@tcground/ui')`, `pnpm test --run`을 확인한 뒤에만 Vitest alias를 제거한다.
 
+## Next dev에서 @tcground/headless source alias가 .js re-export를 깨뜨림
+
+### 문제
+
+2026-07-09 `pnpm dev`에서 Turbopack이 `Module not found: Can't resolve './alert-dialog.js'`를 보고했다. import trace는 `@tcground/ui` dist → `@tcground/headless` → `packages/headless/src/index.ts`로 이어졌다.
+
+### 원인
+
+루트 `tsconfig.json`의 `@tcground/headless` path alias가 package dependency import까지 source로 우회시켰다. `packages/headless/src/index.ts`는 npm ESM 산출물을 위해 `./alert-dialog.js` 같은 `.js` specifier를 쓰지만, source tree에는 `alert-dialog.tsx`만 있으므로 Turbopack이 실제 `.js` 파일을 찾다가 실패했다.
+
+### 처리
+
+- 루트 `tsconfig.json`에서 `@tcground/headless` source alias를 제거했다.
+- unit test의 source alias는 `vitest.config.mts`에만 유지한다.
+- 루트 앱은 `@tcground/ui` dist와 그 runtime dependency인 `@tcground/headless` dist를 package export로 소비한다.
+
 ## KREAM 로그인 수동 수집 중 상세 접근/카탈로그 매칭 한계
 
 ### 문제

@@ -19,9 +19,7 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"],
-      "@tcground/headless": ["./packages/headless/src"],
-      "@tcground/headless/*": ["./packages/headless/src/*"]
+      "@/*": ["./*"]
     }
   },
   "include": [

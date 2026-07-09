@@ -9,6 +9,8 @@
 
 ## 완료 로그
 
+- 2026-07-09: `pnpm dev`에서 `Module not found: Can't resolve './alert-dialog.js'`가 발생하던 문제를 수정했다. 원인은 루트 `tsconfig.json`의 `@tcground/headless -> packages/headless/src` alias가 `@tcground/ui` dist의 runtime dependency import까지 source로 우회시켜, Turbopack이 `packages/headless/src/index.ts`의 `.js` re-export를 실제 `.js` 파일로 찾은 것이다. 루트 앱은 package dist를 소비하도록 `@tcground/headless` source alias를 제거했고, unit test용 source alias는 `vitest.config.mts`에만 유지했다. 검증으로 `pnpm exec tsc --noEmit`, `pnpm build`, focused headless/ui tests, dev server `http://localhost:3000/` HTTP 200, `pnpm lint`(기존 `packages/headless/dist` warning 7개), `pnpm test --run`(389/389)이 통과했다.
+
 - 2026-07-09: `@tcground/headless@0.1.2`와 `@tcground/ui@0.1.3`을 npm에 공개 배포했다. 기존 registry의 `@tcground/ui@0.1.2`는 `workspace:^` dependency를 포함한 깨진 산출물이므로 같은 버전을 재사용하지 않고 patch version을 올렸다. `@tcground/ui@0.1.3`은 `@tcground/headless:^0.1.2`를 dependency로 선언한다. 배포 전 `@tcground/headless` tarball에 `dist`가 빠지는 문제를 `files: ["dist/**"]`로 고쳤고, `pnpm install`로 lockfile을 새 headless registry 버전에 맞췄다. 검증으로 registry `npm view`, 임시 프로젝트 외부 설치/import, `pnpm exec tsc --noEmit`, `pnpm lint`(기존 `packages/headless/dist` warning 7개), `pnpm test --run`(389/389)이 통과했다.
 
 - 2026-07-07: `marketplaceFallbackLink` 추가 전 생성된 상세 캐시 때문에 외부 링크가 없는 카드 상세가 `fallback.sourceLabel` 런타임 오류로 중단되던 회귀를 수정했다. 상세 캐시 키를 `card-detail-by-slug-v2`로 갱신해 이전 직렬화 결과를 무효화하고, 이전 캐시 형태가 유입돼도 카드 식별자로 eBay 검색 fallback을 파생하도록 페이지 경계를 보강했다. 회귀 테스트는 수정 전 동일 TypeError로 실패하고 수정 후 통과했으며, 영향 카드 개발 서버 렌더에서 HTTP 200과 상세 본문을 확인했다.
