@@ -220,7 +220,6 @@ export type PokemonSort = 'best' | 'name-asc' | 'name-desc';
 
 export const DEFAULT_POKEMON_PAGE_SIZE = 24;
 const SNAPSHOT_FETCH_CHUNK_SIZE = 100;
-const RECOMMENDED_CANDIDATE_FETCH_LIMIT = 5000;
 
 export interface PokemonCategoryPageData {
   gameName: string;
@@ -353,16 +352,9 @@ interface GameCountRow {
   count: number;
 }
 
-interface RecommendedSnapshotCandidateRow {
-  card_printing_id: string | null;
-  snapshot_date: string;
-  display_avg_price: number | null;
-  avg_price: number | null;
-}
-
-interface PrintingCardIdRow {
-  id: string;
-  card_id: string | null;
+interface CardSnapshotCountRow {
+  card_id: string;
+  snapshot_count: number | string;
 }
 
 const PRICE_SNAPSHOT_SELECT_WITH_DISPLAY =
@@ -768,7 +760,7 @@ async function loadPokemonCategoryPageData(
     const filteredCardQuery = buildCardQuery as unknown as BuildPokemonCardQuery;
     const [{ count, error: countError }, recommendedCardIds] = await Promise.all([
       buildCardQuery('id', { count: 'exact', head: true }),
-      getRecommendedPricedCardIds(supabase),
+      getRecommendedCardIds(supabase),
     ]);
 
     throwIfSupabaseError(countError);
@@ -845,55 +837,15 @@ type BuildPokemonCardQuery = (
   selectOptions?: { count?: 'exact'; head?: boolean },
 ) => CardQuery;
 
-async function getRecommendedPricedCardIds(supabase: SupabaseClient): Promise<string[]> {
-  const { data, error } = await supabase
-    .from('card_price_snapshots')
-    .select('card_printing_id, snapshot_date, display_avg_price, avg_price')
-    .not('card_printing_id', 'is', null)
-    .order('snapshot_date', { ascending: false })
-    .limit(RECOMMENDED_CANDIDATE_FETCH_LIMIT);
-
+// Cards ordered by how many price snapshots they have (data-rich first), backing
+// the "추천순" default so cards with real price history — the ones that actually
+// draw a trend line — surface at the top. The aggregate runs in Postgres
+// (get_cards_by_snapshot_count) so the fast-growing snapshot table is never
+// streamed in full into the app just to rank cards.
+async function getRecommendedCardIds(supabase: SupabaseClient): Promise<string[]> {
+  const { data, error } = await supabase.rpc('get_cards_by_snapshot_count');
   throwIfSupabaseError(error);
-
-  // Keep the latest price per printing; the recommended order surfaces the most
-  // expensive cards first (비싼 시세 = 인기). Rows arrive newest-first, so the
-  // first one seen for a printing is its latest snapshot.
-  const priceByPrinting = new Map<string, number>();
-  for (const row of (data ?? []) as RecommendedSnapshotCandidateRow[]) {
-    if (!row.card_printing_id || priceByPrinting.has(row.card_printing_id)) continue;
-    const price = row.display_avg_price ?? row.avg_price;
-    if (price == null) continue;
-    priceByPrinting.set(row.card_printing_id, price);
-  }
-
-  const printingIds = Array.from(priceByPrinting.keys());
-  if (printingIds.length === 0) return [];
-
-  const cardIdByPrinting = new Map<string, string>();
-  for (const chunk of chunkStrings(printingIds, SNAPSHOT_FETCH_CHUNK_SIZE)) {
-    const { data: printingData, error: printingError } = await supabase
-      .from('card_printings')
-      .select('id, card_id')
-      .in('id', chunk);
-
-    throwIfSupabaseError(printingError);
-
-    for (const row of (printingData ?? []) as PrintingCardIdRow[]) {
-      if (row.card_id) cardIdByPrinting.set(row.id, row.card_id);
-    }
-  }
-
-  // A card may span multiple printings, so take each card's most expensive one.
-  const priceByCard = new Map<string, number>();
-  for (const [printingId, price] of priceByPrinting) {
-    const cardId = cardIdByPrinting.get(printingId);
-    if (!cardId) continue;
-    priceByCard.set(cardId, Math.max(priceByCard.get(cardId) ?? 0, price));
-  }
-
-  return Array.from(priceByCard.entries())
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .map(([cardId]) => cardId);
+  return ((data ?? []) as CardSnapshotCountRow[]).map((row) => row.card_id);
 }
 
 async function fetchCardRowsByIdsInOrder(
@@ -995,10 +947,10 @@ async function loadFeaturedPokemonCards(
 
   const rows = (cardData ?? []) as unknown as PokemonCatalogCardRow[];
 
-  // Order by recommendation ("추천순") — most expensive cards first — so the
-  // featured grid surfaces the same top cards as the catalog's default sort,
+  // Order by recommendation ("추천순") — cards with the most price snapshots first —
+  // so the featured grid surfaces the same top cards as the catalog's default sort,
   // with slug order as the tiebreaker/fallback.
-  const recommendedCardIds = await getRecommendedPricedCardIds(supabase);
+  const recommendedCardIds = await getRecommendedCardIds(supabase);
   const recommendationRank = new Map(
     recommendedCardIds.map((cardId, index) => [cardId, index] as const),
   );
@@ -1284,15 +1236,11 @@ export function sortPokemonCatalogCardsByRecommendation(
 }
 
 function compareRecommendedCards(a: PokemonCatalogCard, b: PokemonCatalogCard): number {
-  // Recommended order ("추천순") surfaces the most expensive cards first
-  // (비싼 시세 = 인기). Cards with no usable price sort last.
-  const aHasPrice = a.price !== null;
-  const bHasPrice = b.price !== null;
-  if (aHasPrice !== bHasPrice) return aHasPrice ? -1 : 1;
-  if (a.price && b.price) {
-    const priceDelta = b.price.avgPrice - a.price.avgPrice;
-    if (priceDelta !== 0) return priceDelta;
-  }
+  // Recommended order ("추천순") surfaces cards with the most price snapshots first
+  // (더 많은 데이터 = 실제 시세 추이가 있는 카드). Cards with no snapshots (count 0)
+  // naturally sort last; ties break by slug.
+  const countDelta = b.priceSnapshotCount - a.priceSnapshotCount;
+  if (countDelta !== 0) return countDelta;
 
   return a.slug.localeCompare(b.slug);
 }

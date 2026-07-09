@@ -134,11 +134,10 @@ export function CardResults({
   const [items, setItems] = useState<PokemonCatalogCard[]>(initialCards);
   const [loadedPage, setLoadedPage] = useState(page);
   const [loading, setLoading] = useState(false);
-  const [gridColumns, setGridColumns] = useState(() =>
-    typeof window === 'undefined' || !window.matchMedia
-      ? 2
-      : gridColumnsForWidth(window.innerWidth),
-  );
+  // Start at the SSR-safe default (2) on both server and client so hydration
+  // matches; the mount effect below syncs to the real viewport right after.
+  // Reading window here would make the client's first render diverge from SSR.
+  const [gridColumns, setGridColumns] = useState(2);
   const columns = view === 'list' ? 1 : gridColumns;
   const [listOffsetTop, setListOffsetTop] = useState(0);
   const [restoredStorageKey, setRestoredStorageKey] = useState<string | null>(null);
@@ -257,6 +256,7 @@ export function CardResults({
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
     const update = () => setGridColumns(gridColumnsForWidth(window.innerWidth));
+    update(); // sync to the actual viewport once hydration is done
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
