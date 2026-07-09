@@ -14,6 +14,7 @@ export * from './components/ui/label.js';
 export * from './components/ui/popover.js';
 export * from './components/ui/radio-group.js';
 export * from './components/ui/select.js';
+export * from './components/ui/segmented-control.js';
 export * from './components/ui/separator.js';
 export * from './components/ui/sheet.js';
 export * from './components/ui/skeleton.js';
