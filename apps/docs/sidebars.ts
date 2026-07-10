@@ -15,6 +15,7 @@ const sidebars: SidebarsConfig = {
         'accessibility/dialog',
         'accessibility/tabs',
         'accessibility/radio-group',
+        'accessibility/segmented-control',
       ],
     },
     {
@@ -27,6 +28,7 @@ const sidebars: SidebarsConfig = {
         'components/label',
         'components/checkbox',
         'components/radio-group',
+        'components/segmented-control',
         'components/select',
         'components/input-group',
         'components/alert',

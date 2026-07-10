@@ -1,0 +1,75 @@
+---
+title: SegmentedControl 접근성
+description: 패널 없는 tab 오용을 올바른 radiogroup 의미와 비교합니다.
+---
+
+import A11yComparison from '@site/src/components/A11yComparison';
+import { AccessibleExample, InaccessibleExample } from '@site/src/components/examples/a11y/segmented-control';
+
+# SegmentedControl — tab 오용과 radiogroup 의미
+
+값을 골라 **같은 뷰를 재구성**하는 세그먼트 UI는 흔히 `role="tablist"` 로 잘못 표시됩니다.
+하지만 tab 패턴은 각 tab 이 `aria-controls` 로 **tabpanel** 을 가리켜야 성립합니다.
+가리킬 패널이 없는데 tab 이라 선언하면, 스크린리더는 "탭"이라 읽지만 이동할 패널이 없고
+방향키도 동작하지 않습니다. 이런 UI의 올바른 의미는 **단일 선택(radiogroup)** 입니다.
+`SegmentedControl` 은 `@tcground/headless` 의 `RadioGroup` 위에 세워져 그룹 role 과
+roving tabindex, 방향키 선택을 기본 제공합니다.
+
+<A11yComparison
+  bad={<InaccessibleExample />}
+  good={<AccessibleExample />}
+  badNotes={[
+    '패널을 바꾸지 않는데 role="tablist"/"tab" — tab 패턴의 tabpanel 이 없음',
+    '각 tab 이 aria-controls 로 가리킬 패널이 없어 의미가 깨짐',
+    '방향키로 선택을 옮길 수 없음 (tab 은 방향키 이동이 기대됨)',
+    '항목마다 Tab 정지점 — roving tabindex 없음',
+  ]}
+  goodNotes={[
+    'role="radiogroup" + aria-label 로 단일 선택 그룹임을 노출',
+    '각 항목 role="radio" + aria-checked 로 선택 상태 노출',
+    'roving tabindex: 그룹 전체가 Tab 정지점 하나',
+    '방향키로 선택 이동 (순환), Space 로 선택',
+  ]}
+  badCode={`function FakePeriodTabs() {
+  const [period, setPeriod] = useState('6m');
+  return (
+    // 패널을 바꾸지 않고 차트를 제자리에서 필터하는데 tablist 를 씀
+    <div role="tablist" aria-label="차트 기간">
+      {periods.map((p) => (
+        <button
+          key={p.value}
+          role="tab"
+          aria-selected={p.value === period}  // 가리킬 tabpanel 이 없음
+          onClick={() => setPeriod(p.value)}
+        >
+          {p.label}
+        </button>
+      ))}
+    </div>
+  );
+}`}
+  goodCode={`import { SegmentedControl, SegmentedControlItem } from '@tcground/ui';
+
+<SegmentedControl defaultValue="6m" aria-label="차트 기간">
+  <SegmentedControlItem value="3m">3개월</SegmentedControlItem>
+  <SegmentedControlItem value="6m">6개월</SegmentedControlItem>
+  <SegmentedControlItem value="1y">1년</SegmentedControlItem>
+</SegmentedControl>`}
+/>
+
+## 직접 확인
+
+- ✅ 버전: `Tab` 한 번으로 그룹에 진입(선택된 항목에 focus) → 방향키로 선택을 옮김.
+- ❌ 버전: 방향키가 동작하지 않고, 항목마다 `Tab` 을 눌러야 하며, "탭"이라 안내되지만 전환되는 패널이 없어 의미가 어긋납니다.
+
+## tab 과 언제 나뉘나
+
+- **SegmentedControl(radiogroup):** 값을 골라 같은 뷰를 다시 구성 — 차트 기간, 정렬 기준.
+- **[Tabs](../components/tabs)(tablist):** 각 tab 이 서로 다른 tabpanel 을 전환할 때.
+
+## headless가 보장하는 것
+
+- `SegmentedControl` 은 `role="radiogroup"` 을 가지며 `aria-label` 로 목적을 알립니다.
+- 각 항목은 `role="radio"`, `aria-checked` 를 가집니다.
+- roving tabindex 로 그룹 전체가 하나의 `Tab` 정지점이 됩니다.
+- 방향키(`ArrowUp`/`ArrowDown`/`ArrowLeft`/`ArrowRight`)로 선택을 이동하며 끝에서 순환합니다.

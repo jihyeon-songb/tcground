@@ -18,8 +18,8 @@ importers:
         specifier: ^3.14.5
         version: 3.14.5(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@tcground/ui':
-        specifier: ^0.1.0
-        version: 0.1.0(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: workspace:*
+        version: link:packages/ui
       lucide-react:
         specifier: ^1.14.0
         version: 1.14.0(react@19.2.4)
@@ -168,8 +168,8 @@ importers:
   packages/ui:
     dependencies:
       '@tcground/headless':
-        specifier: ^0.1.1
-        version: 0.1.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.1.2
+        version: 0.1.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -3906,14 +3906,8 @@ packages:
   '@tanstack/virtual-core@3.17.3':
     resolution: {integrity: sha512-8Np/TFELpI0ySuJoVmjvOrQYXH/8sTX0Biv9szhFhY39xOdAAY+smrMxjxOum/ux3eM8MUJQsEJ0/R0UpvC8dw==}
 
-  '@tcground/headless@0.1.1':
-    resolution: {integrity: sha512-+nFqVTj+Hx7jasMOfVa1+q+VI9PHQ285Kg2Mq65+c3ozssZBE4vxgXhejW4mnz6D5otqbf9KEn1ch9eVpRYKRg==}
-    peerDependencies:
-      react: '>=18.2.0 <20.0.0'
-      react-dom: '>=18.2.0 <20.0.0'
-
-  '@tcground/ui@0.1.0':
-    resolution: {integrity: sha512-Jxr1s+zt39q3ODQdoZpHofavm30RAHIrlLIzBwsyx8rCAE6f6v1hMPBBnlYAoXSrsTDzfX88B1faXNxyRjQ4HA==}
+  '@tcground/headless@0.1.2':
+    resolution: {integrity: sha512-jUDS8yaHAESUV1AlQjVBQHiRo+q0Su2vefPLialEBeGZD4uGFZhHqx/1sCcypZHc7fkJy4YPtOWP2UjOkb/kGw==}
     peerDependencies:
       react: '>=18.2.0 <20.0.0'
       react-dom: '>=18.2.0 <20.0.0'
@@ -14237,24 +14231,10 @@ snapshots:
 
   '@tanstack/virtual-core@3.17.3': {}
 
-  '@tcground/headless@0.1.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@tcground/headless@0.1.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
-
-  '@tcground/ui@0.1.0(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
-    dependencies:
-      class-variance-authority: 0.7.1
-      clsx: 2.1.1
-      cmdk: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      lucide-react: 1.14.0(react@19.2.4)
-      radix-ui: 1.4.3(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      react: 19.2.4
-      react-dom: 19.2.4(react@19.2.4)
-      tailwind-merge: 3.5.0
-    transitivePeerDependencies:
-      - '@types/react'
-      - '@types/react-dom'
 
   '@testing-library/dom@10.4.1':
     dependencies:
