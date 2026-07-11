@@ -842,9 +842,9 @@ type BuildPokemonCardQuery = (
 // draw a trend line — surface at the top. The aggregate runs in Postgres
 // (get_cards_by_snapshot_count) so the fast-growing snapshot table is never
 // streamed in full into the app just to rank cards.
-async function getRecommendedCardIds(supabase: SupabaseClient): Promise<string[]> {
+export async function getRecommendedCardIds(supabase: SupabaseClient): Promise<string[]> {
   const { data, error } = await supabase.rpc('get_cards_by_snapshot_count');
-  throwIfSupabaseError(error);
+  if (error || !data) return [];
   return ((data ?? []) as CardSnapshotCountRow[]).map((row) => row.card_id);
 }
 

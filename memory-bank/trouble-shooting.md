@@ -1,7 +1,29 @@
 # TROUBLE SHOOTING
 
 > PRD에 없던 엣지 케이스, 예외 상황, source 리스크 기록.
-> 마지막 갱신: 2026-06-16 (KREAM segmented search 수집)
+> 마지막 갱신: 2026-07-11 (카테고리 추천순 RPC fallback)
+
+## 배포 `/categories/pokemon`이 Next 서버 컴포넌트 오류로 깨짐
+
+### 문제
+
+2026-07-11 production `https://tcground.vercel.app/categories/pokemon`에서 브라우저 렌더 시 `This page couldn't load` 화면이 표시됐다. 콘솔에는 production Server Components 오류만 보였고 실제 메시지는 숨겨졌으며, digest는 `1900353270`이었다.
+
+`curl`/HTML 확인 결과 헤더와 페이지 shell은 200으로 내려왔지만, Suspense 내부 `PokemonCategorySection` 스트림이 `16:E{"digest":"1900353270"}`로 실패했다.
+
+### 처리
+
+- `/categories/pokemon` 기본 추천순 경로가 `getPokemonCategoryPageData` → `getRecommendedCardIds` → Supabase RPC `get_cards_by_snapshot_count`를 호출하는 것을 확인했다.
+- 기존 `get_tcg_category_counts` RPC는 migration 미적용 시 fallback이 있었지만, 새 `get_cards_by_snapshot_count`는 RPC 오류를 그대로 throw했다.
+- Vercel CLI와 Vercel 앱 연결은 모두 재인증 필요 상태라 production runtime log는 조회하지 못했다.
+- `get_cards_by_snapshot_count`가 없거나 권한 오류가 나도 빈 추천 id 목록으로 fallback해, 기존 slug 기반 목록을 렌더하도록 수정했다.
+- 회귀 테스트로 RPC 오류 시 `getRecommendedCardIds`가 `[]`를 반환하는지 확인했다.
+
+### 재발 방지
+
+- 새 Supabase RPC를 UI critical path에 붙일 때는 migration이 production에 늦게 적용되거나 grant가 누락돼도 페이지 전체가 깨지지 않게 fallback을 둔다.
+- production 에러 확인을 위해 Vercel CLI 또는 Vercel app connection을 재인증한 뒤 digest와 runtime log를 같이 대조한다.
+- RPC fallback은 기능 품질만 낮추고 페이지 생존성은 유지하는 형태로 둔다. 이 경우 추천순 정밀도는 낮아지지만 카드 목록과 가격 표시는 계속 동작한다.
 
 ## KREAM/eBay daily cron은 실행되지만 snapshot이 적재되지 않음
 
