@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-07-07 (카드 상세 캐시 view model 회귀 수정)
+> 마지막 갱신: 2026-07-11 (카테고리 추천순 RPC fallback)
 
 ## 현재 기준 PRD
 
@@ -186,11 +186,13 @@
 - 영향 파일: `app/page.tsx`, `app/search/page.tsx`, `app/categories/[categoryId]/page.tsx`, `app/cards/[cardId]/page.tsx`, `app/login/page.tsx`, `app/globals.css`, `app/layout.tsx`, `components/tcg/HomeSearchForm.tsx`, `components/tcg/HomeSearchForm.test.tsx`, `lib/tcg-data.ts`.
 - 최소 변경 범위: Stitch `TCGround Price Tracker` 화면 구조와 한국어 UI 문구를 우선 기준으로 P0 페이지의 정적 UI를 구현한다. 인증·실데이터 연동은 데이터 모델과 인증 수단 결정 이후 별도 단계로 진행한다.
 - 2026-06-13 보정 영향 파일: `app/categories/page.tsx`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`. 최소 변경 범위: 카테고리 대분류 페이지 최상위 배경 토큰만 다른 공개 페이지와 같은 `bg-background`로 맞춘다.
+- 2026-07-11 배포 오류 보정 영향 파일: `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`. 최소 변경 범위: `/categories/pokemon` 기본 추천순이 `get_cards_by_snapshot_count` RPC를 사용할 수 없을 때 서버 컴포넌트를 중단하지 않고 slug 기반 목록으로 fallback한다.
 - [x] Stitch `TCGround Price Tracker` 디자인 시스템 기반 전역 CSS 토큰과 `tcg-*` component utility 구조 수립.
 - [x] 홈페이지 검색/카테고리/인기 카드 영역을 `TCGround | Home (Search Optimized)` 기준으로 갱신.
 - [x] 검색 결과 목록과 상태 화면 구현 (`TCGround | Search: Charizard` 기반, 빈 검색어 안내 포함).
 - [x] 카테고리 탐색 화면 구현 (`/categories/[categoryId]`, `pokemon` 정상 상태와 준비 중 빈 상태).
 - [x] 카테고리 대분류 페이지(`/categories`) 배경색을 다른 공개 페이지와 같은 `bg-background` 토큰으로 정합화.
+- [x] 카테고리 기본 추천순 RPC 미적용/권한 오류 시 목록 fallback 처리.
 - [x] 상품 상세 정보와 가격 차트 정적 UI 구현 (`/cards/[cardId]`, 404 분기 포함).
 - [x] 로그인 정적 화면 구현 (`/login`, 이메일/비밀번호 폼과 가입/소셜 진입 링크).
 - [ ] 로그인 입력 검증, 요청 중 상태, 실패 메시지, 성공 후 이동 동작 구현.

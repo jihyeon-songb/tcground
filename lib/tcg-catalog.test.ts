@@ -8,6 +8,7 @@ import {
   derivePriceDisplayFromHistory,
   fetchSnapshotsByPrinting,
   getCardDetailBySlug,
+  getRecommendedCardIds,
   mapCardDetailRow,
   mapPokemonCategoryPageData,
   mapTcgCategoryOverviewRows,
@@ -237,6 +238,17 @@ describe('tcg catalog view models', () => {
       'kr-002-cheap',
       'kr-001-no-price',
     ]);
+  });
+
+  it('keeps the category list usable when the recommendation RPC is unavailable', async () => {
+    const ids = await getRecommendedCardIds({
+      rpc: async () => ({
+        data: null,
+        error: { message: 'Could not find the function public.get_cards_by_snapshot_count' },
+      }),
+    } as never);
+
+    expect(ids).toEqual([]);
   });
 
   it('leaves explicitly sorted card arrays in their caller-provided order', () => {
