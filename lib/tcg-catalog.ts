@@ -207,7 +207,7 @@ export interface PokemonCatalogCard {
   imageUrl: string | null;
   /** Real snapshot-derived price summary, or null when the card has no price data. */
   price: PriceDisplay | null;
-  /** Number of price-snapshot records backing this card; drives the recommended ("추천순") order. */
+  /** Number of price-snapshot records backing this card; drives the "시세" status badge. */
   priceSnapshotCount: number;
 }
 
@@ -352,9 +352,9 @@ interface GameCountRow {
   count: number;
 }
 
-interface CardSnapshotCountRow {
+interface CardPriceRankRow {
   card_id: string;
-  snapshot_count: number | string;
+  latest_price: number | string | null;
 }
 
 const PRICE_SNAPSHOT_SELECT_WITH_DISPLAY =
@@ -837,15 +837,14 @@ type BuildPokemonCardQuery = (
   selectOptions?: { count?: 'exact'; head?: boolean },
 ) => CardQuery;
 
-// Cards ordered by how many price snapshots they have (data-rich first), backing
-// the "추천순" default so cards with real price history — the ones that actually
-// draw a trend line — surface at the top. The aggregate runs in Postgres
-// (get_cards_by_snapshot_count) so the fast-growing snapshot table is never
-// streamed in full into the app just to rank cards.
+// Cards ordered by latest raw market price in KRW, highest first, backing the
+// "추천순" default — 비싼 카드 우선. The aggregate runs in Postgres
+// (get_cards_by_latest_price) so the fast-growing snapshot table is never streamed
+// in full into the app just to rank cards.
 export async function getRecommendedCardIds(supabase: SupabaseClient): Promise<string[]> {
-  const { data, error } = await supabase.rpc('get_cards_by_snapshot_count');
+  const { data, error } = await supabase.rpc('get_cards_by_latest_price');
   if (error || !data) return [];
-  return ((data ?? []) as CardSnapshotCountRow[]).map((row) => row.card_id);
+  return ((data ?? []) as CardPriceRankRow[]).map((row) => row.card_id);
 }
 
 async function fetchCardRowsByIdsInOrder(
@@ -947,9 +946,9 @@ async function loadFeaturedPokemonCards(
 
   const rows = (cardData ?? []) as unknown as PokemonCatalogCardRow[];
 
-  // Order by recommendation ("추천순") — cards with the most price snapshots first —
-  // so the featured grid surfaces the same top cards as the catalog's default sort,
-  // with slug order as the tiebreaker/fallback.
+  // Order by recommendation ("추천순") — priciest cards first — so the featured grid
+  // surfaces the same top cards as the catalog's default sort, with slug order as
+  // the tiebreaker/fallback.
   const recommendedCardIds = await getRecommendedCardIds(supabase);
   const recommendationRank = new Map(
     recommendedCardIds.map((cardId, index) => [cardId, index] as const),
@@ -1236,11 +1235,15 @@ export function sortPokemonCatalogCardsByRecommendation(
 }
 
 function compareRecommendedCards(a: PokemonCatalogCard, b: PokemonCatalogCard): number {
-  // Recommended order ("추천순") surfaces cards with the most price snapshots first
-  // (더 많은 데이터 = 실제 시세 추이가 있는 카드). Cards with no snapshots (count 0)
-  // naturally sort last; ties break by slug.
-  const countDelta = b.priceSnapshotCount - a.priceSnapshotCount;
-  if (countDelta !== 0) return countDelta;
+  // Recommended order ("추천순") surfaces the priciest cards first (비싼 시세 = 인기
+  // 프록시). Cards with no price sort last; ties break by slug.
+  // ponytail: the RPC (get_cards_by_latest_price) keys on the raw latest KRW price
+  // while this keys on the display avgPrice — they can differ slightly, but the RPC
+  // owns pagination, so divergence only reorders within a single page. Thread the
+  // RPC price onto the card if exact global order ever matters.
+  const aPrice = a.price?.avgPrice ?? Number.NEGATIVE_INFINITY;
+  const bPrice = b.price?.avgPrice ?? Number.NEGATIVE_INFINITY;
+  if (aPrice !== bPrice) return bPrice - aPrice;
 
   return a.slug.localeCompare(b.slug);
 }
