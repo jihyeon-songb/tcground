@@ -188,7 +188,7 @@ describe('tcg catalog view models', () => {
     expect(data.selectedSetSlugs).toEqual([]);
   });
 
-  it('orders recommendation cards by snapshot count, most data first', () => {
+  it('orders recommendation cards by latest price, most expensive first', () => {
     const rows = [
       createCardRow({
         sampleId: 'PKMKR-BS2023014201',
@@ -212,7 +212,7 @@ describe('tcg catalog view models', () => {
         setName: '포켓몬 카드 151',
       }),
     ];
-    // kr-002-cheap has one snapshot, kr-003-expensive has three; kr-001 has none.
+    // kr-003-expensive's latest avg_price (320000) > kr-002-cheap (50000); kr-001 has none.
     const snapshotsByPrinting = new Map([
       ['kr-002-cheap-printing', [createSnapshotRow({ avg_price: 50000 })]],
       [
@@ -232,7 +232,7 @@ describe('tcg catalog view models', () => {
       snapshotsByPrinting,
     );
 
-    // Most snapshots first (3 > 1 > 0), regardless of price; no-data cards sort last.
+    // Highest latest price first; no-price cards sort last.
     expect(data.cards.map((card) => card.slug)).toEqual([
       'kr-003-expensive',
       'kr-002-cheap',
@@ -244,7 +244,7 @@ describe('tcg catalog view models', () => {
     const ids = await getRecommendedCardIds({
       rpc: async () => ({
         data: null,
-        error: { message: 'Could not find the function public.get_cards_by_snapshot_count' },
+        error: { message: 'Could not find the function public.get_cards_by_latest_price' },
       }),
     } as never);
 
