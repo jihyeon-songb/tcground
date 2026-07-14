@@ -2,6 +2,9 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  // Tree-shake the @tcground/ui barrel so importing one component doesn't pull
+  // the whole Radix/cmdk graph. (lucide-react is already in Next's default list.)
+  experimental: { optimizePackageImports: ['@tcground/ui'] },
   images: {
     remotePatterns: [
       {

@@ -59,13 +59,11 @@ export default async function CardDetailPage({ params, searchParams }: CardDetai
   const { cardId } = await params;
   const { edition: rawEdition } = (await searchParams) ?? {};
   const edition = parseCardEdition(rawEdition);
-  let card = await getCardDetailBySlug(cardId, undefined, { edition });
+  const card = await getCardDetailBySlug(cardId, undefined, { edition });
 
   if (!card) {
     notFound();
   }
-
-  card = await refreshEbayBrowsePriceForPage(cardId, card, edition);
 
   const currentPath =
     card.selectedEdition === 'kr'
@@ -84,6 +82,11 @@ export default async function CardDetailPage({ params, searchParams }: CardDetai
             cached content from painting. */}
         <CardDetailContent
           card={card}
+          priceSlot={
+            <Suspense fallback={<PriceSectionSkeleton />}>
+              <PriceSection cardId={cardId} edition={edition} initialCard={card} />
+            </Suspense>
+          }
           ratingSlot={
             <Suspense fallback={<CardRatingSkeleton />}>
               <CardRatingSection cardId={card.cardId} slug={card.slug} />
@@ -119,6 +122,71 @@ async function refreshEbayBrowsePriceForPage(
     );
     return card;
   }
+}
+
+// The price + marketplace block is the only content that depends on the live
+// eBay Browse refresh, so it streams in its own boundary. The rest of the card
+// (art, title, edition, chart) comes from the cached read and paints instantly.
+async function PriceSection({
+  cardId,
+  edition,
+  initialCard,
+}: {
+  cardId: string;
+  edition: ReturnType<typeof parseCardEdition>;
+  initialCard: CatalogCardDetail;
+}) {
+  const card = await refreshEbayBrowsePriceForPage(cardId, initialCard, edition);
+  return <CardPriceBlock card={card} />;
+}
+
+// Pure price + marketplace rendering, split out so it can be unit-tested without
+// the async eBay refresh that PriceSection performs before rendering it.
+export function CardPriceBlock({ card }: { card: CatalogCardDetail }) {
+  // When the trend is a graded fallback (e.g. KREAM PSA 10 체결가), label the
+  // price as that grade instead of the default raw 시세 so the user isn't misled.
+  const priceGradeLabel = card.priceHistory.gradeLabel ?? 'Raw';
+  const marketplaceFallbackLink =
+    card.marketplaceFallbackLink ??
+    deriveMarketplaceFallbackLink([], {
+      cardPrintingId: card.printing.id,
+      cardName: card.cardName,
+      nameEn: card.printing.nameEn,
+      nameJa: card.printing.nameJa,
+      collectorNumber: card.printing.collectorNumber,
+      setCode: card.printing.setCode,
+    });
+
+  return (
+    <div className='bg-card flex flex-col gap-4 rounded-2xl p-8'>
+      {card.price ? (
+        <PriceSummaryContent price={card.price} gradeLabel={priceGradeLabel} />
+      ) : (
+        <div className='flex flex-col gap-2'>
+          <span className='text-muted-foreground text-sm font-semibold tracking-wider uppercase'>
+            평균 판매 호가
+          </span>
+          <p className='text-foreground text-2xl font-bold'>시세 정보 없음</p>
+          <p className='text-muted-foreground text-sm'>수집된 판매중 호가가 없습니다.</p>
+        </div>
+      )}
+      <MarketplaceLinks
+        listings={card.ebayListings}
+        featuredIndex={card.featuredListingIndex}
+        fallback={marketplaceFallbackLink}
+      />
+    </div>
+  );
+}
+
+function PriceSectionSkeleton() {
+  return (
+    <div className='bg-card flex flex-col gap-4 rounded-2xl p-8'>
+      <div className='bg-muted h-3 w-28 animate-pulse rounded' />
+      <div className='bg-muted h-12 w-48 animate-pulse rounded' />
+      <div className='bg-muted h-10 w-full animate-pulse rounded' />
+    </div>
+  );
 }
 
 async function CardRatingSection({ cardId, slug }: { cardId: string; slug: string }) {
@@ -194,31 +262,25 @@ function CardRatingSkeleton() {
 
 interface CardDetailContentProps {
   card: CatalogCardDetail;
+  /** eBay-dependent price + marketplace block, streamed in via a Suspense boundary. */
+  priceSlot?: ReactNode;
   /** Auth-dependent rating block, streamed in via a Suspense boundary. */
   ratingSlot?: ReactNode;
   /** Auth-dependent price alert button, streamed in via a Suspense boundary. */
   alertSlot?: ReactNode;
 }
 
-export function CardDetailContent({ card, ratingSlot, alertSlot }: CardDetailContentProps) {
+export function CardDetailContent({
+  card,
+  priceSlot,
+  ratingSlot,
+  alertSlot,
+}: CardDetailContentProps) {
   // Draw the trend line from the asking series when we have it, otherwise from
   // the coherent sold series — so a sold-only history is still a real line, not
   // scattered dots. Overlay sold points only when they're distinct from the line.
   const trendSeries = getPriceTrendSeries(card.priceHistory);
   const overlaySold = card.priceHistory.askingSeries.length > 0 ? card.priceHistory.soldPoints : [];
-  // When the trend is a graded fallback (e.g. KREAM PSA 10 체결가), label the
-  // price as that grade instead of the default raw 시세 so the user isn't misled.
-  const priceGradeLabel = card.priceHistory.gradeLabel ?? 'Raw';
-  const marketplaceFallbackLink =
-    card.marketplaceFallbackLink ??
-    deriveMarketplaceFallbackLink([], {
-      cardPrintingId: card.printing.id,
-      cardName: card.cardName,
-      nameEn: card.printing.nameEn,
-      nameJa: card.printing.nameJa,
-      collectorNumber: card.printing.collectorNumber,
-      setCode: card.printing.setCode,
-    });
 
   return (
     <>
@@ -262,24 +324,7 @@ export function CardDetailContent({ card, ratingSlot, alertSlot }: CardDetailCon
 
           <EditionSelector card={card} />
 
-          <div className='bg-card flex flex-col gap-4 rounded-2xl p-8'>
-            {card.price ? (
-              <PriceSummaryContent price={card.price} gradeLabel={priceGradeLabel} />
-            ) : (
-              <div className='flex flex-col gap-2'>
-                <span className='text-muted-foreground text-sm font-semibold tracking-wider uppercase'>
-                  평균 판매 호가
-                </span>
-                <p className='text-foreground text-2xl font-bold'>시세 정보 없음</p>
-                <p className='text-muted-foreground text-sm'>수집된 판매중 호가가 없습니다.</p>
-              </div>
-            )}
-            <MarketplaceLinks
-              listings={card.ebayListings}
-              featuredIndex={card.featuredListingIndex}
-              fallback={marketplaceFallbackLink}
-            />
-          </div>
+          {priceSlot}
 
           <dl className='bg-card grid grid-cols-2 gap-3 rounded-2xl p-6 md:grid-cols-4'>
             <InfoItem label='시장' value={card.printing.region} />
