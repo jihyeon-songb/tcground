@@ -843,7 +843,12 @@ type BuildPokemonCardQuery = (
 // in full into the app just to rank cards.
 export async function getRecommendedCardIds(supabase: SupabaseClient): Promise<string[]> {
   const { data, error } = await supabase.rpc('get_cards_by_latest_price');
-  if (error || !data) return [];
+  // Throw (don't swallow) on RPC failure. A swallowed error returned [], which
+  // silently degraded best-sort to slug/가나다 order — and unstable_cache then
+  // persisted that poisoned page across deploys for up to an hour. Throwing keeps
+  // the failed result out of the cache so the next request retries. A genuine
+  // empty result (no priced cards) still returns [] harmlessly.
+  throwIfSupabaseError(error);
   return ((data ?? []) as CardPriceRankRow[]).map((row) => row.card_id);
 }
 

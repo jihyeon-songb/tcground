@@ -240,12 +240,23 @@ describe('tcg catalog view models', () => {
     ]);
   });
 
-  it('keeps the category list usable when the recommendation RPC is unavailable', async () => {
+  it('throws when the recommendation RPC fails so a poisoned slug-order page is never cached', async () => {
+    // Swallowing this error to [] silently degraded best-sort to slug order, and
+    // unstable_cache then persisted that wrong order across deploys for up to an
+    // hour. It must throw so the failed result stays out of the cache.
+    await expect(
+      getRecommendedCardIds({
+        rpc: async () => ({
+          data: null,
+          error: { message: 'Could not find the function public.get_cards_by_latest_price' },
+        }),
+      } as never),
+    ).rejects.toThrow();
+  });
+
+  it('returns [] when the recommendation RPC succeeds with no priced cards', async () => {
     const ids = await getRecommendedCardIds({
-      rpc: async () => ({
-        data: null,
-        error: { message: 'Could not find the function public.get_cards_by_latest_price' },
-      }),
+      rpc: async () => ({ data: [], error: null }),
     } as never);
 
     expect(ids).toEqual([]);

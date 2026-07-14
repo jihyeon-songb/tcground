@@ -189,6 +189,18 @@ async function main(): Promise<void> {
       await browser?.close();
     }
   }
+
+  // Rebuild the precomputed "추천순" ranking so today's snapshots are reflected.
+  // The catalog reads this matview (not the raw snapshot table) to stay under the
+  // anon 3s statement_timeout; a stale matview just means yesterday's ranking.
+  if (!dryRun) {
+    const { error } = await supabase.rpc('refresh_card_latest_raw_krw_price');
+    if (error) {
+      console.error('[rank] refresh_card_latest_raw_krw_price failed:', error.message);
+    } else {
+      console.log('[rank] refreshed card_latest_raw_krw_price');
+    }
+  }
 }
 
 main().catch((error) => {
