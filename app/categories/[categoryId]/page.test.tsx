@@ -6,6 +6,7 @@ import {
   CARD_RESULTS_RESTORE_MARKER_KEY,
   CardResults,
   markCardResultsForRestore,
+  uniqueCardsByHref,
 } from './_components/CardResults';
 import { CategoryFilterBar } from './_components/CategoryFilterBar';
 import { CategoryResultsToolbar } from './_components/CategoryResultsToolbar';
@@ -280,6 +281,39 @@ describe('CardResults virtualized list', () => {
       expect(screen.getByRole('link', { name: '샘플 카드 1 상세 보기' })).toBeTruthy();
     });
   });
+
+  it('dedupes duplicated card hrefs before rendering rows', async () => {
+    const cards = [createCard(1), createCard(1), createCard(2)];
+
+    render(
+      <CardResults
+        initialCards={cards}
+        totalCount={3}
+        page={1}
+        pageSize={24}
+        sort='best'
+        query=''
+        rarities={[]}
+        setSlugs={[]}
+        view='grid'
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('link', { name: /상세 보기/ })).toHaveLength(2);
+    });
+    expect(screen.getAllByRole('link', { name: '샘플 카드 1 상세 보기' })).toHaveLength(1);
+  });
+});
+
+describe('uniqueCardsByHref', () => {
+  it('keeps the first card for each detail href', () => {
+    const first = createCard(1);
+    const duplicate = { ...createCard(1), name: '중복 카드' };
+    const second = createCard(2);
+
+    expect(uniqueCardsByHref([first, duplicate, second])).toEqual([first, second]);
+  });
 });
 
 describe('CardResults scroll restoration', () => {
@@ -335,6 +369,54 @@ describe('CardResults scroll restoration', () => {
     await waitFor(() => {
       expect(window.scrollTo).toHaveBeenCalledWith({ top: 640, behavior: 'auto' });
     });
+  });
+
+  it('dedupes saved restoration cards by href', async () => {
+    const initialCards = Array.from({ length: 2 }, (_, index) => createCard(index + 1));
+    const savedCards = [createCard(1), createCard(2), createCard(2), createCard(3)];
+    const storageKey = buildCardResultsStorageKey({
+      pathname: '/categories/pokemon',
+      page: 1,
+      pageSize: 24,
+      sort: 'best',
+      query: '',
+      rarities: [],
+      setSlugs: [],
+      view: 'grid',
+      totalCount: 50,
+    });
+
+    window.sessionStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        items: savedCards,
+        loadedPage: 2,
+        scrollY: 640,
+        totalCount: 50,
+        pageSize: 24,
+        savedAt: Date.now(),
+      }),
+    );
+    markCardResultsForRestore(storageKey);
+
+    render(
+      <CardResults
+        initialCards={initialCards}
+        totalCount={50}
+        page={1}
+        pageSize={24}
+        sort='best'
+        query=''
+        rarities={[]}
+        setSlugs={[]}
+        view='grid'
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('link', { name: /상세 보기/ })).toHaveLength(3);
+    });
+    expect(screen.getAllByRole('link', { name: '샘플 카드 2 상세 보기' })).toHaveLength(1);
   });
 
   it('does not restore saved cards during a normal category entry', async () => {

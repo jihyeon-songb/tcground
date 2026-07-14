@@ -523,6 +523,15 @@
 - [x] 성능 회귀 테스트 또는 기존 `lib/tcg-catalog` 테스트 갱신. 기존 view model/route 테스트와 runtime 측정으로 검증.
 - [x] `pnpm exec vitest run lib/tcg-catalog.test.ts app/categories/[categoryId]/page.test.tsx`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
 
+### 4.21 후속: 추천순 최신 가격 정렬 회귀 보정
+
+- 영향 파일: `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `scripts/collect-prices.ts`, `supabase/migrations/*`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, 필요 시 `memory-bank/trouble-shooting.md`.
+- 최소 변경 범위: 배포 사이트의 기본 `추천순`이 최신 가격 높은 순으로 바뀌어 PRD 기준(가격 데이터 우선, 가격 표본 수 우선)과 어긋난 상태를 보정한다. 최신 가격 matview는 추천순에서 쓰지 않고, price sample count 기반 precomputed ranking을 제공해 성능 최적화는 유지한다.
+- [x] `getRecommendedCardIds`를 price sample count 기반 RPC로 되돌리고, 페이지 내 fallback 정렬도 표본 수 기준으로 맞춘다.
+- [x] Supabase migration으로 price sample count ranking matview/RPC/refresh function을 추가한다.
+- [x] daily 가격 수집 후 price sample count ranking도 refresh한다.
+- [x] 추천순 회귀 테스트와 품질 게이트를 실행한다.
+
 ### 4.22 카드 판본 기본값/상세 선택
 
 - 영향 파일: `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `app/cards/[cardId]/page.tsx`, `app/cards/[cardId]/page.test.tsx`, `app/categories/[categoryId]/CardResults.tsx`, `next.config.ts`, `memory-bank/architecture.md`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`.

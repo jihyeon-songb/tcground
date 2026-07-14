@@ -1,7 +1,51 @@
 # TROUBLE SHOOTING
 
 > PRD에 없던 엣지 케이스, 예외 상황, source 리스크 기록.
-> 마지막 갱신: 2026-07-12 (운영 가격 알림 migration 누락)
+> 마지막 갱신: 2026-07-14 (카테고리 중복 카드 key warning)
+
+## 카테고리 카드 목록 duplicate key warning
+
+### 문제
+
+2026-07-14 개발/배포 확인 중 React가 `Encountered two children with the same key, /cards/sv11b-bs2025007169-제크로무-ex` warning을 반복 출력했다. 카드 목록 UI는 `card.href`를 key로 사용하므로, 같은 href 카드가 `items` 상태에 두 번 들어오면 React reconciliation이 unsupported 상태가 된다.
+
+### 처리
+
+- `CardResults`에서 initial cards, sessionStorage 복원 cards, infinite-scroll append cards를 모두 `href` 기준으로 dedupe한다.
+- `loadMore`가 빠르게 중복 실행되어 같은 `nextPage`를 다시 append하지 않도록 `loadingRef` guard를 추가했다.
+- `loadedPageRef.current + 1`로 다음 page를 계산해 async callback의 stale `loadedPage` closure 영향을 줄였다.
+- 회귀 테스트로 중복 initial cards와 중복 saved restore cards가 DOM에 한 번만 렌더되는지 확인했다.
+
+### 재발 방지
+
+- 카드 목록 상태를 append/restore할 때는 React key 경고를 렌더 key 변경으로 숨기지 말고, 상태 배열 자체를 카드 identity(`href`/slug) 기준으로 중복 제거한다.
+- IntersectionObserver 기반 무한 스크롤은 React state update 전 같은 callback이 재진입할 수 있으므로 in-flight ref guard를 둔다.
+
+## 배포 사이트 추천순이 로컬과 다르게 이상하게 보임
+
+### 문제
+
+2026-07-14 production 카테고리/홈의 기본 `추천순`이 로컬에서 기대한 순서와 다르게 보였다. PRD 기준은 "가격 데이터가 있는 카드 우선, 가격 데이터가 있는 카드끼리는 가격 표본 수 많은 순"이지만, 최근 최적화에서 추천순 RPC가 `get_cards_by_latest_price`로 바뀌며 최신 KRW 가격이 높은 카드가 먼저 노출됐다.
+
+로컬과 배포가 다르게 보일 수 있었던 이유:
+
+- 로컬 dev는 작은/다른 Supabase 데이터셋, 로컬 schema 적용 상태, dev cache를 볼 수 있다.
+- 배포는 운영 Supabase의 큰 snapshot 데이터와 Vercel `unstable_cache`를 사용한다.
+- 운영에서 한 번 잘못 계산된 `pokemon-category-page`/`featured-pokemon-cards` 캐시가 남으면 DB를 맞춰도 즉시 순서가 바뀌지 않을 수 있다.
+
+### 처리
+
+- 앱 추천순 호출을 `get_cards_by_latest_price`에서 `get_cards_by_price_sample_count`로 변경했다.
+- 페이지 내 fallback 정렬도 최신 가격값이 아니라 `price.sampleCount` → `priceSnapshotCount` → slug 기준으로 변경했다.
+- `supabase/migrations/202607140002_restore_recommendation_sample_count.sql`로 `card_price_sample_count_rank` materialized view, public read RPC, service-role refresh RPC를 추가했다.
+- `scripts/collect-prices.ts`가 daily 수집 후 `refresh_card_price_sample_count_rank`를 호출하도록 변경했다.
+- 로컬 Supabase에 migration을 적용해 ranking row 3,911개와 RPC 응답을 확인했다.
+
+### 재발 방지
+
+- `추천순`은 가격값이 아니라 가격 데이터 신뢰도/표본 수 기준으로 본다. 가격값을 popularity proxy로 쓰려면 먼저 PRD와 implementation-plan의 범위 변경 절차를 거친다.
+- 새 추천순 RPC를 배포할 때는 DB migration 적용과 Vercel cache revalidation/deployment cache 무효화를 같이 확인한다.
+- `unstable_cache` 경로에서 RPC 오류를 빈 배열로 삼키면 slug 순 결과가 캐시될 수 있으므로, 추천순 critical RPC 실패는 throw해 실패 결과가 캐시되지 않게 한다.
 
 ## 배포 후 가격 알림 설정이 저장되지 않음
 

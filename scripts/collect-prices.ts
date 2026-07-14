@@ -194,11 +194,11 @@ async function main(): Promise<void> {
   // The catalog reads this matview (not the raw snapshot table) to stay under the
   // anon 3s statement_timeout; a stale matview just means yesterday's ranking.
   if (!dryRun) {
-    const { error } = await supabase.rpc('refresh_card_latest_raw_krw_price');
+    const { error } = await supabase.rpc('refresh_card_price_sample_count_rank');
     if (error) {
-      console.error('[rank] refresh_card_latest_raw_krw_price failed:', error.message);
+      console.error('[rank] refresh_card_price_sample_count_rank failed:', error.message);
     } else {
-      console.log('[rank] refreshed card_latest_raw_krw_price');
+      console.log('[rank] refreshed card_price_sample_count_rank');
     }
   }
 }

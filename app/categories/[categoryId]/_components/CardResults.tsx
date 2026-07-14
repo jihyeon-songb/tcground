@@ -33,6 +33,36 @@ function chunk<T>(items: T[], size: number): T[][] {
   return rows;
 }
 
+export function uniqueCardsByHref(cards: readonly PokemonCatalogCard[]): PokemonCatalogCard[] {
+  const seen = new Set<string>();
+  const unique: PokemonCatalogCard[] = [];
+
+  for (const card of cards) {
+    if (seen.has(card.href)) continue;
+    seen.add(card.href);
+    unique.push(card);
+  }
+
+  return unique;
+}
+
+function appendUniqueCards(
+  current: readonly PokemonCatalogCard[],
+  next: readonly PokemonCatalogCard[],
+): PokemonCatalogCard[] {
+  if (next.length === 0) return [...current];
+
+  const seen = new Set(current.map((card) => card.href));
+  const merged = [...current];
+  for (const card of next) {
+    if (seen.has(card.href)) continue;
+    seen.add(card.href);
+    merged.push(card);
+  }
+
+  return merged;
+}
+
 interface CardResultsProps {
   initialCards: PokemonCatalogCard[];
   totalCount: number;
@@ -116,6 +146,7 @@ export function CardResults({
   view,
 }: CardResultsProps) {
   const pathname = usePathname();
+  const uniqueInitialCards = useMemo(() => uniqueCardsByHref(initialCards), [initialCards]);
   const storageKey = useMemo(
     () =>
       buildCardResultsStorageKey({
@@ -131,7 +162,7 @@ export function CardResults({
       }),
     [pathname, page, pageSize, query, rarities, setSlugs, sort, totalCount, view],
   );
-  const [items, setItems] = useState<PokemonCatalogCard[]>(initialCards);
+  const [items, setItems] = useState<PokemonCatalogCard[]>(uniqueInitialCards);
   const [loadedPage, setLoadedPage] = useState(page);
   const [loading, setLoading] = useState(false);
   // Start at the SSR-safe default (2) on both server and client so hydration
@@ -145,15 +176,16 @@ export function CardResults({
   const listRef = useRef<HTMLDivElement | null>(null);
   const itemsRef = useRef(items);
   const loadedPageRef = useRef(loadedPage);
+  const loadingRef = useRef(false);
 
   // The server re-renders (and passes new initialCards) only when the URL
   // changes — i.e. desktop pagination, filters, sort, or search. In every such
   // case we replace the list rather than append. Adjusting state during render
   // (instead of in an effect) is React's recommended reset-on-prop-change pattern.
-  const [prevInitialCards, setPrevInitialCards] = useState(initialCards);
-  if (prevInitialCards !== initialCards) {
-    setPrevInitialCards(initialCards);
-    setItems(initialCards);
+  const [prevInitialCards, setPrevInitialCards] = useState(uniqueInitialCards);
+  if (prevInitialCards !== uniqueInitialCards) {
+    setPrevInitialCards(uniqueInitialCards);
+    setItems(uniqueInitialCards);
     setLoadedPage(page);
     setRestoredStorageKey(null);
   }
@@ -223,7 +255,8 @@ export function CardResults({
     }
 
     const restorableState =
-      shouldRestore && isRestorableState(saved, { initialCards, page, pageSize, totalCount })
+      shouldRestore &&
+      isRestorableState(saved, { initialCards: uniqueInitialCards, page, pageSize, totalCount })
         ? saved
         : null;
 
@@ -235,9 +268,10 @@ export function CardResults({
       }
 
       if (restorableState) {
-        itemsRef.current = restorableState.items;
+        const restoredItems = uniqueCardsByHref(restorableState.items);
+        itemsRef.current = restoredItems;
         loadedPageRef.current = restorableState.loadedPage;
-        setItems(restorableState.items);
+        setItems(restoredItems);
         setLoadedPage(restorableState.loadedPage);
 
         window.requestAnimationFrame(() => {
@@ -248,7 +282,7 @@ export function CardResults({
     });
 
     return () => window.cancelAnimationFrame(restoreFrame);
-  }, [initialCards, page, pageSize, restoredStorageKey, storageKey, totalCount]);
+  }, [uniqueInitialCards, page, pageSize, restoredStorageKey, storageKey, totalCount]);
 
   // Track the grid column count so virtual rows chunk correctly per breakpoint.
   // List view is always a single column. matchMedia is guarded so SSR / jsdom
@@ -288,17 +322,20 @@ export function CardResults({
 
   const loadMore = useCallback(async () => {
     if (restoredStorageKey !== storageKey) return;
+    if (loadingRef.current) return;
 
+    loadingRef.current = true;
     setLoading(true);
     try {
-      const nextPage = loadedPage + 1;
+      const nextPage = loadedPageRef.current + 1;
       const result = await loadPokemonCards({ query, rarities, setSlugs, sort, page: nextPage });
-      setItems((current) => [...current, ...result.cards]);
+      setItems((current) => appendUniqueCards(current, result.cards));
       setLoadedPage(nextPage);
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
-  }, [loadedPage, query, rarities, restoredStorageKey, setSlugs, sort, storageKey]);
+  }, [query, rarities, restoredStorageKey, setSlugs, sort, storageKey]);
 
   useEffect(() => {
     if (!hasMore || loading || restoredStorageKey !== storageKey) return;
@@ -402,8 +439,9 @@ function isRestorableState(
   if (saved.loadedPage < context.page) return false;
   if (Date.now() - saved.savedAt > CARD_RESULTS_STORAGE_TTL_MS) return false;
 
-  const firstInitialHref = context.initialCards[0]?.href;
+  const initialCards = uniqueCardsByHref(context.initialCards);
+  const firstInitialHref = initialCards[0]?.href;
   if (firstInitialHref && saved.items[0]?.href !== firstInitialHref) return false;
 
-  return saved.items.length >= context.initialCards.length;
+  return uniqueCardsByHref(saved.items).length >= initialCards.length;
 }
