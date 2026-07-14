@@ -8,6 +8,7 @@ import {
   derivePriceDisplayFromHistory,
   fetchSnapshotsByPrinting,
   getCardDetailBySlug,
+  getAverageAskingPriceCardIds,
   getRecommendedCardIds,
   mapCardDetailRow,
   mapPokemonCategoryPageData,
@@ -188,7 +189,7 @@ describe('tcg catalog view models', () => {
     expect(data.selectedSetSlugs).toEqual([]);
   });
 
-  it('orders recommendation cards by latest price, most expensive first', () => {
+  it('orders recommendation cards by price sample count, not highest price', () => {
     const rows = [
       createCardRow({
         sampleId: 'PKMKR-BS2023014201',
@@ -212,15 +213,16 @@ describe('tcg catalog view models', () => {
         setName: '포켓몬 카드 151',
       }),
     ];
-    // kr-003-expensive's latest avg_price (320000) > kr-002-cheap (50000); kr-001 has none.
+    // kr-003-expensive has the higher latest price, but kr-002-cheap has
+    // stronger price evidence. Recommendation follows evidence strength.
     const snapshotsByPrinting = new Map([
-      ['kr-002-cheap-printing', [createSnapshotRow({ avg_price: 50000 })]],
+      ['kr-002-cheap-printing', [createSnapshotRow({ avg_price: 50000, sample_count: 6 })]],
       [
         'kr-003-expensive-printing',
         [
-          createSnapshotRow({ snapshot_date: '2026-05-01', avg_price: 300000 }),
-          createSnapshotRow({ snapshot_date: '2026-05-02', avg_price: 310000 }),
-          createSnapshotRow({ snapshot_date: '2026-05-03', avg_price: 320000 }),
+          createSnapshotRow({ snapshot_date: '2026-05-01', avg_price: 300000, sample_count: 1 }),
+          createSnapshotRow({ snapshot_date: '2026-05-02', avg_price: 310000, sample_count: 1 }),
+          createSnapshotRow({ snapshot_date: '2026-05-03', avg_price: 320000, sample_count: 1 }),
         ],
       ],
     ]);
@@ -232,10 +234,10 @@ describe('tcg catalog view models', () => {
       snapshotsByPrinting,
     );
 
-    // Highest latest price first; no-price cards sort last.
+    // Most samples first; no-price cards sort last.
     expect(data.cards.map((card) => card.slug)).toEqual([
-      'kr-003-expensive',
       'kr-002-cheap',
+      'kr-003-expensive',
       'kr-001-no-price',
     ]);
   });
@@ -248,7 +250,7 @@ describe('tcg catalog view models', () => {
       getRecommendedCardIds({
         rpc: async () => ({
           data: null,
-          error: { message: 'Could not find the function public.get_cards_by_latest_price' },
+          error: { message: 'Could not find the function public.get_cards_by_price_sample_count' },
         }),
       } as never),
     ).rejects.toThrow();
@@ -262,6 +264,23 @@ describe('tcg catalog view models', () => {
     expect(ids).toEqual([]);
   });
 
+  it('returns card ids in average asking price order for the explicit price sort', async () => {
+    const ids = await getAverageAskingPriceCardIds({
+      rpc: async (name: string) => {
+        expect(name).toBe('get_cards_by_average_asking_price');
+        return {
+          data: [
+            { card_id: 'expensive-card', average_asking_price: 200000 },
+            { card_id: 'cheaper-card', average_asking_price: 50000 },
+          ],
+          error: null,
+        };
+      },
+    } as never);
+
+    expect(ids).toEqual(['expensive-card', 'cheaper-card']);
+  });
+
   it('leaves explicitly sorted card arrays in their caller-provided order', () => {
     const cards: PokemonCatalogCard[] = [
       makeSimpleCard('kr-003-card', null),
@@ -271,6 +290,9 @@ describe('tcg catalog view models', () => {
 
     expect(
       sortPokemonCatalogCardsByRecommendation(cards, 'name-asc').map((card) => card.slug),
+    ).toEqual(['kr-003-card', 'kr-001-card', 'kr-002-card']);
+    expect(
+      sortPokemonCatalogCardsByRecommendation(cards, 'price-desc').map((card) => card.slug),
     ).toEqual(['kr-003-card', 'kr-001-card', 'kr-002-card']);
   });
 

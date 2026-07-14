@@ -27,7 +27,7 @@ describe('parseCategoryFilters', () => {
         q: '  리자몽 ',
         rarity: 'SAR, AR',
         set: 'pokemon-kr-151',
-        sort: 'name-asc',
+        sort: 'price-desc',
         page: '3',
         view: 'list',
       }),
@@ -35,7 +35,7 @@ describe('parseCategoryFilters', () => {
       query: '리자몽',
       rarities: ['SAR', 'AR'],
       setSlugs: ['pokemon-kr-151'],
-      sort: 'name-asc',
+      sort: 'price-desc',
       page: 3,
       view: 'list',
     });
@@ -62,12 +62,12 @@ describe('categoryFiltersToSearchParams', () => {
         query: '리자몽',
         rarities: ['SAR'],
         setSlugs: ['pokemon-kr-151', 'pokemon-kr-terastal-festa-ex'],
-        sort: 'name-asc',
+        sort: 'price-desc',
         page: 2,
         view: 'list',
       }).toString(),
     ).toBe(
-      'q=%EB%A6%AC%EC%9E%90%EB%AA%BD&rarity=SAR&set=pokemon-kr-151%2Cpokemon-kr-terastal-festa-ex&sort=name-asc&view=list&page=2',
+      'q=%EB%A6%AC%EC%9E%90%EB%AA%BD&rarity=SAR&set=pokemon-kr-151%2Cpokemon-kr-terastal-festa-ex&sort=price-desc&view=list&page=2',
     );
   });
 

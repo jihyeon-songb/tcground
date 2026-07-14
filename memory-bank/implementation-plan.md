@@ -186,6 +186,7 @@
 
 - 영향 파일: `app/page.tsx`, `app/search/page.tsx`, `app/categories/[categoryId]/page.tsx`, `app/cards/[cardId]/page.tsx`, `app/login/page.tsx`, `app/globals.css`, `app/layout.tsx`, `components/tcg/HomeSearchForm.tsx`, `components/tcg/HomeSearchForm.test.tsx`, `lib/tcg-data.ts`.
 - 최소 변경 범위: Stitch `TCGround Price Tracker` 화면 구조와 한국어 UI 문구를 우선 기준으로 P0 페이지의 정적 UI를 구현한다. 인증·실데이터 연동은 데이터 모델과 인증 수단 결정 이후 별도 단계로 진행한다.
+- 2026-07-14 카드 리스트 가격 표시 보정 영향 파일: `app/categories/[categoryId]/_components/CardResultCards.tsx`, `app/categories/[categoryId]/page.test.tsx`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`. 최소 변경 범위: 카테고리 카드 리스트의 가격 요약에서 주 표시값을 평균 시세(`avgPrice`)로, 보조 표시값을 최저가(`minPrice`)로 바꾼다. 데이터 조회/정렬/상세 가격 UI는 변경하지 않는다.
 - 2026-06-13 보정 영향 파일: `app/categories/page.tsx`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`. 최소 변경 범위: 카테고리 대분류 페이지 최상위 배경 토큰만 다른 공개 페이지와 같은 `bg-background`로 맞춘다.
 - 2026-07-11 배포 오류 보정 영향 파일: `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`. 최소 변경 범위: `/categories/pokemon` 기본 추천순이 `get_cards_by_snapshot_count` RPC를 사용할 수 없을 때 서버 컴포넌트를 중단하지 않고 slug 기반 목록으로 fallback한다.
 - [x] Stitch `TCGround Price Tracker` 디자인 시스템 기반 전역 CSS 토큰과 `tcg-*` component utility 구조 수립.
@@ -194,6 +195,8 @@
 - [x] 카테고리 탐색 화면 구현 (`/categories/[categoryId]`, `pokemon` 정상 상태와 준비 중 빈 상태).
 - [x] 카테고리 대분류 페이지(`/categories`) 배경색을 다른 공개 페이지와 같은 `bg-background` 토큰으로 정합화.
 - [x] 카테고리 기본 추천순 RPC 미적용/권한 오류 시 목록 fallback 처리.
+- [x] 카테고리 카드 목록 정렬 옵션에 가격 높은순(`price-desc`) 추가.
+- [x] 카테고리 카드 리스트 가격 요약에서 시세를 크게, 최저가를 작게 표시.
 - [x] 상품 상세 정보와 가격 차트 정적 UI 구현 (`/cards/[cardId]`, 404 분기 포함).
 - [x] 로그인 정적 화면 구현 (`/login`, 이메일/비밀번호 폼과 가입/소셜 진입 링크).
 - [ ] 로그인 입력 검증, 요청 중 상태, 실패 메시지, 성공 후 이동 동작 구현.
@@ -522,6 +525,15 @@
 - [x] 가격 데이터 후보와 fallback 후보가 중복되지 않도록 merge하고, 필터/검색/페이지네이션/이름 정렬 동작을 유지.
 - [x] 성능 회귀 테스트 또는 기존 `lib/tcg-catalog` 테스트 갱신. 기존 view model/route 테스트와 runtime 측정으로 검증.
 - [x] `pnpm exec vitest run lib/tcg-catalog.test.ts app/categories/[categoryId]/page.test.tsx`, `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm test --run`, `pnpm build` 검증.
+
+### 4.21 후속: 추천순 최신 가격 정렬 회귀 보정
+
+- 영향 파일: `lib/tcg-catalog.ts`, `lib/tcg-catalog.test.ts`, `scripts/collect-prices.ts`, `supabase/migrations/*`, `memory-bank/implementation-plan.md`, `memory-bank/progress.md`, 필요 시 `memory-bank/trouble-shooting.md`.
+- 최소 변경 범위: 배포 사이트의 기본 `추천순`이 최신 가격 높은 순으로 바뀌어 PRD 기준(가격 데이터 우선, 가격 표본 수 우선)과 어긋난 상태를 보정한다. 최신 가격 matview는 추천순에서 쓰지 않고, price sample count 기반 precomputed ranking을 제공해 성능 최적화는 유지한다.
+- [x] `getRecommendedCardIds`를 price sample count 기반 RPC로 되돌리고, 페이지 내 fallback 정렬도 표본 수 기준으로 맞춘다.
+- [x] Supabase migration으로 price sample count ranking matview/RPC/refresh function을 추가한다.
+- [x] daily 가격 수집 후 price sample count ranking도 refresh한다.
+- [x] 추천순 회귀 테스트와 품질 게이트를 실행한다.
 
 ### 4.22 카드 판본 기본값/상세 선택
 

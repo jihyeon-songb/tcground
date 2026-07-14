@@ -216,7 +216,7 @@ export interface AvailableSetOption {
   name: string;
 }
 
-export type PokemonSort = 'best' | 'name-asc' | 'name-desc';
+export type PokemonSort = 'best' | 'name-asc' | 'name-desc' | 'price-desc';
 
 export const DEFAULT_POKEMON_PAGE_SIZE = 24;
 const SNAPSHOT_FETCH_CHUNK_SIZE = 100;
@@ -352,9 +352,14 @@ interface GameCountRow {
   count: number;
 }
 
-interface CardPriceRankRow {
+interface CardPriceSampleRankRow {
   card_id: string;
-  latest_price: number | string | null;
+  sample_count: number | string | null;
+}
+
+interface CardAverageAskingPriceRankRow {
+  card_id: string;
+  average_asking_price: number | string | null;
 }
 
 const PRICE_SNAPSHOT_SELECT_WITH_DISPLAY =
@@ -605,7 +610,7 @@ const pokemonCategoryPageDataCached = unstable_cache(
       page,
       pageSize,
     }),
-  ['pokemon-category-page'],
+  ['pokemon-category-page-v2'],
   { tags: [CATALOG_CACHE_TAG, PRICES_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
 );
 
@@ -796,6 +801,46 @@ async function loadPokemonCategoryPageData(
     );
   }
 
+  if (sort === 'price-desc') {
+    const filteredCardQuery = buildCardQuery as unknown as BuildPokemonCardQuery;
+    const [{ count, error: countError }, priceSortedCardIds] = await Promise.all([
+      buildCardQuery('id', { count: 'exact', head: true }),
+      getAverageAskingPriceCardIds(supabase),
+    ]);
+
+    throwIfSupabaseError(countError);
+
+    const totalCount = count ?? 0;
+    const pricedRows = await fetchCardRowsByIdsInOrder(filteredCardQuery, priceSortedCardIds);
+    const pricedCardIds = new Set(pricedRows.map((row) => row.id));
+    const pricedCount = pricedRows.length;
+    const selectedRows = pricedRows.slice(rangeFrom, rangeTo + 1);
+    const remainingPageSize = safePageSize - selectedRows.length;
+
+    if (remainingPageSize > 0) {
+      const fallbackOffset = Math.max(0, rangeFrom - pricedCount);
+      const fallbackRows = await fetchUnpricedFallbackRows({
+        buildCardQuery: filteredCardQuery,
+        excludedCardIds: pricedCardIds,
+        offset: fallbackOffset,
+        limit: remainingPageSize,
+      });
+      selectedRows.push(...fallbackRows);
+    }
+
+    const snapshotsByPrinting = await fetchSnapshotsByPrinting(
+      supabase,
+      collectPrimaryPrintingIds(selectedRows),
+    );
+
+    return mapPokemonCategoryPageData(
+      game,
+      selectedRows,
+      { ...baseMapOptions, totalCount },
+      snapshotsByPrinting,
+    );
+  }
+
   const orderedQuery =
     sort === 'name-asc'
       ? buildCardQuery().order('name', { ascending: true })
@@ -837,19 +882,27 @@ type BuildPokemonCardQuery = (
   selectOptions?: { count?: 'exact'; head?: boolean },
 ) => CardQuery;
 
-// Cards ordered by latest raw market price in KRW, highest first, backing the
-// "추천순" default — 비싼 카드 우선. The aggregate runs in Postgres
-// (get_cards_by_latest_price) so the fast-growing snapshot table is never streamed
-// in full into the app just to rank cards.
+// Cards ordered by price sample count, backing the "추천순" default. The aggregate
+// runs in Postgres (get_cards_by_price_sample_count) so the fast-growing snapshot
+// table is never streamed in full into the app just to rank cards.
 export async function getRecommendedCardIds(supabase: SupabaseClient): Promise<string[]> {
-  const { data, error } = await supabase.rpc('get_cards_by_latest_price');
+  const { data, error } = await supabase.rpc('get_cards_by_price_sample_count');
   // Throw (don't swallow) on RPC failure. A swallowed error returned [], which
   // silently degraded best-sort to slug/가나다 order — and unstable_cache then
   // persisted that poisoned page across deploys for up to an hour. Throwing keeps
   // the failed result out of the cache so the next request retries. A genuine
   // empty result (no priced cards) still returns [] harmlessly.
   throwIfSupabaseError(error);
-  return ((data ?? []) as CardPriceRankRow[]).map((row) => row.card_id);
+  return ((data ?? []) as CardPriceSampleRankRow[]).map((row) => row.card_id);
+}
+
+// Cards ordered by current average asking price, backing the explicit
+// "가격 높은순" sort. This uses the precomputed ranking rather than scanning the
+// snapshot table from the app process.
+export async function getAverageAskingPriceCardIds(supabase: SupabaseClient): Promise<string[]> {
+  const { data, error } = await supabase.rpc('get_cards_by_average_asking_price');
+  throwIfSupabaseError(error);
+  return ((data ?? []) as CardAverageAskingPriceRankRow[]).map((row) => row.card_id);
 }
 
 async function fetchCardRowsByIdsInOrder(
@@ -951,9 +1004,9 @@ async function loadFeaturedPokemonCards(
 
   const rows = (cardData ?? []) as unknown as PokemonCatalogCardRow[];
 
-  // Order by recommendation ("추천순") — priciest cards first — so the featured grid
-  // surfaces the same top cards as the catalog's default sort, with slug order as
-  // the tiebreaker/fallback.
+  // Order by recommendation ("추천순") — data-rich cards first — so the featured
+  // grid surfaces the same top cards as the catalog's default sort, with slug
+  // order as the tiebreaker/fallback.
   const recommendedCardIds = await getRecommendedCardIds(supabase);
   const recommendationRank = new Map(
     recommendedCardIds.map((cardId, index) => [cardId, index] as const),
@@ -1240,15 +1293,17 @@ export function sortPokemonCatalogCardsByRecommendation(
 }
 
 function compareRecommendedCards(a: PokemonCatalogCard, b: PokemonCatalogCard): number {
-  // Recommended order ("추천순") surfaces the priciest cards first (비싼 시세 = 인기
-  // 프록시). Cards with no price sort last; ties break by slug.
-  // ponytail: the RPC (get_cards_by_latest_price) keys on the raw latest KRW price
-  // while this keys on the display avgPrice — they can differ slightly, but the RPC
-  // owns pagination, so divergence only reorders within a single page. Thread the
-  // RPC price onto the card if exact global order ever matters.
-  const aPrice = a.price?.avgPrice ?? Number.NEGATIVE_INFINITY;
-  const bPrice = b.price?.avgPrice ?? Number.NEGATIVE_INFINITY;
-  if (aPrice !== bPrice) return bPrice - aPrice;
+  // Recommended order ("추천순") surfaces cards with stronger price evidence first.
+  // Cards with no price sort last; ties break by cumulative snapshot history and
+  // then slug. The RPC owns global pagination, so this only stabilizes ordering
+  // within the rows already fetched for a page.
+  const aSampleCount = a.price?.sampleCount ?? 0;
+  const bSampleCount = b.price?.sampleCount ?? 0;
+  if (aSampleCount !== bSampleCount) return bSampleCount - aSampleCount;
+
+  if (a.priceSnapshotCount !== b.priceSnapshotCount) {
+    return b.priceSnapshotCount - a.priceSnapshotCount;
+  }
 
   return a.slug.localeCompare(b.slug);
 }

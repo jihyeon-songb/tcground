@@ -14,12 +14,14 @@ interface CategoryResultsToolbarProps {
 
 const SORT_OPTIONS: { value: PokemonSort; label: string }[] = [
   { value: 'best', label: '추천순' },
+  { value: 'price-desc', label: '가격 높은순' },
   { value: 'name-asc', label: '이름 A→Z' },
   { value: 'name-desc', label: '이름 Z→A' },
 ];
 
 const SORT_LABELS: Record<PokemonSort, string> = {
   best: '추천순',
+  'price-desc': '가격 높은순',
   'name-asc': '이름 A→Z',
   'name-desc': '이름 Z→A',
 };
