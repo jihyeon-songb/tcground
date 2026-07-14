@@ -1,7 +1,7 @@
 # IMPLEMENTATION PLAN
 
 > PRD를 단계와 작업으로 분해한 실행 계획.
-> 마지막 갱신: 2026-07-11 (카테고리 추천순 RPC fallback)
+> 마지막 갱신: 2026-07-12 (운영 가격 알림 DB migration 적용)
 
 ## 현재 기준 PRD
 
@@ -12,6 +12,7 @@
 - `memory-bank/prd/category.md`
 - `memory-bank/prd/product-detail.md`
 - `memory-bank/prd/headless-ui.md`
+- `memory-bank/prd/price-alerts.md`
 
 ## 단계별 계획
 
@@ -219,6 +220,15 @@
 - [x] 외부 URL 또는 비정상 `next` 값은 `/`로 fallback.
 - [x] 루트 `proxy.ts`를 추가해 Supabase 세션 쿠키 갱신 연결.
 - [x] 로그인 검증/실패/성공/리다이렉트 단위 테스트 추가.
+
+### 4.2.1 가격 알림 운영 DB 적용
+
+- 영향 파일: `supabase/migrations/202607060001_create_price_alerts.sql`, `memory-bank/progress.md`, `memory-bank/trouble-shooting.md`.
+- 최소 변경 범위: 이미 구현된 가격 알림 UI/Server Action이 production에서 저장할 수 있도록 운영 Supabase DB에 `price_alerts`/`notifications` migration만 적용하고, remote migration history를 해당 버전만 보정한다.
+- [x] `pnpm dlx supabase migration list`로 `202607060001` remote 누락 확인.
+- [x] `pnpm dlx supabase db query --linked --file supabase/migrations/202607060001_create_price_alerts.sql`로 운영 DB 적용.
+- [x] `pnpm dlx supabase migration repair --linked --status applied 202607060001`로 history 보정.
+- [x] `pg_policies`와 `select count(*) from public.price_alerts`로 테이블/RLS 적용 확인.
 
 ### 4.3 회원가입 Supabase Auth 연결
 

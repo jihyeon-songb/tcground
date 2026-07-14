@@ -1,13 +1,15 @@
 # PROGRESS
 
 > 작업 진행 상황과 의사결정 로그.
-> 마지막 갱신: 2026-07-11 (카테고리 추천순 RPC fallback)
+> 마지막 갱신: 2026-07-12 (운영 가격 알림 DB migration 적용)
 
 ## 현재 작업
 
 - 없음.
 
 ## 완료 로그
+
+- 2026-07-12: 배포 후 가격 알림 설정이 실패하던 원인을 조사하고 운영 Supabase DB에 누락된 가격 알림 migration을 적용했다. `pnpm dlx supabase migration list`에서 local `202607060001_create_price_alerts`가 remote에 없음을 확인했고, `pnpm dlx supabase db query --linked --file supabase/migrations/202607060001_create_price_alerts.sql`로 `price_alerts`/`notifications` 테이블, RLS policy, grant를 적용했다. 이어 `pnpm dlx supabase migration repair --linked --status applied 202607060001`로 migration history를 보정했다. 검증으로 `pg_policies`에서 두 테이블의 owner RLS policy 6개를 확인했고, `select count(*) from public.price_alerts`가 성공해 운영 DB 테이블 접근을 확인했다.
 
 - 2026-07-11: 배포 사이트 `/categories/pokemon`이 Next production error boundary(`This page couldn't load`, digest `1900353270`)로 깨지던 문제를 조사하고 수정했다. 원인은 기본 추천순 목록이 새 Supabase RPC `get_cards_by_snapshot_count` 실패를 fallback 없이 throw해 `PokemonCategorySection` 서버 컴포넌트 전체가 중단되는 구조였다. RPC가 아직 배포 DB에 없거나 권한이 늦게 반영된 경우 빈 추천 id 목록으로 fallback해 slug 기반 목록을 렌더하도록 바꿨고, 회귀 테스트를 추가했다. 검증으로 `pnpm exec vitest run lib/tcg-catalog.test.ts`, `pnpm exec tsc --noEmit`, `pnpm lint`(기존 `packages/headless/dist` warning 7개), `pnpm test --run`(390/390), `pnpm build`가 통과했다. Vercel CLI와 Vercel 앱 연결은 토큰 만료/재인증 필요 상태라 production runtime 로그 조회와 즉시 배포는 진행하지 못했다.
 

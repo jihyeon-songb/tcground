@@ -1,7 +1,28 @@
 # TROUBLE SHOOTING
 
 > PRD에 없던 엣지 케이스, 예외 상황, source 리스크 기록.
-> 마지막 갱신: 2026-07-11 (카테고리 추천순 RPC fallback)
+> 마지막 갱신: 2026-07-12 (운영 가격 알림 migration 누락)
+
+## 배포 후 가격 알림 설정이 저장되지 않음
+
+### 문제
+
+2026-07-12 production 배포 후 카드 상세의 가격 알림 설정이 저장되지 않았다. 코드에는 `PriceAlertButton`, Server Action, `supabase/migrations/202607060001_create_price_alerts.sql`가 존재했지만, Vercel 배포는 Supabase migration을 자동 적용하지 않는다.
+
+`pnpm dlx supabase migration list` 확인 결과 local `202607060001`은 있었지만 remote에는 없었다. 따라서 Server Action이 `public.price_alerts`를 조회/insert할 때 운영 DB 테이블 또는 policy가 없어 저장 실패로 떨어질 수 있는 상태였다.
+
+### 처리
+
+- `pnpm dlx supabase db query --linked --file supabase/migrations/202607060001_create_price_alerts.sql`로 운영 DB에 `price_alerts`와 `notifications` 테이블, RLS policy, grant를 적용했다.
+- `pnpm dlx supabase migration repair --linked --status applied 202607060001`로 remote migration history에 `202607060001`을 applied로 기록했다.
+- `pg_policies` 조회로 `price_alerts` owner select/insert/update/delete policy와 `notifications` owner select/update policy를 확인했다.
+- `select count(*) from public.price_alerts`가 성공해 운영 DB에서 테이블 접근이 가능한 것을 확인했다.
+
+### 재발 방지
+
+- Vercel 배포와 Supabase schema migration은 별도 단계로 본다. DB migration이 필요한 기능은 배포 전후 `pnpm dlx supabase migration list`로 remote 적용 여부를 확인한다.
+- local migration history와 기존 remote MCP migration history가 엇갈린 상태에서는 `supabase db push`로 전체 local migration을 밀지 않는다. 필요한 migration 파일만 CLI로 적용하고 해당 버전만 repair한다.
+- 가격 알림 저장과 발송은 분리해서 본다. 저장은 `price_alerts`/RLS 문제이고, 발송은 daily 수집 job의 `runPriceAlertEvaluation` 실행 여부와 `RESEND_API_KEY`/`PRICE_ALERT_FROM_EMAIL` 설정 문제다.
 
 ## 배포 `/categories/pokemon`이 Next 서버 컴포넌트 오류로 깨짐
 
