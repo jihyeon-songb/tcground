@@ -65,20 +65,31 @@ export async function refreshEbayBrowseSnapshotForCardDetail(
   };
 
   try {
-    const collected: SnapshotAggregate[] = [];
-    let allFresh = true;
+    // Check freshness + collect each source in parallel — the two eBay calls
+    // are independent, so there's no reason to run them one after another.
+    const results = await Promise.all(
+      REFRESH_SOURCES.map(async ({ buyingOption, sourceName }) => {
+        if (await hasSnapshotForDate(supabase, card.printing.id, snapshotDate, sourceName)) {
+          return { fresh: true, snapshot: null };
+        }
+        const snapshot = await collectBrowseSnapshot(query, {
+          snapshotDate,
+          fetchImpl,
+          buyingOption,
+        });
+        return { fresh: false, snapshot };
+      }),
+    );
 
-    for (const { buyingOption, sourceName } of REFRESH_SOURCES) {
-      if (await hasSnapshotForDate(supabase, card.printing.id, snapshotDate, sourceName)) {
-        continue;
-      }
-      allFresh = false;
-      const snapshot = await collectBrowseSnapshot(query, { snapshotDate, fetchImpl, buyingOption });
-      if (snapshot) collected.push(snapshot);
-    }
+    const allFresh = results.every((result) => result.fresh);
+    const collected: SnapshotAggregate[] = results.flatMap((result) =>
+      result.snapshot ? [result.snapshot] : [],
+    );
 
     if (allFresh) {
-      return { status: 'fresh', snapshotsUpserted: 0, shouldReloadDetail: true };
+      // Today's snapshots already existed, so the cached detail read the caller
+      // already has reflects them — no need to force a second full re-read.
+      return { status: 'fresh', snapshotsUpserted: 0, shouldReloadDetail: false };
     }
 
     if (collected.length === 0) {

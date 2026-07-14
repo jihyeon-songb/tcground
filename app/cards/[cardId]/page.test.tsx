@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CatalogCardDetail } from '@/lib/tcg-catalog';
-import CardDetailPage, { CardDetailContent, buildChartGeometry } from './page';
+import CardDetailPage, { CardDetailContent, CardPriceBlock, buildChartGeometry } from './page';
 import { CardRating } from './_components/CardRating';
 import { CardDetailScrollReset } from './_components/CardDetailScrollReset';
 import type { PricePoint } from '@/lib/tcg-catalog';
@@ -44,28 +44,33 @@ describe('CardDetailContent', () => {
   it('shows a stale-price warning caption when the price is over 7 days old', () => {
     const base = createCardDetail();
     if (!base.price) throw new Error('fixture requires a price');
-    render(<CardDetailContent card={{ ...base, price: { ...base.price, stalenessDays: 8 } }} />);
+    render(<CardPriceBlock card={{ ...base, price: { ...base.price, stalenessDays: 8 } }} />);
     expect(screen.getByText('마지막 수집 8일 전 · 현재 매물 여부 미확인')).toBeTruthy();
   });
 
   it('shows a neutral staleness caption within 7 days', () => {
     const base = createCardDetail();
     if (!base.price) throw new Error('fixture requires a price');
-    render(<CardDetailContent card={{ ...base, price: { ...base.price, stalenessDays: 3 } }} />);
+    render(<CardPriceBlock card={{ ...base, price: { ...base.price, stalenessDays: 3 } }} />);
     expect(screen.getByText('마지막 수집 3일 전 · 현재 매물 여부 미확인')).toBeTruthy();
   });
 
   it('labels the summary as average asking price', () => {
-    render(<CardDetailContent card={createCardDetail()} />);
+    render(<CardPriceBlock card={createCardDetail()} />);
     expect(screen.getByText('평균 판매 호가')).toBeTruthy();
     expect(screen.queryByText('평균 거래가')).toBeNull();
   });
 
-  it('shows no-price state without fabricated values or alerts', () => {
+  it('shows no-price state without fabricated values', () => {
     const card = { ...createCardDetail(), price: null };
-    render(<CardDetailContent card={card} alertSlot={<button>가격 알림</button>} />);
+    render(<CardPriceBlock card={card} />);
     expect(screen.getByText('시세 정보 없음')).toBeTruthy();
     expect(screen.queryByText('₩120,000')).toBeNull();
+  });
+
+  it('hides the price alert slot when the card has no price', () => {
+    const card = { ...createCardDetail(), price: null };
+    render(<CardDetailContent card={card} alertSlot={<button>가격 알림</button>} />);
     expect(screen.queryByRole('button', { name: '가격 알림' })).toBeNull();
   });
 
@@ -73,7 +78,7 @@ describe('CardDetailContent', () => {
     const legacyCachedCard = { ...createCardDetail() } as Partial<CatalogCardDetail>;
     delete legacyCachedCard.marketplaceFallbackLink;
 
-    render(<CardDetailContent card={legacyCachedCard as CatalogCardDetail} />);
+    render(<CardPriceBlock card={legacyCachedCard as CatalogCardDetail} />);
 
     expect(screen.getByRole('link', { name: 'eBay에서 검색' })).toBeTruthy();
   });
