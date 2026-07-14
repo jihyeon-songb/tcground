@@ -33,7 +33,7 @@ export function parseListParam(value: string | string[] | undefined): string[] {
 
 export function parseSortParam(value: string | string[] | undefined): PokemonSort {
   const raw = Array.isArray(value) ? value[0] : value;
-  if (raw === 'name-asc' || raw === 'name-desc') return raw;
+  if (raw === 'name-asc' || raw === 'name-desc' || raw === 'price-desc') return raw;
   return 'best';
 }
 

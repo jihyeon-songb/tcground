@@ -216,7 +216,7 @@ export interface AvailableSetOption {
   name: string;
 }
 
-export type PokemonSort = 'best' | 'name-asc' | 'name-desc';
+export type PokemonSort = 'best' | 'name-asc' | 'name-desc' | 'price-desc';
 
 export const DEFAULT_POKEMON_PAGE_SIZE = 24;
 const SNAPSHOT_FETCH_CHUNK_SIZE = 100;
@@ -355,6 +355,11 @@ interface GameCountRow {
 interface CardPriceSampleRankRow {
   card_id: string;
   sample_count: number | string | null;
+}
+
+interface CardAverageAskingPriceRankRow {
+  card_id: string;
+  average_asking_price: number | string | null;
 }
 
 const PRICE_SNAPSHOT_SELECT_WITH_DISPLAY =
@@ -605,7 +610,7 @@ const pokemonCategoryPageDataCached = unstable_cache(
       page,
       pageSize,
     }),
-  ['pokemon-category-page'],
+  ['pokemon-category-page-v2'],
   { tags: [CATALOG_CACHE_TAG, PRICES_CACHE_TAG], revalidate: CATALOG_REVALIDATE_SECONDS },
 );
 
@@ -796,6 +801,46 @@ async function loadPokemonCategoryPageData(
     );
   }
 
+  if (sort === 'price-desc') {
+    const filteredCardQuery = buildCardQuery as unknown as BuildPokemonCardQuery;
+    const [{ count, error: countError }, priceSortedCardIds] = await Promise.all([
+      buildCardQuery('id', { count: 'exact', head: true }),
+      getAverageAskingPriceCardIds(supabase),
+    ]);
+
+    throwIfSupabaseError(countError);
+
+    const totalCount = count ?? 0;
+    const pricedRows = await fetchCardRowsByIdsInOrder(filteredCardQuery, priceSortedCardIds);
+    const pricedCardIds = new Set(pricedRows.map((row) => row.id));
+    const pricedCount = pricedRows.length;
+    const selectedRows = pricedRows.slice(rangeFrom, rangeTo + 1);
+    const remainingPageSize = safePageSize - selectedRows.length;
+
+    if (remainingPageSize > 0) {
+      const fallbackOffset = Math.max(0, rangeFrom - pricedCount);
+      const fallbackRows = await fetchUnpricedFallbackRows({
+        buildCardQuery: filteredCardQuery,
+        excludedCardIds: pricedCardIds,
+        offset: fallbackOffset,
+        limit: remainingPageSize,
+      });
+      selectedRows.push(...fallbackRows);
+    }
+
+    const snapshotsByPrinting = await fetchSnapshotsByPrinting(
+      supabase,
+      collectPrimaryPrintingIds(selectedRows),
+    );
+
+    return mapPokemonCategoryPageData(
+      game,
+      selectedRows,
+      { ...baseMapOptions, totalCount },
+      snapshotsByPrinting,
+    );
+  }
+
   const orderedQuery =
     sort === 'name-asc'
       ? buildCardQuery().order('name', { ascending: true })
@@ -849,6 +894,15 @@ export async function getRecommendedCardIds(supabase: SupabaseClient): Promise<s
   // empty result (no priced cards) still returns [] harmlessly.
   throwIfSupabaseError(error);
   return ((data ?? []) as CardPriceSampleRankRow[]).map((row) => row.card_id);
+}
+
+// Cards ordered by current average asking price, backing the explicit
+// "가격 높은순" sort. This uses the precomputed ranking rather than scanning the
+// snapshot table from the app process.
+export async function getAverageAskingPriceCardIds(supabase: SupabaseClient): Promise<string[]> {
+  const { data, error } = await supabase.rpc('get_cards_by_average_asking_price');
+  throwIfSupabaseError(error);
+  return ((data ?? []) as CardAverageAskingPriceRankRow[]).map((row) => row.card_id);
 }
 
 async function fetchCardRowsByIdsInOrder(

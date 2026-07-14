@@ -190,15 +190,27 @@ async function main(): Promise<void> {
     }
   }
 
-  // Rebuild the precomputed "추천순" ranking so today's snapshots are reflected.
-  // The catalog reads this matview (not the raw snapshot table) to stay under the
-  // anon 3s statement_timeout; a stale matview just means yesterday's ranking.
+  // Rebuild precomputed rankings so today's snapshots are reflected. The catalog
+  // reads these matviews (not the raw snapshot table) to stay under the anon 3s
+  // statement_timeout; stale matviews just mean yesterday's ranking.
   if (!dryRun) {
     const { error } = await supabase.rpc('refresh_card_price_sample_count_rank');
     if (error) {
       console.error('[rank] refresh_card_price_sample_count_rank failed:', error.message);
     } else {
       console.log('[rank] refreshed card_price_sample_count_rank');
+    }
+
+    const { error: askingPriceError } = await supabase.rpc(
+      'refresh_card_average_asking_price_rank',
+    );
+    if (askingPriceError) {
+      console.error(
+        '[rank] refresh_card_average_asking_price_rank failed:',
+        askingPriceError.message,
+      );
+    } else {
+      console.log('[rank] refreshed card_average_asking_price_rank');
     }
   }
 }

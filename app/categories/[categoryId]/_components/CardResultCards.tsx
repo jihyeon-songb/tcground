@@ -81,13 +81,13 @@ function PriceSummary({ price }: { price: PriceDisplay | null }) {
   return (
     <>
       <p className='text-muted-foreground text-xs font-semibold tracking-wide'>
-        {price.sampleCount > 0 ? `${price.sampleCount}건 등록 · 최저` : '시세 기준'}
+        {price.sampleCount > 0 ? `${price.sampleCount}건 등록 · 시세` : '시세'}
       </p>
       <p className='text-foreground text-xl leading-none font-bold tabular-nums'>
-        {formatPrice(price.minPrice, price.currency)}
+        {formatPrice(price.avgPrice, price.currency)}
       </p>
-      <p className='text-price-up mt-1 text-sm font-bold tabular-nums'>
-        시세 {formatPrice(price.avgPrice, price.currency)}
+      <p className='text-muted-foreground mt-1 text-sm font-semibold tabular-nums'>
+        최저 {formatPrice(price.minPrice, price.currency)}
       </p>
     </>
   );

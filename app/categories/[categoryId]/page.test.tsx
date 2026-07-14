@@ -228,9 +228,9 @@ describe('CategoryResultsToolbar', () => {
     render(<CategoryResultsToolbar totalCount={10} sort='best' view='grid' />);
 
     fireEvent.click(screen.getByRole('button', { name: /추천순/ }));
-    fireEvent.click(screen.getByRole('button', { name: '이름 A→Z' }));
+    fireEvent.click(screen.getByRole('button', { name: '가격 높은순' }));
 
-    expect(replaceMock).toHaveBeenCalledWith('/categories/pokemon?sort=name-asc', {
+    expect(replaceMock).toHaveBeenCalledWith('/categories/pokemon?sort=price-desc', {
       scroll: false,
     });
   });
@@ -280,6 +280,27 @@ describe('CardResults virtualized list', () => {
     await waitFor(() => {
       expect(screen.getByRole('link', { name: '샘플 카드 1 상세 보기' })).toBeTruthy();
     });
+  });
+
+  it('emphasizes the market price and keeps the lowest price secondary', async () => {
+    render(
+      <CardResults
+        initialCards={[createCard(1)]}
+        totalCount={1}
+        page={1}
+        pageSize={24}
+        sort='best'
+        query=''
+        rarities={[]}
+        setSlugs={[]}
+        view='grid'
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('₩100,001')).toBeTruthy();
+    });
+    expect(screen.getByText('최저 ₩80,001')).toBeTruthy();
   });
 
   it('dedupes duplicated card hrefs before rendering rows', async () => {

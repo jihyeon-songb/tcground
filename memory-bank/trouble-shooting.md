@@ -1,7 +1,45 @@
 # TROUBLE SHOOTING
 
 > PRD에 없던 엣지 케이스, 예외 상황, source 리스크 기록.
-> 마지막 갱신: 2026-07-14 (카테고리 중복 카드 key warning)
+> 마지막 갱신: 2026-07-14 (로컬 Supabase migration history 불일치)
+
+## 가격 높은순이 로컬에서 평균 판매 호가순으로 보이지 않음
+
+### 문제
+
+2026-07-14 `가격 높은순` 초기 구현 후 로컬 `/categories/pokemon?sort=price-desc`가 평균 판매 호가 내림차순처럼 보이지 않았다.
+
+원인은 두 가지였다.
+
+- `card_average_asking_price_rank` 초안이 목록 UI의 `buildPriceHistory()` 계산과 달리 카드별 최신 asking snapshot 1개를 골랐다. 목록 UI는 asking bucket을 고른 뒤 그 bucket의 최신 날짜 row들을 평균낸 값을 표시한다.
+- `unstable_cache` key가 기존 `pokemon-category-page`라서, 같은 `price-desc` 인자에 대해 이전 ranking 결과가 dev server에 남아 있었다.
+
+### 처리
+
+- `202607140003_rank_cards_by_average_asking_price.sql`을 목록 UI 계산과 맞춰 raw/KRW asking bucket 중 row가 많은 bucket을 고르고, 그 bucket의 최신 날짜 평균 `display_avg_price`로 ranking하도록 수정했다.
+- `pokemonCategoryPageDataCached` key를 `pokemon-category-page-v2`로 올려 이전 `price-desc` cache를 무효화했다.
+- 로컬 Supabase에 view를 재생성하고, localhost HTML의 카드 href 순서가 표시 평균가 내림차순으로 바뀐 것을 확인했다.
+
+### 재발 방지
+
+- 정렬 기준이 화면에 보이는 가격과 같아야 할 때는 DB ranking SQL과 `mapCatalogCardRow()`/`buildPriceHistory()`의 가격 파생 규칙을 같이 검증한다.
+- `unstable_cache`가 걸린 서버 조회의 의미를 바꾸면 cache key를 버전업하거나 tag revalidation 경로를 함께 처리한다.
+
+## 로컬 Supabase migration history와 객체 상태 불일치
+
+### 문제
+
+2026-07-14 카테고리 `가격 높은순` 평균 판매 호가 ranking migration 검증 중 `pnpm dlx supabase migration up --local`이 `202607140002_restore_recommendation_sample_count.sql`에서 중단됐다. 로컬 DB에는 해당 migration 객체(`card_price_sample_count_rank`)가 이미 존재하지만 migration history에는 pending으로 남아 있어 `create materialized view public.card_price_sample_count_rank`가 다시 실행되는 상태로 보인다.
+
+### 처리
+
+- 새 `202607140003_rank_cards_by_average_asking_price.sql`은 컨테이너에 복사한 뒤 `psql -f`로 별도 적용해 SQL 실행을 검증했다.
+- `card_average_asking_price_rank` row 3,910개와 `get_cards_by_average_asking_price()` 상위 응답을 확인했다.
+
+### 재발 방지
+
+- 후속 로컬 migration 검증 전에는 기존 `202607140002` 적용 기록 보정 또는 로컬 DB reset 경로를 먼저 정리한다.
+- 이미 객체가 수동 적용된 로컬 DB에서 `migration up --local`이 pending migration을 재실행할 수 있으므로, migration history와 객체 상태를 같이 확인한다.
 
 ## 카테고리 카드 목록 duplicate key warning
 

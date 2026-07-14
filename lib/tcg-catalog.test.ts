@@ -8,6 +8,7 @@ import {
   derivePriceDisplayFromHistory,
   fetchSnapshotsByPrinting,
   getCardDetailBySlug,
+  getAverageAskingPriceCardIds,
   getRecommendedCardIds,
   mapCardDetailRow,
   mapPokemonCategoryPageData,
@@ -263,6 +264,23 @@ describe('tcg catalog view models', () => {
     expect(ids).toEqual([]);
   });
 
+  it('returns card ids in average asking price order for the explicit price sort', async () => {
+    const ids = await getAverageAskingPriceCardIds({
+      rpc: async (name: string) => {
+        expect(name).toBe('get_cards_by_average_asking_price');
+        return {
+          data: [
+            { card_id: 'expensive-card', average_asking_price: 200000 },
+            { card_id: 'cheaper-card', average_asking_price: 50000 },
+          ],
+          error: null,
+        };
+      },
+    } as never);
+
+    expect(ids).toEqual(['expensive-card', 'cheaper-card']);
+  });
+
   it('leaves explicitly sorted card arrays in their caller-provided order', () => {
     const cards: PokemonCatalogCard[] = [
       makeSimpleCard('kr-003-card', null),
@@ -272,6 +290,9 @@ describe('tcg catalog view models', () => {
 
     expect(
       sortPokemonCatalogCardsByRecommendation(cards, 'name-asc').map((card) => card.slug),
+    ).toEqual(['kr-003-card', 'kr-001-card', 'kr-002-card']);
+    expect(
+      sortPokemonCatalogCardsByRecommendation(cards, 'price-desc').map((card) => card.slug),
     ).toEqual(['kr-003-card', 'kr-001-card', 'kr-002-card']);
   });
 
